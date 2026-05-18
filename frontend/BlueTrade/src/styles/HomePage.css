@@ -7,7 +7,7 @@
   background:
     radial-gradient(circle at top left, rgba(0, 120, 255, 0.18), transparent 35%),
     linear-gradient(135deg, #f7fbff 0%, #eef6ff 45%, #ffffff 100%);
-  color: #102033;
+  color: #3D4F6E;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -52,13 +52,13 @@
 
 .nav-links a {
   text-decoration: none;
-  color: #4d5f73;
+  color: #3662AD;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .nav-links a:hover {
-  color: #0066ff;
+  color: #0F5FED;
 }
 
 .nav-actions {
@@ -83,18 +83,18 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0066ff, #00b8ff);
+  background: linear-gradient(135deg, #3662AD, #0F5FED);
   color: white;
   box-shadow: 0 12px 28px rgba(0, 102, 255, 0.28);
 }
 
 .btn-secondary {
-  color: #0066ff;
+  color: #EDA50E;
   background: rgba(0, 102, 255, 0.08);
 }
 
 .btn-outline {
-  color: #0066ff;
+  color: #3D4F6E;
   border: 2px solid rgba(0, 102, 255, 0.25);
   background: white;
 }
