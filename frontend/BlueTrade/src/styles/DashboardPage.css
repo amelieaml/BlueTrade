@@ -1,0 +1,807 @@
+/* ==========================================================================
+   BLUETRADE DASHBOARD - PREMIUM FINTECH STYLE
+   ========================================================================== */
+
+.dashboard-page-fintech {
+  width: 100%;
+  min-height: 100vh;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(0, 102, 204, 0.05) 0%, transparent 35%),
+    radial-gradient(circle at 100% 100%, rgba(0, 166, 200, 0.05) 0%, transparent 40%),
+    #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dashboard-main-content {
+  padding: 40px 6% 80px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   1. SECCIÓN HERO: BALANCE CENTRAL PREMIUM
+   ========================================================================== */
+.dashboard-balance-top-minimal {
+  background: linear-gradient(135deg, #0f2d59 0%, #001e42 100%);
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 32px;
+  box-shadow: 0 20px 40px rgba(15, 45, 89, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-balance-top-minimal::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(0, 166, 200, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.dashboard-balance-top-minimal ::before {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #38bdf8;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 8px;
+  content: 'SALDO DISPONIBLE';
+}
+
+.balance-numeric-display {
+  font-size: 52px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -1px;
+  margin: 0;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   2. BOTONES / PILLS DE ACCIÓN (SEGMENTED CONTROL)
+   ========================================================================== */
+.dashboard-actions-row {
+  display: flex;
+  gap: 8px;
+  background: #e2e8f0;
+  padding: 6px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  width: fit-content;
+}
+
+.action-pill-btn {
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.action-pill-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.action-pill-btn.active {
+  background: #ffffff;
+  color: #0066cc;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.pill-plus-icon {
+  font-weight: 700;
+  margin-right: 4px;
+  color: #0066cc;
+}
+
+/* Botón Destacado de Solicitudes */
+.action-pill-btn.highlight-cyan {
+  background: linear-gradient(135deg, #0066cc 0%, #00a6c8 100%);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.action-pill-btn.highlight-cyan:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 166, 200, 0.2);
+}
+
+.action-pill-btn.highlight-cyan.active {
+  background: linear-gradient(135deg, #0066cc 0%, #00a6c8 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 102, 204, 0.3);
+}
+
+/* Contenedor del Viewport de pestañas */
+.active-tab-content-viewport {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 48px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+
+/* ==========================================================================
+   3. CUADRÍCULA DE TARJETAS RECIENTES
+   ========================================================================== */
+.section-block-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 24px;
+  letter-spacing: -0.3px;
+}
+
+.homogeneous-cards-narrow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* Tarjeta Estándar */
+.fintech-homogeneous-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.01);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.fintech-homogeneous-card:hover {
+  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+}
+
+.card-top-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.card-tx-id {
+  font-family: monospace;
+  font-weight: 600;
+  color: #0066cc;
+  background: #f0f7ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.card-tx-date {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.card-label-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-main-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 4px 0 16px 0;
+  line-height: 1.3;
+}
+
+.card-metrics-row {
+  display: flex;
+  gap: 20px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #f1f5f9;
+}
+
+.card-metrics-row div {
+  flex: 1;
+}
+
+.card-metrics-row small {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.card-metrics-row p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card-footer-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.status-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.status-done { background: #e8f5e9; color: #2e7d32; }
+.status-pending { background: #fff8e1; color: #f57f17; }
+
+.card-action-view-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.card-action-view-btn:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+/* Tarjeta de Acción "Crear Nueva Oferta" (Línea discontinua elegante) */
+.fintech-dashed-add-card-homogeneous {
+  background: transparent;
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 220px;
+}
+
+.fintech-dashed-add-card-homogeneous:hover {
+  background: #ffffff;
+  border-color: #0066cc;
+  box-shadow: 0 12px 24px rgba(0, 102, 204, 0.04);
+  transform: translateY(-4px);
+}
+
+.plus-icon-ring-center {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.plus-sign {
+  font-size: 22px;
+  color: #64748b;
+  line-height: 1;
+}
+
+.add-card-text-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+
+.fintech-dashed-add-card-homogeneous:hover .plus-icon-ring-center {
+  border-color: #0066cc;
+  background-color: #f0f7ff;
+}
+
+.fintech-dashed-add-card-homogeneous:hover .plus-sign,
+.fintech-dashed-add-card-homogeneous:hover .add-card-text-label {
+  color: #0066cc;
+}
+
+/* Responsividad para la barra de navegación de pestañas */
+@media (max-width: 640px) {
+  .dashboard-actions-row {
+    width: 100%;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .action-pill-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ==========================================================================
+   EXTENSIONES PREMIUM: GRID OPERATIVO Y WIDGETS DE BLUETRADE
+   ========================================================================== */
+
+/* 1. Ajuste al Hero superior para soportar los indicadores rápidos */
+.dashboard-balance-top-minimal-premium {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card-dark, #111a2e); /* Ajusta a tu paleta oscura si aplica */
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(0, 242, 254, 0.15); /* Sutil toque cyan */
+}
+
+.balance-main-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-sub-label {
+  font-size: 0.85rem;
+  color: #8fa0bc;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.balance-unit-label {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #00f2fe; /* Cyan característico */
+}
+
+.balance-quick-metrics-aside {
+  display: flex;
+  gap: 20px;
+}
+
+.quick-metric-box {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: right;
+}
+
+.quick-metric-box small {
+  display: block;
+  font-size: 0.75rem;
+  color: #6c7d93;
+  margin-bottom: 2px;
+}
+
+.metric-highlight-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.metric-highlight-value.success-color {
+  color: #00e676; /* Verde de red estable */
+}
+
+/* 2. Botón de solicitudes integrado orgánicamente */
+.action-pill-btn.highlight-cyan-pill {
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid #00f2fe;
+  color: #00f2fe;
+}
+
+.action-pill-btn.highlight-cyan-pill:hover {
+  background: #00f2fe;
+  color: #0b111e;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+}
+
+/* 3. El nuevo Grid Doble de Operaciones */
+.dashboard-operations-twin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+
+@media (max-width: 768px) {
+  .dashboard-operations-twin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fintech-dashboard-widget-card {
+  background: #16223f; /* Ajustado a la estética de banca/fintech */
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.widget-header h4 {
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.widget-header p {
+  font-size: 0.8rem;
+  color: #8fa0bc;
+  margin: 0 0 16px 0;
+}
+
+/* Widget de Conversión Hídrica */
+.widget-body-calculator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calculator-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calc-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calc-field label {
+  font-size: 0.75rem;
+  color: #8fa0bc;
+}
+
+.fintech-input-text-dark {
+  background: #0b111e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.fintech-input-text-dark:focus {
+  border-color: #00f2fe;
+}
+
+.fintech-input-text-dark.read-only-input {
+  background: rgba(255, 255, 255, 0.02);
+  color: #00f2fe;
+  border-color: rgba(0, 242, 254, 0.2);
+  font-weight: 500;
+}
+
+.calc-arrow {
+  color: #00f2fe;
+  font-size: 1.2rem;
+  margin-top: 20px;
+}
+
+.calculator-meta-info {
+  font-size: 0.75rem;
+  color: #6c7d93;
+  margin: 4px 0;
+}
+
+.fintech-widget-action-btn {
+  background: #00f2fe;
+  color: #0b111e;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.fintech-widget-action-btn:hover {
+  opacity: 0.9;
+}
+
+/* Gráfico de Barras Simulado */
+.widget-analytics-placeholder-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar-graph-mock {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 120px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.graph-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 60px;
+}
+
+.graph-column small {
+  font-size: 0.7rem;
+  color: #8fa0bc;
+}
+
+.bar-fill {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease-in-out;
+}
+
+.bar-fill.color-water {
+  background: linear-gradient(180deg, #00f2fe 0%, #4facfe 100%);
+}
+
+.bar-fill.color-service {
+  background: linear-gradient(180deg, #b5179e 0%, #7209b7 100%);
+}
+
+.bar-fill.color-reserve {
+  background: linear-gradient(180deg, #00e676 0%, #00b0ff 100%);
+}
+
+.graph-legend-row {
+  font-size: 0.8rem;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* Enlace extra de historial abajo */
+.section-title-with-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title-with-link .section-block-title {
+  margin-bottom: 0;
+}
+
+.text-link-btn-navigation {
+  background: none;
+  border: none;
+  color: #00f2fe;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: text-shadow 0.2s;
+}
+
+.text-link-btn-navigation:hover {
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+/* ==========================================================================
+   EXTENSIONES INTEGRADAS: GRID OPERATIVO CON ESTILOS PROPIOS REUTILIZADOS
+   ========================================================================== */
+
+/* Botón de solicitudes adaptado a tu color-secondary */
+.action-pill-btn.highlight-cyan-pill {
+  background: rgba(0, 166, 200, 0.08);
+  border: 1px solid var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+.action-pill-btn.highlight-cyan-pill:hover {
+  background: var(--color-secondary);
+  color: white;
+}
+
+/* El nuevo Grid de Operaciones que contiene las Tarjetas */
+.dashboard-operations-twin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+  margin: 30px 0;
+}
+
+@media (max-width: 768px) {
+  .dashboard-operations-twin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Forzar que las tarjetas del grid ocupen todo el ancho de su celda */
+.widget-premium-override {
+  max-width: 100% !important;
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.widget-header p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Estructura interna del simulador de conversión */
+.widget-body-calculator {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.calculator-input-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.calc-field {
+  flex: 1;
+  margin-bottom: 0 !important; /* Quitar margen del formulario base */
+}
+
+.calc-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.calc-field input.read-only-input {
+  background: var(--color-background);
+  color: var(--color-primary);
+  font-weight: 700;
+  border-color: var(--color-border);
+}
+
+.calc-arrow {
+  color: var(--color-primary);
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 22px;
+}
+
+.calculator-meta-info {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* Botón del widget adaptado a tu linear-gradient corporativo de los CSS */
+.fintech-widget-action-btn {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #0066ff, #00b8ff);
+  transition: opacity 0.2s ease;
+  text-align: center;
+}
+
+.fintech-widget-action-btn:hover {
+  opacity: 0.9;
+}
+
+/* Gráfico de rendimiento usando tus azules de marca */
+.widget-analytics-placeholder-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar-graph-mock {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 110px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.graph-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 70px;
+}
+
+.graph-column small {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.bar-fill {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Colores consistentes sacados de tu HomePage y Components */
+.bar-fill.color-water {
+  background: linear-gradient(180deg, #00c2ff 0%, #0066ff 100%);
+}
+
+.bar-fill.color-service {
+  background: linear-gradient(180deg, #00a6c8 0%, #004a99 100%);
+}
+
+.bar-fill.color-reserve {
+  background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+}
+
+.graph-legend-row {
+  font-size: 13px;
+  color: var(--color-text);
+  text-align: left;
+  line-height: 1.4;
+}
+
+/* Enlace del título inferior */
+.section-title-with-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.text-link-btn-navigation {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-link-btn-navigation:hover {
+  text-decoration: underline;
+}
