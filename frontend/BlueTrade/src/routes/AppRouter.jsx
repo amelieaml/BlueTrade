@@ -10,10 +10,11 @@ function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
-        <Route path="/" element={<OfertasPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/ofertas" element={<OfertasPage />} />
       </Routes>
     </BrowserRouter>
   );

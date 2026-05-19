@@ -1,9 +1,62 @@
 import { useState } from 'react';
 import '../styles/RegisterPage.css';
+// IMPORTA TU FUNCIÓN DE AXIOS
+import { registrarUsuario } from '../api/item.api.js';
 
 function RegisterPage() {
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
+
+  // ESTADO PARA LOS CAMPOS DE TEXTO EXACTOS DEL DIAGRAMA
+  const [formData, setFormData] = useState({
+    nombre: '',
+    cedula: '', // Representa 'ci' en el diagrama
+    email: '',
+    telefono: '',
+    propiedad: '', // Representa 'codigoCasa' en el diagrama
+    password: '', // Representa 'contrasena'
+    confirmPassword: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Evita que la página se refresque
+    
+    if (formData.password !== formData.confirmPassword) {
+      alert("Las contraseñas no coinciden");
+      return;
+    }
+
+    // Mapeamos los datos del front a los atributos exactos de tu modelo de Django
+    const nuevoUsuario = {
+      ci: parseInt(formData.cedula), // Lo convertimos a int porque así está en el diagrama
+      nombre: formData.nombre,
+      email: formData.email,
+      telefono: formData.telefono,
+      intencion_agua: intencionAgua,
+      intencion_servicio: intencionServicio,
+      contrasena: formData.password,
+      codigo_casa: formData.propiedad,
+      certificado: intencionServicio // Por ahora enviamos True si tiene intención de servicio
+    };
+
+    try {
+      const respuesta = await registrarUsuario(nuevoUsuario);
+      console.log("Usuario creado:", respuesta.data);
+      alert("¡Registro enviado con éxito! El moderador revisará tus datos.");
+      // Aquí podrías redirigir al login si usas react-router-dom
+    } catch (error) {
+      console.error("Error al registrar:", error);
+      alert("Hubo un error al crear el usuario.");
+    }
+  };
 
   return (
     <div className="register-page">
@@ -64,7 +117,8 @@ function RegisterPage() {
             </p>
           </div>
 
-          <form className="register-form">
+          {/* ATAMOS EL EVENTO ONSUBMIT AL FORMULARIO */}
+          <form className="register-form" onSubmit={handleSubmit}>
             <div className="form-section">
               <h3>Datos personales</h3>
 
@@ -76,16 +130,22 @@ function RegisterPage() {
                     id="nombre"
                     name="nombre"
                     placeholder="Ej. Carlos Gonzalez"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="cedula">Documento de identidad</label>
+                  <label htmlFor="cedula">Documento de identidad (C.I.)</label>
                   <input
-                    type="text"
+                    type="number"
                     id="cedula"
                     name="cedula"
-                    placeholder="Ej. V-12345678"
+                    placeholder="Ej. 12345678"
+                    value={formData.cedula}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
@@ -96,6 +156,9 @@ function RegisterPage() {
                     id="email"
                     name="email"
                     placeholder="ejemplo@correo.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
@@ -105,7 +168,10 @@ function RegisterPage() {
                     type="tel"
                     id="telefono"
                     name="telefono"
-                    placeholder="Ej. +58 412 0000000"
+                    placeholder="Ej. 0412 0000000"
+                    value={formData.telefono}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
@@ -115,16 +181,7 @@ function RegisterPage() {
               <h3>Identificación de propiedad</h3>
 
               <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="urbanizacion">Urbanización</label>
-                  <input
-                    type="text"
-                    id="urbanizacion"
-                    name="urbanizacion"
-                    placeholder="Nombre de la urbanización"
-                  />
-                </div>
-
+                {/* SE ELIMINÓ EL CAMPO URBANIZACIÓN PARA RESPETAR EL DIAGRAMA */}
                 <div className="form-group">
                   <label htmlFor="propiedad">Código o número de propiedad</label>
                   <input
@@ -132,6 +189,9 @@ function RegisterPage() {
                     id="propiedad"
                     name="propiedad"
                     placeholder="Ej. Casa A-12 / Torre 3 Apt. 4B"
+                    value={formData.propiedad}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
@@ -206,6 +266,9 @@ function RegisterPage() {
                     id="password"
                     name="password"
                     placeholder="Crea una contraseña"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
@@ -216,6 +279,9 @@ function RegisterPage() {
                     id="confirmPassword"
                     name="confirmPassword"
                     placeholder="Repite la contraseña"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
