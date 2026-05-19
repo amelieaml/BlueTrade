@@ -1,12 +1,7 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import {getItems} from '../src/api/item.api.js'
-import { useEffect } from 'react'
+import AppRouter from './routes/AppRouter';
 
 function App() {
+<<<<<<< HEAD
   const [info, setInfo] = useState([]);
 
   useEffect(() => {
@@ -39,6 +34,9 @@ function App() {
       
     </>
   )
+=======
+  return <AppRouter />;
+>>>>>>> 23dd07f8f83b66dcbfae30656804cf913a232ffe
 }
 
 export default App;
