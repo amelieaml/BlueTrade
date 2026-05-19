@@ -38,7 +38,7 @@ function TarjetaOferta({ oferta, onVerDetalle }) {
 
   return (
     <article className="relative bg-white rounded-[20px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all flex flex-col h-full group">
-      <div className={`absolute left-0 top-8 bottom-8 w-1.5 rounded-r-md ${themeAccent} opacity-80 transition-opacity`}></div>
+      <div className={`absolute left-0 top-8 bottom-8 w-2.5 rounded-r-md ${themeAccent} opacity-80 transition-opacity`}></div>
 
       <div className="pl-3 flex flex-col h-full">
         {/* Cabecera: ID y Estado */}
