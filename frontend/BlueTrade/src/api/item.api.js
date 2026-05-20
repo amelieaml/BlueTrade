@@ -27,13 +27,15 @@ export const recargarAgua = async (idUsuario, cantidadLitros) => {
 export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertificado) => {
     const formData = new FormData();
     
-    // Adjuntamos los tres datos requeridos
-    formData.append('usuario_id', idUsuario);
-    formData.append('tipoServicio', tipoServicio);
-    formData.append('certificado', archivoCertificado); // El archivo binario único
+    // Adjuntamos las variables que tu serializer/__all__ espera recibir
+    formData.append('usuario', idUsuario); 
+    formData.append('tipo_servicio', tipoServicio); 
+    formData.append('archivo', archivoCertificado); 
 
-    // Enviamos la petición POST al endpoint del usuario específico
-    return axios.post(`${API_BASE_URL}${idUsuario}/guardar_certificado/`, formData, {
+    // URL estructurada según el prefijo /item/ y tu path('test/', ...)
+    const urlCertificados = 'http://127.0.0.1:8000/item/test/certificados/'; 
+
+    return axios.post(urlCertificados, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }
@@ -44,4 +46,12 @@ export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertifi
 
 export const loginUsuario = async (credenciales) => {
     return axios.post(`${API_BASE_URL}login/`, credenciales);
+};
+
+export const getCertificados = async (idUsuario) => {
+    return axios.get(`${API_BASE_URL}${idUsuario}/certificados/`);
+};
+
+export const getServicios = async (idUsuario) => {
+    return axios.get('http://127.0.0.1:8000/item/test/servicios/');
 };

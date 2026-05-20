@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
+from django.conf import settings
 
 class Residencia(models.Model):
     codigo = models.CharField(max_length=50, unique=True) 
@@ -59,16 +60,16 @@ class Usuario(AbstractBaseUser):
             return True
         return False
 
-class Certificado(models.Model):
-    usuario = models.ForeignKey(
-        Usuario, 
-        on_delete=models.CASCADE, 
-        related_name='certificados'
-    )
-    tipo_servicio = models.CharField(max_length=255)
-    
-    archivo = models.FileField(upload_to='comprobantes_certificados/')
-    creado_el = models.DateTimeField(auto_now_add=True)
+class Servicio(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(max_length=255, unique=True)
+    necesita_certificado = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.tipo_servicio} - {self.usuario.nombre}"
+        return self.nombre
+    
+class Certificado(models.Model):
+    archivo = models.FileField(upload_to='comprobantes_certificados/')
+    creado_el = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificados')
+    tipo_servicio = models.ForeignKey('Servicio', on_delete=models.CASCADE, related_name='certificados')

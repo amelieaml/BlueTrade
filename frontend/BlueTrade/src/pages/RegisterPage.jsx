@@ -1,20 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
-// IMPORTA TU FUNCIÓN DE AXIOS (Asegúrate de agregar guardarCertificado aquí)
-import { registrarUsuario, guardarCertificado } from '../api/item.api.js';
+// Asegúrate de tener getServicios exportado en tu archivo item.api.js
+import { registrarUsuario, guardarCertificado, getServicios } from '../api/item.api.js';
 
 function RegisterPage() {
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
   const [tipoServicioIntencion, setTipoServicioIntencion] = useState('');
 
-  // NUEVO: Estado simple para guardar el archivo único del certificado
+  // Estado simple para guardar el archivo único del certificado
   const [archivo, setArchivo] = useState(null);
-  //ERRORES
+  
+  // Estado para guardar la lista de servicios que viene de la BD
+  const [serviciosBD, setServiciosBD] = useState([]);
+
+  // ERRORES
   const [errorEmail, setErrorEmail] = useState('');
   const [errorCedula, setErrorCedula] = useState('');
   const [errorPropiedad, setErrorPropiedad] = useState('');
   const [error, setError] = useState('');
+  
   // ESTADO PARA LOS CAMPOS DE TEXTO EXACTOS DEL DIAGRAMA
   const [formData, setFormData] = useState({
     nombre: '',
@@ -25,6 +30,19 @@ function RegisterPage() {
     password: '', // Representa 'contrasena'
     confirmPassword: ''
   });
+
+  // useEffect para pedir los servicios apenas cargue la página
+  useEffect(() => {
+    const cargarServicios = async () => {
+      try {
+        const respuesta = await getServicios();
+        setServiciosBD(respuesta.data);
+      } catch (error) {
+        console.error("Error al cargar los servicios:", error);
+      }
+    };
+    cargarServicios();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -37,26 +55,31 @@ function RegisterPage() {
   };
 
   // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
+  // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND (CORREGIDA)
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Evita que la página se refresque
+    e.preventDefault();
     setErrorEmail('');
     setErrorCedula('');
     setErrorPropiedad('');
+    setError('');
+
     if (formData.password !== formData.confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
-    // Mapeamos los datos del front a los atributos exactos de tu modelo de Django
+
+    // 1. AQUÍ ESTÁ LA CORRECCIÓN: Agregamos tipo_servicio_intencion al payload
     const nuevoUsuario = {
-      ci: parseInt(formData.cedula), // Lo convertimos a int porque así está en el diagrama
+      ci: parseInt(formData.cedula),
       nombre: formData.nombre,
       email: formData.email,
       telefono: formData.telefono,
       intencion_agua: intencionAgua,
       intencion_servicio: intencionServicio,
+      tipo_servicio_intencion: tipoServicioIntencion, // <-- ESTO FALTABA
       password: formData.password,
       codigo_casa: formData.propiedad,
-      certificado: intencionServicio // Por ahora enviamos True si tiene intención de servicio
+      certificado: intencionServicio
     };
     
     try {
@@ -64,23 +87,42 @@ function RegisterPage() {
       const respuesta = await registrarUsuario(nuevoUsuario);
       alert("¡Usuario creado con éxito!");
 
-      // 2. Si quiere prestar servicio y subió un archivo, guardamos el certificado
-      if (intencionServicio && archivo) {
-        // Obtenemos el ID o la Cédula que nos devuelva Django
+      // DIAGNÓSTICO: Vamos a ver qué nos responde Django exactamente
+      console.log("Respuesta del backend al crear usuario:", respuesta.data);
+
+      // 2. Si quiere prestar servicio y seleccionó una especialidad, guardamos el certificado
+      if (intencionServicio && tipoServicioIntencion !== '') {
+        
+        // Obtenemos el ID que nos devuelve Django (asegúrate de que tu backend devuelva 'id' o 'ci')
         const idUsuario = respuesta.data.id || respuesta.data.ci;
         
-        // Llamamos a la función de la API de la forma más básica
-        await guardarCertificado(idUsuario, "Servicio Técnico", archivo);
-        alert("¡Certificado guardado con éxito!");
+        console.log("ID de usuario detectado para el certificado:", idUsuario);
+        console.log("Archivo actual en el estado:", archivo);
+
+        // Buscamos si el servicio seleccionado realmente requiere adjuntar archivo
+        const servicioSeleccionado = serviciosBD.find(s => s.id === Number(tipoServicioIntencion));
+        const requiereArchivo = servicioSeleccionado && servicioSeleccionado.necesita_certificado;
+
+        // Si el servicio requiere archivo y lo tenemos, O si el servicio NO requiere archivo (lo guardamos en la tabla sin archivo)
+        if (!requiereArchivo || (requiereArchivo && archivo)) {
+          await guardarCertificado(idUsuario, tipoServicioIntencion, archivo);
+          alert("¡Certificado registrado con éxito en la base de datos!");
+        } else {
+          alert("Este servicio requiere que adjuntes un archivo de certificado.");
+        }
       }
 
-      } catch (error) {
-      console.error("Error al registrar:", error);
+    } catch (error) {
+      console.error("Error detallado en la petición:", error);
+      
+      // Muestra en la consola el error exacto que arroja Django si la base de datos rechaza algo
+      if (error.response) {
+        console.error("Datos del error del backend:", error.response.data);
+      }
 
       if (error.response && error.response.data) {
-      const datosError = error.response.data;
+        const datosError = error.response.data;
 
-        // 2. Evaluamos de forma independiente cada error del backend
         if (datosError.codigo_casa) {
           setErrorPropiedad("Esta propiedad no existe o ya está ocupada.");
         } 
@@ -91,7 +133,6 @@ function RegisterPage() {
           setErrorCedula("El documento de identidad (C.I.) ya está registrado.");
         }
       } else {
-        // Usamos una alerta común si se cae el servidor para no romper el flujo
         alert("Hubo un error de conexión con el servidor.");
       }
     }
@@ -156,7 +197,6 @@ function RegisterPage() {
             </p>
           </div>
 
-          {/* ATAMOS EL EVENTO ONSUBMIT AL FORMULARIO */}
           <form className="register-form" onSubmit={handleSubmit}>
             <div className="form-section">
               <h3>Datos personales</h3>
@@ -268,20 +308,20 @@ function RegisterPage() {
                     {intencionServicio && (
                       <div 
                         className="my-2.5 animate-fadeIn"
-                        onClick={(e) => e.stopPropagation()} // Evita que al clickear el select se desmarque el checkbox
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <select 
                           name="tipoServicioIntencion"
-                          name="tipoServicioIntencion"
                           value={tipoServicioIntencion} 
-                          onChange={(e) => setTipoServicioIntencion(e.target.value)}         
+                          onChange={(e) => setTipoServicioIntencion(e.target.value)}        
                           className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[12px] py-1.5 px-2.5 text-xs font-semibold text-[#102033] outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10 cursor-pointer"
                         >
-                          <option value="" disabled selected hidden>Especialidad</option>
-                          <option value="electricidad">Electricidad</option>
-                          <option value="plomeria">Plomería</option>
-                          <option value="albañileria">Albañilería</option>
-                          <option value="mantenimiento">Mantenimiento General</option>
+                          <option value="" disabled hidden>Especialidad</option>
+                          {serviciosBD.map((servicio) => (
+                            <option key={servicio.id} value={servicio.id}>
+                              {servicio.nombre}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     )}
@@ -294,30 +334,39 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* SECCIÓN CONDICIONAL TOTALMENTE BÁSICA PARA UN SOLO ARCHIVO */}
-            {intencionServicio && tipoServicioIntencion === "electricidad" && (
-              <div className="form-section certificate-section">
-                <h3>Certificados técnicos</h3>
+            {/* SECCIÓN CONDICIONAL ACTUALIZADA CON BASE DE DATOS */}
+            {intencionServicio && tipoServicioIntencion !== "" && (() => {
+              const servicioSeleccionado = serviciosBD.find(
+                (s) => s.id === Number(tipoServicioIntencion)
+              );
+              const requiereArchivo = servicioSeleccionado && servicioSeleccionado.necesita_certificado;
 
-                <p>
-                  Carga el documento que permita verificar tu capacidad para
-                  prestar servicios técnicos dentro de la urbanización.
-                </p>
+              if (requiereArchivo) {
+                return (
+                  <div className="form-section certificate-section">
+                    <h3>Certificados técnicos</h3>
 
-                <div className="form-group">
-                  <label htmlFor="certificados">Adjuntar certificado</label>
-                  <input
-                    type="file"
-                    id="certificados"
-                    name="certificados"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    // Guardamos de forma directa el único archivo seleccionado
-                    onChange={(e) => setArchivo(e.target.files[0])}
-                    required
-                  />
-                </div>
-              </div>
-            )}
+                    <p>
+                      Carga el documento que permita verificar tu capacidad para
+                      prestar servicios técnicos dentro de la urbanización.
+                    </p>
+
+                    <div className="form-group">
+                      <label htmlFor="certificados">Adjuntar certificado</label>
+                      <input
+                        type="file"
+                        id="certificados"
+                        name="certificados"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => setArchivo(e.target.files[0])}
+                        required
+                      />
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="form-section">
               <h3>Credenciales de acceso</h3>
@@ -360,7 +409,7 @@ function RegisterPage() {
             <button type="submit" className="register-submit-btn">
               Enviar solicitud de registro
             </button>
-            {error && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorPropiedad}</span>}
+            {error && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{error}</span>}
           </form>
         </section>
       </main>

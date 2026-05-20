@@ -5,8 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 
-from .serializer import UsuarioSerializer
-from .models import Usuario, Certificado
+from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer
+from .models import Servicio, Usuario, Certificado
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -76,3 +76,13 @@ class UsuarioView(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
+class ServicioView(viewsets.ModelViewSet):
+    serializer_class = ServicioSerializer
+    queryset = Servicio.objects.all()
+
+class CertificadoView(viewsets.ModelViewSet):
+    serializer_class = CertificadoSerializer
+    queryset = Certificado.objects.all()
+    
+    # Esto es vital: le dice a Django cómo desempacar el archivo que viene desde React
+    parser_classes = (MultiPartParser, FormParser)

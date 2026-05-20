@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Certificado, Usuario, Residencia
+from .models import Certificado, Usuario, Residencia, Servicio
 
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
@@ -36,6 +36,25 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 # Serializer para la clase Certificado
 class CertificadoSerializer(serializers.ModelSerializer):
+    # 1. Declaramos un campo personalizado que se generará al vuelo
+    archivo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Certificado
-        fields = '__all__'  # Incluye de forma automática todos los atributos en el JSON
+        # 2. Agregamos el nuevo campo a la lista (puedes dejar '__all__' si prefieres, 
+        # pero es mejor ser explícito para evitar problemas)
+        fields = ['id', 'archivo', 'archivo_url', 'creado_el', 'usuario', 'tipo_servicio']
+
+    # 3. Esta función construye la URL completa
+    def get_archivo_url(self, obj):
+        request = self.context.get('request') # Obtenemos el contexto (quién nos está llamando)
+        if obj.archivo and hasattr(obj.archivo, 'url'):
+            if request is not None:
+                # build_absolute_uri toma '/media/comprobantes/archivo.pdf' y le pega 'http://127.0.0.1:8000'
+                return request.build_absolute_uri(obj.archivo.url)
+        return None
+        
+class ServicioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Servicio
+        fields = '__all__' 
