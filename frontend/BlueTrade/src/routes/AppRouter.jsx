@@ -6,6 +6,7 @@ import RegisterPage from '../pages/RegisterPage.jsx';
 import OfertasPage from '../pages/Ofertaspage.jsx';
 import DashboardPage from '../pages/Dashboardpage.jsx';
 import SolicitudesPage from '../pages/Solicitudes.jsx';
+import PerfilUsuario from '../pages/PerfilUsuario.jsx';
 
 function AppRouter() {
   return (
@@ -17,6 +18,7 @@ function AppRouter() {
         <Route path="/dashboard" element={<DashboardPage/>} />
         <Route path="/ofertas" element={<OfertasPage />} />
         <Route path="/solicitudes" element={<SolicitudesPage />} />
+        <Route path="/perfil" element={<PerfilUsuario />} />
       </Routes>
     </BrowserRouter>
   );

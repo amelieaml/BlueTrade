@@ -18,7 +18,7 @@ class UsuarioManager(BaseUserManager):
         
         # Por defecto, los registros normales no son administradores
         extra_fields.setdefault('es_admin', False)
-        extra_fields.setdefault('activo', True)
+        extra_fields.setdefault('activo', False) # Por defecto, los usuarios no están activos hasta que se verifique su residencia
         
         user = self.model(email=email, nombre=nombre, ci=ci, **extra_fields)
         user.set_password(password)  
@@ -30,6 +30,11 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, nombre, ci, password, **extra_fields)
+class EstadoUsuario(models.TextChoices):
+    ACTIVO = 'ACTIVO', 'Activo'
+    EN_ESPERA = 'EN_ESPERA', 'En Espera'
+    REVISION_PENDIENTE = 'REVISION_PENDIENTE', 'Revisión Pendiente'
+    RECHAZADO = 'RECHAZADO', 'Rechazado'
 
 class Usuario(AbstractBaseUser):
     ci = models.IntegerField(unique=True)
@@ -43,7 +48,11 @@ class Usuario(AbstractBaseUser):
     
     es_admin = models.BooleanField(default=False)
     certificado = models.BooleanField(default=False)
-    activo = models.BooleanField(default=True)
+    estado = models.CharField(
+        max_length=30,
+        choices=EstadoUsuario.choices,
+        default=EstadoUsuario.EN_ESPERA  # Por defecto entran en espera
+    )
     litros_agua = models.FloatField(default=0.0)
     
     codigo_casa = models.ForeignKey(Residencia, on_delete=models.PROTECT, to_field='codigo', db_column='codigo_casa')
@@ -52,6 +61,14 @@ class Usuario(AbstractBaseUser):
 
     USERNAME_FIELD = 'email' 
     REQUIRED_FIELDS = ['nombre', 'ci']
+
+    @property
+    def is_active(self):
+        """
+        Django requiere internamente la propiedad 'is_active' para ciertos métodos.
+        Hacemos que devuelva True SOLAMENTE si el estado del usuario es ACTIVO.
+        """
+        return self.estado == EstadoUsuario.ACTIVO
 
     def recargar_agua(self, cantidad):
         if cantidad > 0:

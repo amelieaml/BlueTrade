@@ -20,6 +20,16 @@ function NavbarDashboard({
 
   // Extraemos la inicial del nombre del usuario de forma segura
   const inicial = usuario?.nombre ? usuario.nombre.charAt(0).toUpperCase() : 'U';
+  const [estado, setEstado] = useState(false); // Por si acaso no tenemos el estado
+
+  const verificarEstado = () => {
+    if (usuario.estado== "ACTIVO") {
+      setEstado(true); // Asumimos que el estado viene en el objeto usuario
+    }
+  };
+
+  verificarEstado();
+
   return (
     <header className="navbar">
       
@@ -31,6 +41,9 @@ function NavbarDashboard({
 
       {/* SECCIÓN CENTRAL: Enlaces del Dashboard con clases de HomePage */}
       <nav className="nav-links">
+        {estado ? (
+          <> 
+          ):<></>}
         <a 
           href="/dashboard" 
           className={paginaActiva === 'dashboard' ? 'active' : ''}
@@ -38,7 +51,13 @@ function NavbarDashboard({
         >
           Vista General
         </a>
-        
+        <a 
+          href="/perfil" 
+          className={paginaActiva === 'perfil' ? 'active' : ''}
+          style={paginaActiva === 'perfil' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
+        >
+          Perfil
+        </a>
         <a 
           href="/ofertas" 
           className={paginaActiva === 'ofertas' ? 'active' : ''}
@@ -54,6 +73,7 @@ function NavbarDashboard({
         >
           Mis Intercambios
         </a>
+        
       </nav>
 
       {/* SECCIÓN DERECHA: Bloque de acciones con tu CSS tradicional */}
