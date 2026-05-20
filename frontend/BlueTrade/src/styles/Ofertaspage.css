@@ -1,0 +1,277 @@
+/* OfertasPage.css */
+
+.ofertas-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(0, 120, 255, 0.18), transparent 35%),
+    linear-gradient(135deg, #f7fbff 0%, #eef6ff 45%, #ffffff 100%);
+  color: #102033;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding: 32px 8% 80px;
+}
+
+/* =========================================
+   TOPBAR (Encabezado)
+========================================= */
+.ofertas-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* =========================================
+   NUEVO LAYOUT: Sidebar (Filtros) + Panel 
+========================================= */
+.ofertas-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr; /* 320px izq, resto derecha */
+  gap: 32px;
+  align-items: start;
+}
+
+/* =========================================
+   TARJETA DE FILTROS (Sidebar)
+========================================= */
+.tarjeta-filtros {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #dbe4ea);
+  border-radius: var(--radius-lg, 18px);
+  padding: 24px;
+  box-shadow: var(--shadow-soft, 0 8px 24px rgba(15, 23, 42, 0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--color-text, #1f2937);
+}
+
+.filtros-titulo {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border, #dbe4ea);
+}
+
+/* Modificamos tu antigua clase filtro-ofertas para que se adapte al sidebar */
+.filtro-ofertas {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+/* Forzar fondos blancos y estilos limpios en inputs para evitar el gris oscuro de la captura */
+.campo-formulario input,
+.filtro-ofertas select {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  width: 100%;
+  border: 1px solid var(--color-border, #dbe4ea);
+  border-radius: var(--radius-md, 12px);
+  padding: 13px 14px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.campo-formulario input:focus,
+.filtro-ofertas select:focus {
+  border-color: var(--color-primary, #0066cc);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+}
+
+.filtro-range {
+  width: 100%;
+  accent-color: var(--color-primary, #0066cc);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.range-extremos {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #91a0b2;
+  margin-top: 4px;
+}
+
+/* Tags del sidebar */
+.filtro-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.filtro-tag {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 102, 255, 0.15);
+  color: #637489;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filtro-tag:hover {
+  border-color: rgba(0, 102, 255, 0.35);
+  color: var(--color-primary, #0066cc);
+}
+
+.filtro-tag--activo {
+  background: rgba(0, 102, 255, 0.1) !important;
+  color: var(--color-primary, #0066cc);
+  border-color: rgba(0, 102, 255, 0.3);
+}
+
+/* =========================================
+   PANEL DE RESULTADOS Y TARJETAS
+========================================= */
+.resultados-count {
+  font-size: 14px;
+  color: #91a0b2;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.ofertas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Tarjeta individual (Misma altura y Footer abajo) */
+.oferta-card {
+  max-width: 100%;
+  height: 100%; /* Estira la tarjeta */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.oferta-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(20, 70, 140, 0.12);
+}
+
+.oferta-card__header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.oferta-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.oferta-badge--agua    { background: rgba(0, 102, 255, 0.1);   color: #0050c8; }
+.oferta-badge--tecnico { background: rgba(16, 185, 129, 0.12); color: #047857; }
+.oferta-badge--ambos   { background: rgba(245, 158, 11, 0.12); color: #92400e; }
+
+.oferta-usuario {
+  font-size: 13px;
+  color: #637489;
+  margin: -4px 0 0;
+}
+
+.oferta-metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.oferta-metrica {
+  background: #f3f8ff;
+  border-radius: 14px;
+  padding: 10px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.oferta-metrica__label {
+  font-size: 11px;
+  color: #91a0b2;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.oferta-metrica__valor {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-primary, #0066cc);
+}
+
+.oferta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.oferta-tag {
+  font-size: 12px;
+  background: rgba(0, 102, 255, 0.06);
+  color: #637489;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 102, 255, 0.1);
+}
+
+.oferta-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border, #dbe4ea);
+  padding-top: 16px;
+  margin-top: auto; /* Empuja el footer hacia el final de la tarjeta */
+}
+
+.oferta-fecha {
+  font-size: 12px;
+  color: #91a0b2;
+}
+
+/* Estado Vacío Modernizado */
+.ofertas-vacio {
+  text-align: center;
+  padding: 80px 20px;
+  color: #637489;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  border: 1px dashed rgba(0, 102, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+@media (max-width: 980px) {
+  .ofertas-page   { padding: 28px 6% 60px; }
+  
+  /* En tablets y móviles, pasamos a 1 columna (Filtros arriba, ofertas abajo) */
+  .ofertas-layout { 
+    grid-template-columns: 1fr; 
+    gap: 24px;
+  }
+}
+
+@media (max-width: 620px) {
+  .ofertas-page        { padding: 22px 5% 50px; }
+  .ofertas-topbar      { flex-direction: column; }
+  .ofertas-grid        { grid-template-columns: 1fr; }
+}
