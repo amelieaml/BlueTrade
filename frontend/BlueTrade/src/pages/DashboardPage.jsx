@@ -118,7 +118,7 @@ function DashboardPage() {
                 <svg className="w-6 h-6 stroke-[2.5] transition-transform duration-200 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-          </button>
+              </button>
               <span className="text-[11px] font-bold text-[#102033] tracking-wide">Crear oferta</span>
             </div>
 
@@ -160,8 +160,8 @@ function DashboardPage() {
                 <span className="text-[11px] font-bold text-[#5d6f82] tracking-wide">Solicitudes</span>
               </div>
             )}
-              </div>
-            </div>
+          </div>
+        </div>
 
         {/* LISTADO DE OFERTAS */}
         <div className="w-full">
@@ -172,8 +172,8 @@ function DashboardPage() {
           />
         </div>
 
-          </div>
-          
+      </div>
+
       {/* =========================================================================
           VENTANA MODAL REFACTORIZADA 100% CON CLASES DE TAILWIND
           ========================================================================= */}
@@ -213,7 +213,7 @@ function DashboardPage() {
                     Ofrece
                   </span>
                 </div>
-                
+
                 {/* Campos del input */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
@@ -258,8 +258,8 @@ function DashboardPage() {
                       </select>
                     </div>
                   )}
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {/* Separador de flujo */}
               <div className="flex justify-center -my-2 shrink-0">
@@ -362,8 +362,8 @@ function DashboardPage() {
                   className="border-none cursor-pointer rounded-full py-3 px-6 text-sm font-bold text-white bg-gradient-to-r from-[#0066ff] to-[#00b8ff] shadow-[0_10px_22px_rgba(0,102,255,0.2)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(0,102,255,0.28)] sm:col-span-2"
                 >
                   Publicar oferta de intercambio
-            </button>
-          </div>
+                </button>
+              </div>
 
             </form>
           </div>
