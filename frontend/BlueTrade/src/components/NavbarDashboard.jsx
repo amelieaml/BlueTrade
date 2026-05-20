@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,22 +13,23 @@ function NavbarDashboard({
   const { usuario, cerrarSesion } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    cerrarSesion();
-    navigate('/login'); // Redirige al login de inmediato
-  };
+ 
 
   // Extraemos la inicial del nombre del usuario de forma segura
   const inicial = usuario?.nombre ? usuario.nombre.charAt(0).toUpperCase() : 'U';
-  const [estado, setEstado] = useState(false); // Por si acaso no tenemos el estado
+  const [usuarioActivo, setUsuarioActivo] = useState(false); // Por si acaso no tenemos el estado
 
-  const verificarEstado = () => {
-    if (usuario.estado== "ACTIVO") {
-      setEstado(true); // Asumimos que el estado viene en el objeto usuario
+ useEffect(() => {
+    if (usuario?.estado === "ACTIVO") {
+      setUsuarioActivo(true);
+    } else {
+      setUsuarioActivo(false);
     }
+  }, [usuario]);
+   const handleLogout = () => {
+    cerrarSesion();
+    navigate('/login'); // Redirige al login de inmediato
   };
-
-  verificarEstado();
 
   return (
     <header className="navbar">
@@ -41,16 +42,32 @@ function NavbarDashboard({
 
       {/* SECCIÓN CENTRAL: Enlaces del Dashboard con clases de HomePage */}
       <nav className="nav-links">
-        {estado ? (
+        {usuarioActivo && (
+          <a 
+            href="/dashboard" 
+            className={paginaActiva === 'dashboard' ? 'active' : ''}
+            style={paginaActiva === 'dashboard' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
+          >
+            Vista General
+          </a>)}
+         {usuarioActivo && (
+          <a 
+            href="/ofertas" 
+            className={paginaActiva === 'ofertas' ? 'active' : ''}
+            style={paginaActiva === 'ofertas' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
+          >
+            Explorar Ofertas
+          </a>)}
+        {usuarioActivo && (
           <> 
-          ):<></>}
-        <a 
-          href="/dashboard" 
-          className={paginaActiva === 'dashboard' ? 'active' : ''}
-          style={paginaActiva === 'dashboard' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
-        >
-          Vista General
-        </a>
+          <a 
+            href="/historial" 
+            className={paginaActiva === 'historial' ? 'active' : ''}
+            style={paginaActiva === 'historial' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
+          >
+            Mis Intercambios
+          </a>
+        </>)}
         <a 
           href="/perfil" 
           className={paginaActiva === 'perfil' ? 'active' : ''}
@@ -58,22 +75,6 @@ function NavbarDashboard({
         >
           Perfil
         </a>
-        <a 
-          href="/ofertas" 
-          className={paginaActiva === 'ofertas' ? 'active' : ''}
-          style={paginaActiva === 'ofertas' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
-        >
-          Explorar Ofertas
-        </a>
-        
-        <a 
-          href="/historial" 
-          className={paginaActiva === 'historial' ? 'active' : ''}
-          style={paginaActiva === 'historial' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
-        >
-          Mis Intercambios
-        </a>
-        
       </nav>
 
       {/* SECCIÓN DERECHA: Bloque de acciones con tu CSS tradicional */}
