@@ -23,3 +23,19 @@ export const recargarAgua = async (idUsuario, cantidadLitros) => {
         cantidad: cantidadLitros
     });
 };
+
+export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertificado) => {
+    const formData = new FormData();
+    
+    // Adjuntamos los tres datos requeridos
+    formData.append('usuario_id', idUsuario);
+    formData.append('tipoServicio', tipoServicio);
+    formData.append('certificado', archivoCertificado); // El archivo binario único
+
+    // Enviamos la petición POST al endpoint del usuario específico
+    return axios.post(`${API_BASE_URL}${idUsuario}/guardar_certificado/`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};

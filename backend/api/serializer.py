@@ -1,16 +1,20 @@
 from rest_framework import serializers
-from .models import Item
-from .models import Usuario
+from .models import Certificado, Item, Usuario
 
-#TRADUCE EL CODIGO DE PYTHON A JSON PARA QUE PUEDA SER ENVIADO A TRAVES DE LA API
-
+# Serializer para la clase Item
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = '__all__'
 
-# NUEVA CONEXIÓN: Serializer para la clase Usuario
+# Serializer para la clase Usuario
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = '__all__' # Incluye de forma automática todos los atributos en el JSON
+        fields = '__all__'  # Incluye de forma automática todos los atributos en el JSON
+
+# Serializer para la clase Certificado
+class CertificadoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certificado
+        fields = '__all__'  # Incluye de forma automática todos los atributos en el JSON

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import '../styles/RegisterPage.css';
-// IMPORTA TU FUNCIÓN DE AXIOS
-import { registrarUsuario } from '../api/item.api.js';
+// IMPORTA TU FUNCIÓN DE AXIOS (Asegúrate de agregar guardarCertificado aquí)
+import { registrarUsuario, guardarCertificado } from '../api/item.api.js';
 
 function RegisterPage() {
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
+  const [tipoServicioIntencion, setTipoServicioIntencion] = useState('');
+
+  // NUEVO: Estado simple para guardar el archivo único del certificado
+  const [archivo, setArchivo] = useState(null);
 
   // ESTADO PARA LOS CAMPOS DE TEXTO EXACTOS DEL DIAGRAMA
   const [formData, setFormData] = useState({
@@ -48,13 +52,23 @@ function RegisterPage() {
     };
 
     try {
+      // 1. Registramos al usuario primero
       const respuesta = await registrarUsuario(nuevoUsuario);
-      console.log("Usuario creado:", respuesta.data);
-      alert("¡Registro enviado con éxito! El moderador revisará tus datos.");
-      // Aquí podrías redirigir al login si usas react-router-dom
+      alert("¡Usuario creado con éxito!");
+
+      // 2. Si quiere prestar servicio y subió un archivo, guardamos el certificado
+      if (intencionServicio && archivo) {
+        // Obtenemos el ID o la Cédula que nos devuelva Django
+        const idUsuario = respuesta.data.id || respuesta.data.ci;
+        
+        // Llamamos a la función de la API de la forma más básica
+        await guardarCertificado(idUsuario, "Servicio Técnico", archivo);
+        alert("¡Certificado guardado con éxito!");
+      }
+
     } catch (error) {
       console.error("Error al registrar:", error);
-      alert("Hubo un error al crear el usuario.");
+      alert("Hubo un error en el proceso de registro.");
     }
   };
 
@@ -181,7 +195,6 @@ function RegisterPage() {
               <h3>Identificación de propiedad</h3>
 
               <div className="form-grid">
-                {/* SE ELIMINÓ EL CAMPO URBANIZACIÓN PARA RESPETAR EL DIAGRAMA */}
                 <div className="form-group">
                   <label htmlFor="propiedad">Código o número de propiedad</label>
                   <input
@@ -224,6 +237,26 @@ function RegisterPage() {
                   />
                   <div>
                     <strong>Prestar servicios técnicos</strong>
+                    {intencionServicio && (
+                      <div 
+                        className="my-2.5 animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()} // Evita que al clickear el select se desmarque el checkbox
+                      >
+                        <select 
+                          name="tipoServicioIntencion"
+                          name="tipoServicioIntencion"
+                          value={tipoServicioIntencion} 
+                          onChange={(e) => setTipoServicioIntencion(e.target.value)}         
+                          className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[12px] py-1.5 px-2.5 text-xs font-semibold text-[#102033] outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10 cursor-pointer"
+                        >
+                          <option value="" disabled selected hidden>Especialidad</option>
+                          <option value="electricidad">Electricidad</option>
+                          <option value="plomeria">Plomería</option>
+                          <option value="albañileria">Albañilería</option>
+                          <option value="mantenimiento">Mantenimiento General</option>
+                        </select>
+                      </div>
+                    )}
                     <span>
                       Deseo ofrecer mantenimiento técnico en infraestructuras
                       comunes.
@@ -233,23 +266,26 @@ function RegisterPage() {
               </div>
             </div>
 
-            {intencionServicio && (
+            {/* SECCIÓN CONDICIONAL TOTALMENTE BÁSICA PARA UN SOLO ARCHIVO */}
+            {intencionServicio && tipoServicioIntencion === "electricidad" && (
               <div className="form-section certificate-section">
                 <h3>Certificados técnicos</h3>
 
                 <p>
-                  Carga documentos que permitan verificar tu capacidad para
+                  Carga el documento que permita verificar tu capacidad para
                   prestar servicios técnicos dentro de la urbanización.
                 </p>
 
                 <div className="form-group">
-                  <label htmlFor="certificados">Adjuntar certificados</label>
+                  <label htmlFor="certificados">Adjuntar certificado</label>
                   <input
                     type="file"
                     id="certificados"
                     name="certificados"
-                    multiple
                     accept=".pdf,.jpg,.jpeg,.png"
+                    // Guardamos de forma directa el único archivo seleccionado
+                    onChange={(e) => setArchivo(e.target.files[0])}
+                    required
                   />
                 </div>
               </div>

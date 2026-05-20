@@ -32,3 +32,20 @@ class Usuario(models.Model):
             self.save() # Guarda los cambios de forma persistente
             return True
         return False
+
+class Certificado(models.Model):
+    # CORRECCIÓN 1: Apuntamos directamente a tu clase 'Usuario' (sin comillas porque está arriba)
+    usuario = models.ForeignKey(
+        Usuario, 
+        on_delete=models.CASCADE, 
+        related_name='certificados'
+    )
+    tipo_servicio = models.CharField(max_length=255)
+    
+    # CORRECCIÓN 2: Cambiado 'upload_or' por 'upload_to'
+    archivo = models.FileField(upload_to='comprobantes_certificados/')
+    creado_el = models.DateTimeField(auto_now_add=True)
+
+    # CORRECCIÓN 3: Ajustado para usar '.nombre' en lugar de '.username'
+    def __str__(self):
+        return f"{self.tipo_servicio} - {self.usuario.nombre}"
