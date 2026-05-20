@@ -1,11 +1,25 @@
 import React from 'react';
 
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 function NavbarDashboard({ 
   paginaActiva = 'dashboard',
   nombreApp = "BlueTrade",
   textoBoton = "Cerrar sesión",
   onBotonClick
 }) {
+  const { usuario, cerrarSesion } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    cerrarSesion();
+    navigate('/login'); // Redirige al login de inmediato
+  };
+
+  // Extraemos la inicial del nombre del usuario de forma segura
+  const inicial = usuario?.nombre ? usuario.nombre.charAt(0).toUpperCase() : 'U';
   return (
     <header className="navbar">
       
@@ -60,14 +74,14 @@ function NavbarDashboard({
             fontWeight: 'bold',
             border: '1px solid rgba(0, 102, 255, 0.2)'
           }}>
-            M
+            {inicial}
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#102033' }}>Manuel R.</span>
+          <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#102033' }}>{usuario?.nombre}</span>
         </div>
         
         {/* Botón Principal usando tus estilos base .btn y .btn-primary */}
         <button 
-          onClick={onBotonClick}
+          onClick={handleLogout}
           className="btn btn-primary"
           style={{ cursor: 'pointer', border: 'none' }}
         >

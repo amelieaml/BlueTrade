@@ -1,40 +1,56 @@
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 
-#DEFINE LA ESTRUCTURA DE LA BASE DE DATOS
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, nombre, ci, contrasena=None, **extra_fields):
+        if not email:
+            raise ValueError('El email es obligatorio')
+        email = self.normalize_email(email)
+        
+        # Por defecto, los registros normales no son administradores
+        extra_fields.setdefault('es_admin', False)
+        extra_fields.setdefault('activo', True)
+        
+        user = self.model(email=email, nombre=nombre, ci=ci, **extra_fields)
+        user.set_password(contrasena)  # <-- ¡Aquí ocurre la encriptación! 🔐
+        user.save(using=self._db)
+        return user
 
-# Create your models here.
-class Item(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    def create_superuser(self, email, nombre, ci, contrasena=None, **extra_fields):
+        extra_fields.setdefault('es_admin', True)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, nombre, ci, contrasena, **extra_fields)
 
-# NUEVA CONEXIÓN: Clase Usuario de tu diagrama
-class Usuario(models.Model):
+class Usuario(AbstractBaseUser):
     ci = models.IntegerField(unique=True)
     nombre = models.CharField(max_length=100)
-    email = models.EmailField()
+    email = models.EmailField(unique=True)  
     telefono = models.CharField(max_length=20)
+    
     intencion_agua = models.BooleanField(default=False)
     intencion_servicio = models.BooleanField(default=False)
-    contrasena = models.CharField(max_length=100)
+    tipo_servicio_intencion = models.CharField(max_length=50, blank=True, null=True)
+    
+    es_admin = models.BooleanField(default=False)
     certificado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
     litros_agua = models.FloatField(default=0.0)
     codigo_casa = models.CharField(max_length=50)
 
-    # MÉTODO ESPECÍFICO DE LA CLASE
+    objects = UsuarioManager()
+
+    USERNAME_FIELD = 'email' 
+    REQUIRED_FIELDS = ['nombre', 'ci']
+
     def recargar_agua(self, cantidad):
-        """Suma litros al balance del usuario y guarda directamente en Supabase."""
         if cantidad > 0:
             self.litros_agua += cantidad
-            self.save() # Guarda los cambios de forma persistente
+            self.save()
             return True
         return False
 
 class Certificado(models.Model):
-    # CORRECCIÓN 1: Apuntamos directamente a tu clase 'Usuario' (sin comillas porque está arriba)
     usuario = models.ForeignKey(
         Usuario, 
         on_delete=models.CASCADE, 
@@ -42,10 +58,8 @@ class Certificado(models.Model):
     )
     tipo_servicio = models.CharField(max_length=255)
     
-    # CORRECCIÓN 2: Cambiado 'upload_or' por 'upload_to'
     archivo = models.FileField(upload_to='comprobantes_certificados/')
     creado_el = models.DateTimeField(auto_now_add=True)
 
-    # CORRECCIÓN 3: Ajustado para usar '.nombre' en lugar de '.username'
     def __str__(self):
         return f"{self.tipo_servicio} - {self.usuario.nombre}"

@@ -1,6 +1,43 @@
+import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext'; 
 import '../styles/LoginPage.css';
+import { loginUsuario } from '../api/item.api.js';
 
 function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setLoading(true);
+
+    try {
+      const response = await loginUsuario({ email, password });
+
+      login(response.data.user);
+
+      navigate('/dashboard'); 
+      
+    } catch (error) {
+      console.error("Error en el login:", error);
+      // Capturamos el error estructurado que configuramos en Django
+      if (error.response?.data?.error) {
+        setErrorMsg(error.response.data.error);
+      } else {
+        setErrorMsg('No se pudo conectar con el servidor. Inténtalo más tarde.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-background"></div>
@@ -58,7 +95,7 @@ function LoginPage() {
             <p>Ingresa tus credenciales para continuar.</p>
           </div>
 
-          <form className="login-form">
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="email">Correo electrónico</label>
               <input
@@ -67,6 +104,9 @@ function LoginPage() {
                 name="email"
                 placeholder="ejemplo@correo.com"
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -78,9 +118,12 @@ function LoginPage() {
                 name="password"
                 placeholder="Ingresa tu contraseña"
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
-
+            {errorMsg && <p className="login-error-message" style={{color: 'red', fontSize: '0.85rem', marginTop: '10px'}}>{errorMsg}</p>}
             <div className="login-options">
               <label className="remember-option">
                 <input type="checkbox" />

@@ -1,12 +1,13 @@
 // DashboardPage.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
 import PanelMisOfertas from '../components/PanelMisOfertas';
 
 // Importamos el archivo de estilos para heredar la tipografía y los cimientos de diseño
 import '../styles/RegisterPage.css';
-
 const MIS_OFERTAS_MOCK = [
   {
     id: 'OFE-001',
@@ -26,6 +27,8 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [isModerator] = useState(true);
   const [saldoLitros] = useState(3250);
+  
+  const { usuario, cerrarSesion } = useContext(AuthContext);
   
   // Estado para controlar la apertura y cierre de la modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,7 +96,7 @@ function DashboardPage() {
           <div className="w-full flex flex-col items-center text-center relative overflow-hidden group mb-6">
             <div className="relative z-10 flex flex-col items-center w-full">
               <h2 className="text-xs font-bold text-[#6a7b8f] uppercase tracking-wider m-0 mb-3">
-                Saldo Disponible
+                {usuario?.nombre} - Saldo Disponible
               </h2>
               <h1 className="text-5xl md:text-6xl font-black tracking-[-2.5px] text-[#102033] m-0 leading-none select-none">
                 {saldoWaterCoins}

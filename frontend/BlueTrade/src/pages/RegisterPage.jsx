@@ -46,7 +46,7 @@ function RegisterPage() {
       telefono: formData.telefono,
       intencion_agua: intencionAgua,
       intencion_servicio: intencionServicio,
-      contrasena: formData.password,
+      password: formData.password,
       codigo_casa: formData.propiedad,
       certificado: intencionServicio // Por ahora enviamos True si tiene intención de servicio
     };

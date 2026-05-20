@@ -5,14 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 
-# Imports unificados y corregidos en singular
-from .serializer import ItemSerializer, UsuarioSerializer
-from .models import Item, Usuario, Certificado
-
-# Create your views here.
-class ItemView(viewsets.ModelViewSet):
-    serializer_class = ItemSerializer
-    queryset = Item.objects.all()
+from .serializer import UsuarioSerializer
+from .models import Usuario, Certificado
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -26,10 +20,8 @@ class UsuarioView(viewsets.ModelViewSet):
             return Response({"status": "Recarga exitosa", "nuevo_saldo_litros": usuario.litros_agua})
         return Response({"error": "La cantidad debe ser mayor a 0"}, status=400)
 
-    # NUEVO @ACTION PARA QUE COINCIDA CON TU URL ACTUAL DE REACT
     @action(detail=True, methods=['post'], parser_classes=(MultiPartParser, FormParser), url_path='guardar_certificado')
     def guardar_certificado(self, request, pk=None):
-        # Como usas detail=True, Django busca al usuario usando el PK de la URL automáticamente
         try:
             usuario_instancia = self.get_object() 
             tipo_servicio = request.data.get('tipoServicio')
@@ -49,3 +41,38 @@ class UsuarioView(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'], url_path='login')
+    def login(self, request):
+        from django.contrib.auth import authenticate
+        
+        email = request.data.get('email')
+        password = request.data.get('password') 
+
+        if not email or not password:
+            return Response(
+                {"error": "El correo y la contraseña son obligatorios"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(username=email, password=password)
+
+        if user is not None:
+            if not user.activo:
+                return Response(
+                    {"error": "Este usuario se encuentra deshabilitado"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            serializer = self.get_serializer(user)
+            
+            return Response({
+                "message": "Inicio de sesión exitoso",
+                "user": serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"error": "Credenciales inválidas. Verifica tu correo y contraseña"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        

@@ -39,3 +39,9 @@ export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertifi
         }
     });
 };
+
+// 4. Iniciar Sesión (Login)
+
+export const loginUsuario = async (credenciales) => {
+    return axios.post(`${API_BASE_URL}login/`, credenciales);
+};
