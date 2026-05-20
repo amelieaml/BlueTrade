@@ -1,8 +1,16 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 
+class Residencia(models.Model):
+    codigo = models.CharField(max_length=50, unique=True) 
+    ocupada = models.BooleanField(default=False) 
+
+    def __str__(self):
+        estado = "Ocupada" if self.ocupada else "Disponible"
+        return f"{self.codigo} - {estado}"
+    
 class UsuarioManager(BaseUserManager):
-    def create_user(self, email, nombre, ci, contrasena=None, **extra_fields):
+    def create_user(self, email, nombre, ci, password=None, **extra_fields):
         if not email:
             raise ValueError('El email es obligatorio')
         email = self.normalize_email(email)
@@ -12,15 +20,15 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault('activo', True)
         
         user = self.model(email=email, nombre=nombre, ci=ci, **extra_fields)
-        user.set_password(contrasena)  # <-- ¡Aquí ocurre la encriptación! 🔐
+        user.set_password(password)  
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, nombre, ci, contrasena=None, **extra_fields):
+    def create_superuser(self, email, nombre, ci, password=None, **extra_fields):
         extra_fields.setdefault('es_admin', True)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, nombre, ci, contrasena, **extra_fields)
+        return self.create_user(email, nombre, ci, password, **extra_fields)
 
 class Usuario(AbstractBaseUser):
     ci = models.IntegerField(unique=True)
@@ -36,8 +44,9 @@ class Usuario(AbstractBaseUser):
     certificado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
     litros_agua = models.FloatField(default=0.0)
-    codigo_casa = models.CharField(max_length=50)
-
+    
+    codigo_casa = models.ForeignKey(Residencia, on_delete=models.PROTECT, to_field='codigo', db_column='codigo_casa')
+    
     objects = UsuarioManager()
 
     USERNAME_FIELD = 'email' 

@@ -10,7 +10,11 @@ function RegisterPage() {
 
   // NUEVO: Estado simple para guardar el archivo único del certificado
   const [archivo, setArchivo] = useState(null);
-
+  //ERRORES
+  const [errorEmail, setErrorEmail] = useState('');
+  const [errorCedula, setErrorCedula] = useState('');
+  const [errorPropiedad, setErrorPropiedad] = useState('');
+  const [error, setError] = useState('');
   // ESTADO PARA LOS CAMPOS DE TEXTO EXACTOS DEL DIAGRAMA
   const [formData, setFormData] = useState({
     nombre: '',
@@ -27,17 +31,21 @@ function RegisterPage() {
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (e.target.name === 'email') setErrorEmail('');
+    if (e.target.name === 'cedula') setErrorCedula('');
+    if (e.target.name === 'propiedad') setErrorPropiedad('');
   };
 
   // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
   const handleSubmit = async (e) => {
     e.preventDefault(); // Evita que la página se refresque
-    
+    setErrorEmail('');
+    setErrorCedula('');
+    setErrorPropiedad('');
     if (formData.password !== formData.confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
-
     // Mapeamos los datos del front a los atributos exactos de tu modelo de Django
     const nuevoUsuario = {
       ci: parseInt(formData.cedula), // Lo convertimos a int porque así está en el diagrama
@@ -50,7 +58,7 @@ function RegisterPage() {
       codigo_casa: formData.propiedad,
       certificado: intencionServicio // Por ahora enviamos True si tiene intención de servicio
     };
-
+    
     try {
       // 1. Registramos al usuario primero
       const respuesta = await registrarUsuario(nuevoUsuario);
@@ -66,9 +74,26 @@ function RegisterPage() {
         alert("¡Certificado guardado con éxito!");
       }
 
-    } catch (error) {
+      } catch (error) {
       console.error("Error al registrar:", error);
-      alert("Hubo un error en el proceso de registro.");
+
+      if (error.response && error.response.data) {
+      const datosError = error.response.data;
+
+        // 2. Evaluamos de forma independiente cada error del backend
+        if (datosError.codigo_casa) {
+          setErrorPropiedad("Esta propiedad no existe o ya está ocupada.");
+        } 
+        if (datosError.email) {
+          setErrorEmail("El correo electrónico ya se encuentra registrado.");
+        }
+        if (datosError.ci) {
+          setErrorCedula("El documento de identidad (C.I.) ya está registrado.");
+        }
+      } else {
+        // Usamos una alerta común si se cae el servidor para no romper el flujo
+        alert("Hubo un error de conexión con el servidor.");
+      }
     }
   };
 
@@ -161,6 +186,7 @@ function RegisterPage() {
                     onChange={handleChange}
                     required
                   />
+                  {errorCedula && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorCedula}</span>}
                 </div>
 
                 <div className="form-group">
@@ -174,6 +200,7 @@ function RegisterPage() {
                     onChange={handleChange}
                     required
                   />
+                  {errorEmail && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorEmail}</span>}
                 </div>
 
                 <div className="form-group">
@@ -206,6 +233,7 @@ function RegisterPage() {
                     onChange={handleChange}
                     required
                   />
+                  {errorPropiedad && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorPropiedad}</span>}
                 </div>
               </div>
             </div>
@@ -332,6 +360,7 @@ function RegisterPage() {
             <button type="submit" className="register-submit-btn">
               Enviar solicitud de registro
             </button>
+            {error && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorPropiedad}</span>}
           </form>
         </section>
       </main>
