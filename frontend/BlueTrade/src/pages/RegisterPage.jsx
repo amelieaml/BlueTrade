@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
 // Asegúrate de tener getServicios exportado en tu archivo item.api.js
-import { registrarUsuario, guardarCertificado, getServicios } from '../api/item.api.js';
-
+import { registrarUsuario, guardarCertificado, getServicios, registrarUsuarioCompleto } from '../api/item.api.js';
+import { useNavigate } from 'react-router-dom';
 function RegisterPage() {
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
@@ -58,17 +58,20 @@ function RegisterPage() {
   // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND (CORREGIDA)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 0. Limpieza inicial de errores
     setErrorEmail('');
     setErrorCedula('');
     setErrorPropiedad('');
     setError('');
 
+    // 1. Validación de contraseñas
     if (formData.password !== formData.confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
 
-    // 1. AQUÍ ESTÁ LA CORRECCIÓN: Agregamos tipo_servicio_intencion al payload
+    // 2. Preparación del payload (según tu modelo)
     const nuevoUsuario = {
       ci: parseInt(formData.cedula),
       nombre: formData.nombre,
@@ -76,65 +79,56 @@ function RegisterPage() {
       telefono: formData.telefono,
       intencion_agua: intencionAgua,
       intencion_servicio: intencionServicio,
-      tipo_servicio_intencion: tipoServicioIntencion, // <-- ESTO FALTABA
+      tipo_servicio_intencion: tipoServicioIntencion || null,
       password: formData.password,
       codigo_casa: formData.propiedad,
-      certificado: intencionServicio
+      certificado: intencionServicio // Marcador booleano
     };
     
     try {
-      // 1. Registramos al usuario primero
-      const respuesta = await registrarUsuario(nuevoUsuario);
-      alert("¡Usuario creado con éxito!");
+      // 3. Registro del Usuario
+      const respuesta = await registrarUsuarioCompleto(nuevoUsuario);
+      const idUsuario = respuesta.data.id; 
 
-      // DIAGNÓSTICO: Vamos a ver qué nos responde Django exactamente
-      console.log("Respuesta del backend al crear usuario:", respuesta.data);
-
-      // 2. Si quiere prestar servicio y seleccionó una especialidad, guardamos el certificado
-      if (intencionServicio && tipoServicioIntencion !== '') {
+      // 4. Lógica de Certificados (Solo si aplica)
+      if (intencionServicio && tipoServicioIntencion) {
         
-        // Obtenemos el ID que nos devuelve Django (asegúrate de que tu backend devuelva 'id' o 'ci')
-        const idUsuario = respuesta.data.id || respuesta.data.ci;
-        
-        console.log("ID de usuario detectado para el certificado:", idUsuario);
-        console.log("Archivo actual en el estado:", archivo);
-
-        // Buscamos si el servicio seleccionado realmente requiere adjuntar archivo
         const servicioSeleccionado = serviciosBD.find(s => s.id === Number(tipoServicioIntencion));
-        const requiereArchivo = servicioSeleccionado && servicioSeleccionado.necesita_certificado;
+        const requiereArchivo = servicioSeleccionado?.necesita_certificado;
 
-        // Si el servicio requiere archivo y lo tenemos, O si el servicio NO requiere archivo (lo guardamos en la tabla sin archivo)
-        if (!requiereArchivo || (requiereArchivo && archivo)) {
-          await guardarCertificado(idUsuario, tipoServicioIntencion, archivo);
-          alert("¡Certificado registrado con éxito en la base de datos!");
-        } else {
+        // Si requiere archivo y no lo adjuntó, abortamos antes de realizar peticiones inútiles
+        if (requiereArchivo && !archivo) {
           alert("Este servicio requiere que adjuntes un archivo de certificado.");
+          return;
         }
+
+        // Si pasamos la validación, guardamos el certificado
+        await guardarCertificado(idUsuario, tipoServicioIntencion, archivo);
+        alert("¡Usuario y certificado registrados con éxito!");
+      } else {
+        alert("¡Usuario registrado con éxito!");
       }
+      navigate('/login');
 
     } catch (error) {
-      console.error("Error detallado en la petición:", error);
-      
-      // Muestra en la consola el error exacto que arroja Django si la base de datos rechaza algo
-      if (error.response) {
-        console.error("Datos del error del backend:", error.response.data);
-      }
+        console.error("Error capturado:", error);
 
-      if (error.response && error.response.data) {
-        const datosError = error.response.data;
-
-        if (datosError.codigo_casa) {
-          setErrorPropiedad("Esta propiedad no existe o ya está ocupada.");
-        } 
-        if (datosError.email) {
-          setErrorEmail("El correo electrónico ya se encuentra registrado.");
+        if (error.response) {
+          // El servidor respondió con un error (ej: 400, 403, 500)
+          const datos = error.response.data;
+          
+          // Si Django nos dio errores de formulario, los mostramos
+          if (datos.codigo_casa || datos.email || datos.ci) {
+            if (datos.codigo_casa) setErrorPropiedad("Esta propiedad no existe o ya está ocupada.");
+            if (datos.email) setErrorEmail("El correo electrónico ya se encuentra registrado.");
+            if (datos.ci) setErrorCedula("El documento de identidad (C.I.) ya está registrado.");
+          } else {
+            // Si el servidor respondió pero no es un error de formulario (ej: un 500)
+            alert(`Error del servidor (${error.response.status}): ${JSON.stringify(datos)}`);
+          }
+        } else {
+          console.error("Error inesperado:", error);
         }
-        if (datosError.ci) {
-          setErrorCedula("El documento de identidad (C.I.) ya está registrado.");
-        }
-      } else {
-        alert("Hubo un error de conexión con el servidor.");
-      }
     }
   };
 
