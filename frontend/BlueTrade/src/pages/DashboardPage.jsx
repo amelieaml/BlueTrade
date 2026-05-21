@@ -1,27 +1,12 @@
-// DashboardPage.jsx
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react'; // 🆕 Añadido useEffect
 import { useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
 import PanelMisOfertas from '../components/PanelMisOfertas';
 
-// Importamos el archivo de estilos para heredar la tipografía y los cimientos de diseño
+import { crearOferta, getServicios, getOfertas } from '../api/item.api';
+
 import '../styles/RegisterPage.css';
-const MIS_OFERTAS_MOCK = [
-  {
-    id: 'OFE-001',
-    estado: 'ACTIVO',
-    itemOfrecido: { tipo: 'agua', litros: 1000 },
-    itemSolicitado: { tipo: 'servicio', categoria: 'electricidad', horasEstimadas: 4 }
-  },
-  {
-    id: 'OFE-042',
-    estado: 'PROCESANDO',
-    itemOfrecido: { tipo: 'servicio', categoria: 'plomeria', horasEstimadas: 3 },
-    itemSolicitado: { tipo: 'agua', litros: 800 }
-  }
-];
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -30,26 +15,70 @@ function DashboardPage() {
   
   const { usuario, cerrarSesion } = useContext(AuthContext);
   
-  // Estado para controlar la apertura y cierre de la modal
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estado del formulario de la nueva oferta
+  const [serviciosDB, setServiciosDB] = useState([]);
+  const [ofertasActivas, setOfertasActivas] = useState([]); // 🆕 Aquí se guardarán tus ofertas reales de la DB
+
   const [formData, setFormData] = useState({
     tipoOfrecido: 'agua',
     cantidadOfrecida: '',
-    categoriaOfrecidaServicio: 'electricidad',
-    tipoSolicitado: 'servicio',
+    categoriaOfrecidaServicio: '',
     cantidadSolicitada: '',
-    categoriaSolicitadaServicio: 'electricidad',
+    categoriaSolicitadaServicio: '',
     descripcion: ''
   });
 
+  useEffect(() => {
+    const cargarDatosDashboard = async () => {
+      try {
+        const respuestaServicios = await getServicios();
+        setServiciosDB(respuestaServicios.data);
+        
+        if (respuestaServicios.data.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            categoriaOfrecidaServicio: respuestaServicios.data[0].nombre,
+            categoriaSolicitadaServicio: respuestaServicios.data[0].nombre
+          }));
+        }
+
+        const respuestaOfertas = await getOfertas();
+        
+        const deUsuarioYActivas = respuestaOfertas.data.filter(oferta => 
+          oferta.usuario === usuario?.id && oferta.estado === 'ACTIVO'
+        );
+        
+        setOfertasActivas(deUsuarioYActivas);
+
+      } catch (error) {
+        console.error("Error al cargar los datos en el Dashboard:", error);
+      }
+    };
+
+    if (usuario?.id) {
+      cargarDatosDashboard();
+    }
+  }, [usuario]);
+
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    if (name === 'tipoOfrecido') {
+      setFormData(prev => ({
+        ...prev,
+        tipoOfrecido: value,
+        cantidadOfrecida: '',
+        cantidadSolicitada: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
+
+  const tipoSolicitadoCalculado = formData.tipoOfrecido === 'agua' ? 'servicio' : 'agua';
 
   const saldoWaterCoins = `W ${saldoLitros.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -57,7 +86,7 @@ function DashboardPage() {
     console.log(`Disparando acción desde la botonera: ${tipoAccion}`);
     if (tipoAccion === 'crear') {
       setIsModalOpen(true);
-    }else if (tipoAccion === 'solicitudes') {
+    } else if (tipoAccion === 'solicitudes') {
       navigate('/solicitudes');
     }
   }
@@ -65,23 +94,66 @@ function DashboardPage() {
   function handleGestionarOferta(oferta) {
     console.log('Gestionando oferta específica:', oferta.id);
   }
-
-  const handleSubmitOferta = (e) => {
+  const [errores, setErrores] = useState({});
+  const handleSubmitOferta = async (e) => {
     e.preventDefault();
-    console.log("Nueva oferta registrada:", formData);
-    
-    alert("¡Oferta publicada exitosamente!");
-    setIsModalOpen(false); 
-    
-    setFormData({
-      tipoOfrecido: 'agua',
-      cantidadOfrecida: '',
-      categoriaOfrecidaServicio: 'electricidad',
-      tipoSolicitado: 'servicio',
-      cantidadSolicitada: '',
-      categoriaSolicitadaServicio: 'electricidad',
-      descripcion: ''
-    });
+    setErrores({});
+
+    if (formData.tipoOfrecido === 'servicio') {
+      
+      const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
+      
+      if (servicioSeleccionado && servicioSeleccionado.necesita_certificado && !usuario.certificado) {
+        setErrores({
+          certificado: "Este servicio requiere una certificación técnica." 
+        });
+        return; 
+      }
+    }
+
+    const payload = {
+      usuario: usuario?.id,
+      tipo_ofrecido: formData.tipoOfrecido.toUpperCase(), // 'AGUA' o 'SERVICIO'
+      descripcion: formData.descripcion,
+      
+      cantidad_ofrecida: parseFloat(formData.cantidadOfrecida),
+      categoria_ofrecida: formData.tipoOfrecido === 'servicio' ? formData.categoriaOfrecidaServicio : null,
+
+      tipo_solicitado: tipoSolicitadoCalculado.toUpperCase(),
+      
+      cantidad_solicitada: parseFloat(formData.cantidadSolicitada),
+      categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
+    };
+
+    try {
+      console.log("Enviando payload a Django:", payload);
+      
+      const respuesta = await crearOferta(payload);
+      
+      if (respuesta.status === 201) {
+        alert("¡Oferta publicada exitosamente!");
+        setIsModalOpen(false); 
+        setOfertasActivas(prev => [respuesta.data, ...prev]);
+        setErrores({}); // Limpiamos los errores al publicar exitosamente
+
+        setFormData({
+          tipoOfrecido: 'agua',
+          cantidadOfrecida: '',
+          categoriaOfrecidaServicio: serviciosDB[0]?.nombre || '',
+          cantidadSolicitada: '',
+          categoriaSolicitadaServicio: serviciosDB[0]?.nombre || '',
+          descripcion: ''
+        });
+      }
+    } catch (error) {
+      console.error("Error al publicar la oferta:", error);
+      
+      const mensajeError = error.response?.data?.non_field_errors?.[0] || 
+                          error.response?.data?.detail || 
+                          "Hubo un error al intentar registrar tu intercambio.";
+      
+      alert(mensajeError);
+    }
   };
 
   return (
@@ -163,10 +235,9 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* LISTADO DE OFERTAS */}
         <div className="w-full">
           <PanelMisOfertas 
-            ofertas={MIS_OFERTAS_MOCK}
+            ofertas={ofertasActivas}
             onGestionar={handleGestionarOferta}
             onCrearNueva={() => setIsModalOpen(true)}
           />
@@ -174,15 +245,11 @@ function DashboardPage() {
 
       </div>
 
-      {/* =========================================================================
-          VENTANA MODAL REFACTORIZADA 100% CON CLASES DE TAILWIND
-          ========================================================================= */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0f1f33]/40 backdrop-blur-sm overflow-y-auto">
           
           <div className="bg-white/95 backdrop-blur-[18px] border border-gray-100 rounded-[28px] shadow-[0_30px_70px_rgba(20,70,140,0.22)] w-full max-w-[560px] relative max-h-[92vh] flex flex-col overflow-hidden">
             
-            {/* Header de la Modal */}
             <div className="p-6 md:p-7 border-b border-gray-50 relative text-left shrink-0">
               <h2 className="text-xl font-bold text-[#102033] tracking-tight m-0">Crear nueva oferta</h2>
               <p className="text-xs text-[#637489] m-0 mt-1 leading-relaxed">
@@ -196,15 +263,11 @@ function DashboardPage() {
               </button>
             </div>
 
-            {/* Formulario */}
+            
             <form className="p-6 md:p-7 overflow-y-auto flex flex-col gap-5" onSubmit={handleSubmitOferta}>
-              
-              {/* BLOQUE TAILWIND 1: OFRECE (Fondo #f8fafc + indicador lateral azul) */}
               <div className="p-5 pr-[18px] pl-6 rounded-[18px] border border-black/[0.04] bg-[#f8fafc] relative w-full box-border text-left">
-                {/* Línea decorativa azul */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#5b8cff] opacity-80 rounded-l-[18px]" />
                 
-                {/* Encabezado de sección interna */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-base leading-none">
                     {formData.tipoOfrecido === 'agua' ? '💧' : '🔧'}
@@ -214,7 +277,6 @@ function DashboardPage() {
                   </span>
                 </div>
 
-                {/* Campos del input */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-[#102033] font-bold text-13px">Tipo de recurso</label>
@@ -223,6 +285,7 @@ function DashboardPage() {
                       value={formData.tipoOfrecido}
                       onChange={handleInputChange}
                       className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
+                    
                     >
                       <option value="agua">Agua (Litros)</option>
                       <option value="servicio">Servicio Técnico</option>
@@ -244,61 +307,68 @@ function DashboardPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-[#102033] font-bold text-13px">Categoría</label>
+                      <label className="text-[#102033] font-bold text-13px">Categoría (Desde BD)</label>
                       <select 
                         name="categoriaOfrecidaServicio"
                         value={formData.categoriaOfrecidaServicio}
                         onChange={handleInputChange}
                         className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
                       >
-                        <option value="electricidad">Electricidad</option>
-                        <option value="plomeria">Plomería</option>
-                        <option value="albañileria">Albañilería</option>
-                        <option value="mantenimiento">Mantenimiento</option>
+                        {serviciosDB.map(s => (
+                          <option key={s.id} value={s.nombre}>{s.nombre}</option>
+                        ))}
                       </select>
+                      {errores.certificado && (
+                        <div className="mt-2 text-[#e11d48] text-[11px] font-bold flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+                          {errores.certificado}
+                        </div>
+                      )}
+                      <label className="text-[#102033] font-bold text-13px mt-2">Horas Técnicas Estimadas</label>
+                      <input 
+                        type="number"
+                        name="cantidadOfrecida"
+                        placeholder="Ej. 4"
+                        value={formData.cantidadOfrecida}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
+                      />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Separador de flujo */}
               <div className="flex justify-center -my-2 shrink-0">
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">
                   ↓
                 </div>
               </div>
 
-              {/* BLOQUE TAILWIND 2: A CAMBIO DE (Fondo #fdf8f4 + indicador lateral naranja) */}
               <div className="p-5 pr-[18px] pl-6 rounded-[18px] border border-black/[0.04] bg-[#fdf8f4] relative w-full box-border text-left">
-                {/* Línea decorativa naranja */}
+
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#ffb443] opacity-80 rounded-l-[18px]" />
                 
-                {/* Encabezado de sección interna */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-base leading-none">
-                    {formData.tipoSolicitado === 'agua' ? '💧' : '🔧'}
+                    {tipoSolicitadoCalculado === 'agua' ? '💧' : '🔧'}
                   </span>
                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                     A cambio de
                   </span>
                 </div>
 
-                {/* Campos del input */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-[#102033] font-bold text-13px">Recurso solicitado</label>
-                    <select 
-                      name="tipoSolicitado"
-                      value={formData.tipoSolicitado}
-                      onChange={handleInputChange}
-                      className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="servicio">Servicio Técnico</option>
-                      <option value="agua">Agua (Litros)</option>
-                    </select>
+                    <input 
+                      type="text"
+                      value={tipoSolicitadoCalculado === 'agua' ? "Agua (Litros)" : "Servicio Técnico"}
+                      disabled
+                      className="w-full border border-gray-100 bg-gray-100/70 rounded-[14px] py-2.5 px-3.5 text-sm text-[#5d6f82] font-semibold outline-none box-border font-inherit cursor-not-allowed"
+                    />
                   </div>
 
-                  {formData.tipoSolicitado === 'agua' ? (
+                  {tipoSolicitadoCalculado === 'agua' ? (
                     <div className="flex flex-col gap-1.5 w-full">
                       <label className="text-[#102033] font-bold text-13px">Cantidad (Litros)</label>
                       <input 
@@ -313,24 +383,33 @@ function DashboardPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5 w-full">
-                      <label className="text-[#102033] font-bold text-13px">Categoría</label>
+                      <label className="text-[#102033] font-bold text-13px">Categoría (Desde BD)</label>
                       <select 
                         name="categoriaSolicitadaServicio"
                         value={formData.categoriaSolicitadaServicio}
                         onChange={handleInputChange}
                         className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
                       >
-                        <option value="electricidad">Electricidad</option>
-                        <option value="plomeria">Plomería</option>
-                        <option value="albañileria">Albañilería</option>
-                        <option value="mantenimiento">Mantenimiento</option>
+                        {serviciosDB.map(s => (
+                          <option key={s.id} value={s.nombre}>{s.nombre}</option>
+                        ))}
                       </select>
+                      {/* Solicitud de horas requeridas de forma compacta */}
+                      <label className="text-[#102033] font-bold text-13px mt-2">Horas Requeridas</label>
+                      <input 
+                        type="number"
+                        name="cantidadSolicitada"
+                        placeholder="Ej. 3"
+                        value={formData.cantidadSolicitada}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm text-[#102033] outline-none box-border font-inherit transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
+                      />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Textarea Observaciones */}
               <div className="flex flex-col gap-1.5 w-full text-left">
                 <label className="text-[#102033] font-bold text-13px">Notas u observaciones adicionales (Opcional)</label>
                 <textarea 
@@ -343,12 +422,12 @@ function DashboardPage() {
                 />
               </div>
 
-              {/* Aviso Informativo (Inyectando clase de RegisterPage) */}
+
               <div className="register-approval-notice !p-3.5 !rounded-xl text-xs text-left">
                 <strong>Importante:</strong> al publicar la oferta, estará disponible inmediatamente para que otros miembros de la urbanización la visualicen e inicien la transacción.
               </div>
 
-              {/* Botones de acción */}
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 shrink-0">
                 <button 
                   type="button" 
