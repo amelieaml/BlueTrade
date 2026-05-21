@@ -19,7 +19,8 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await loginUsuario({ email, password });
+      // AQUÍ ESTÁ EL CAMBIO: Forzamos el email a minúsculas antes de enviarlo
+      const response = await loginUsuario({ email: email.toLowerCase(), password });
 
       login(response.data.user);
       if (response.data.user.estado === 'EN_ESPERA' || response.data.user.estado === 'en_espera') {
@@ -131,16 +132,11 @@ function LoginPage() {
             </div>
             {errorMsg && <p className="login-error-message" style={{color: 'red', fontSize: '0.85rem', marginTop: '10px'}}>{errorMsg}</p>}
             <div className="login-options">
-              <label className="remember-option">
-                <input type="checkbox" />
-                <span>Recordarme</span>
-              </label>
-
               <a href="/recuperar-password">¿Olvidaste tu contraseña?</a>
             </div>
 
-            <button type="submit" className="login-submit-btn">
-              Entrar
+            <button type="submit" className="login-submit-btn" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
 
