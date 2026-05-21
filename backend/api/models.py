@@ -16,9 +16,8 @@ class UsuarioManager(BaseUserManager):
             raise ValueError('El email es obligatorio')
         email = self.normalize_email(email)
         
-        # Por defecto, los registros normales no son administradores
         extra_fields.setdefault('es_admin', False)
-        extra_fields.setdefault('estado', EstadoUsuario.EN_ESPERA)# Por defecto, los usuarios no están activos hasta que se verifique su residencia
+        extra_fields.setdefault('estado', EstadoUsuario.EN_ESPERA)
         
         user = self.model(email=email, nombre=nombre, ci=ci, **extra_fields)
         user.set_password(password)  
@@ -53,7 +52,7 @@ class Usuario(AbstractBaseUser):
     estado = models.CharField(
         max_length=30,
         choices=EstadoUsuario.choices,
-        default=EstadoUsuario.EN_ESPERA  # Por defecto entran en espera
+        default=EstadoUsuario.EN_ESPERA  
     )
     
     litros_agua = models.FloatField(default=0.0)
@@ -94,3 +93,41 @@ class Certificado(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificados')
     tipo_servicio = models.ForeignKey('Servicio', on_delete=models.CASCADE, related_name='certificados')
 
+from django.db import models
+from django.conf import settings
+
+class EstadoOferta(models.TextChoices):
+    ACTIVO = 'ACTIVO', 'Activo'
+    EN_PROCESO = 'EN_PROCESO', 'En Proceso'
+    PAUSADO = 'PAUSADO', 'Pausado'
+    COMPLETADO = 'COMPLETADO', 'Completado'
+    CANCELADO = 'CANDELADO', 'Cancelado'
+
+class Oferta(models.Model):
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='ofertas'
+    )
+    
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoOferta.choices,
+        default=EstadoOferta.ACTIVO
+    )
+    
+    # Lo que el vecino OFRECE
+    tipo_ofrecido = models.CharField(max_length=20)  # Agua o Servicio
+    cantidad_ofrecida = models.FloatField(blank=True, null=True)  # Litros si ofrece agua, horas si ofrece servicio
+    categoria_ofrecida = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Lo que el vecino SOLICITA a cambio
+    tipo_solicitado = models.CharField(max_length=20)  # Agua o Servicio
+    cantidad_solicitada = models.FloatField(blank=True, null=True)  # Litros si pide agua, horas si pide servicio
+    categoria_solicitada = models.CharField(max_length=100, blank=True, null=True)
+    
+    descripcion = models.TextField(max_length=500, blank=True, null=True)
+    creado_el = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Oferta {self.id} - {self.usuario.nombre} ({self.estado})"
