@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
+from rest_framework.exceptions import ValidationError # Importa esto arriba
 
 from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer, OfertaSerializer
 from .models import Servicio, Usuario, Certificado, EstadoUsuario, Oferta

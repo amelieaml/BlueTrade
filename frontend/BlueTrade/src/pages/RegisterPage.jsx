@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
-// Asegúrate de tener getServicios exportado en tu archivo item.api.js
 import { registrarUsuario, guardarCertificado, getServicios, registrarUsuarioCompleto } from '../api/item.api.js';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,36 +9,35 @@ function RegisterPage() {
   const [intencionServicio, setIntencionServicio] = useState(false);
   const [tipoServicioIntencion, setTipoServicioIntencion] = useState('');
 
-  // Estado simple para guardar el archivo único del certificado
+
   const [archivo, setArchivo] = useState(null);
   
-  // Estado para guardar la lista de servicios que viene de la BD
+
   const [serviciosBD, setServiciosBD] = useState([]);
 
-  // Estados para mostrar/ocultar contraseñas
+
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
 
-  // ERRORES
+
   const [errorEmail, setErrorEmail] = useState('');
   const [errorCedula, setErrorCedula] = useState('');
   const [errorPropiedad, setErrorPropiedad] = useState('');
   const [errorTelefono, setErrorTelefono] = useState('');
   const [error, setError] = useState('');
   
-  // ESTADO PARA LOS CAMPOS DE TEXTO
+
   const [formData, setFormData] = useState({
     nombre: '',
-    cedula: '', // Representa 'ci' en el diagrama
+    cedula: '',
     email: '',
-    prefijo: '', // Nuevo campo para el prefijo telefónico
-    telefono: '', // Solo los 7 dígitos
-    propiedad: '', // Representa 'codigoCasa' en el diagrama
-    password: '', // Representa 'contrasena'
+    prefijo: '', 
+    telefono: '', 
+    propiedad: '', 
+    password: '', 
     confirmPassword: ''
   });
 
-  // useEffect para pedir los servicios apenas cargue la página
   useEffect(() => {
     const cargarServicios = async () => {
       try {
@@ -56,7 +54,6 @@ function RegisterPage() {
     const { name, value } = e.target;
     let newValue = value;
 
-    // Validación estricta: Solo permitir números en Cédula y Teléfono
     if (name === 'cedula' || name === 'telefono') {
       newValue = value.replace(/[^0-9]/g, '');
     }
@@ -66,77 +63,65 @@ function RegisterPage() {
       [name]: newValue
     });
 
-    // Validaciones en tiempo real para bordes rojos
     if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (newValue === '' || emailRegex.test(newValue)) {
-        setErrorEmail(''); // Limpia el error si está vacío (para no asustar de entrada) o si es válido
+        setErrorEmail(''); 
       } else {
-        setErrorEmail('Formato inválido'); // Activa el estado de error
+        setErrorEmail('Formato inválido'); 
       }
     }
 
     if (name === 'telefono') {
-      // Si está vacío (borró todo) o tiene exactamente 7 dígitos, quitamos el error
       if (newValue === '' || newValue.length === 7) {
         setErrorTelefono(''); 
       } else {
-        // Si tiene entre 1 y 6 dígitos, mostramos el error
         setErrorTelefono('Faltan dígitos'); 
       }
     }
 
-    // Limpiar otros errores al escribir
     if (name === 'cedula') setErrorCedula('');
     if (name === 'propiedad') setErrorPropiedad('');
   };
 
-  // FUNCIÓN PARA ENVIAR LOS DATOS AL BACKEND
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 0. Limpieza inicial de errores
     setErrorEmail('');
     setErrorCedula('');
     setErrorPropiedad('');
     setError('');
 
-    // 1. Validación de contraseñas
     if (formData.password !== formData.confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
     
-    // 1.5 Validación de formato de correo (Regex)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setErrorEmail("Por favor, ingresa un correo válido (ej: usuario@correo.com).");
       return;
     }
 
-    // Unimos el prefijo y el teléfono para mandarlo completo a la BD
     const telefonoCompleto = `${formData.prefijo}${formData.telefono}`;
 
-    // 2. Preparación del payload (con correo forzado a minúsculas)
     const nuevoUsuario = {
       ci: parseInt(formData.cedula),
       nombre: formData.nombre,
-      email: formData.email.toLowerCase(), // Correo siempre en minúsculas
+      email: formData.email.toLowerCase(), 
       telefono: telefonoCompleto,
       intencion_agua: intencionAgua,
       intencion_servicio: intencionServicio,
       tipo_servicio_intencion: tipoServicioIntencion || null,
       password: formData.password,
       codigo_casa: formData.propiedad,
-      certificado: intencionServicio // Marcador booleano
+      certificado: intencionServicio 
     };
     
     try {
-      // 3. Registro del Usuario
       const respuesta = await registrarUsuarioCompleto(nuevoUsuario);
       const idUsuario = respuesta.data.id; 
 
-      // 4. Lógica de Certificados (Solo si aplica)
       if (intencionServicio && tipoServicioIntencion) {
         
         const servicioSeleccionado = serviciosBD.find(s => s.id === Number(tipoServicioIntencion));
@@ -178,7 +163,6 @@ function RegisterPage() {
     }
   };
 
-  // SVGs para los ojitos de la contraseña
   const iconEyeOpen = (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
       <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
