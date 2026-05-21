@@ -17,19 +17,21 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
   const themeAccent = esAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
 
   const getEstadoEstilos = (estado) => {
-    switch (estado) {
-      case 'ACTIVO':
-        return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-      case 'EN_ESPERA':
-        return 'bg-amber-50 text-amber-600 border border-amber-100';
-      case 'COMPLETADA':
-        return 'bg-[#f7fbff] text-[#0066ff] border border-blue-100';
-      case 'CANCELADA':
-        return 'bg-red-50 text-red-500 border border-red-100';
-      default:
-        return 'bg-gray-50 text-gray-500 border border-gray-100';
-    }
-  };
+  switch (estado) {
+    case 'ACTIVO':
+      return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+    case 'EN_PROCESO':
+      return 'bg-amber-50 text-amber-600 border border-amber-100';
+    case 'PAUSADO': 
+      return 'bg-slate-100 text-slate-600 border border-slate-200';
+    case 'COMPLETADO':
+      return 'bg-[#f7fbff] text-[#0066ff] border border-blue-100';
+    case 'CANCELADO': 
+      return 'bg-red-50 text-red-500 border border-red-100';
+    default:
+      return 'bg-gray-50 text-gray-500 border border-gray-100';
+  }
+};
 
   const RenderRecurso = ({ recurso, tipoGrama }) => {
     const isAgua = recurso.tipo?.toLowerCase() === 'agua';

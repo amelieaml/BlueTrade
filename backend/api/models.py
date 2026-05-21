@@ -101,7 +101,7 @@ class EstadoOferta(models.TextChoices):
     EN_PROCESO = 'EN_PROCESO', 'En Proceso'
     PAUSADO = 'PAUSADO', 'Pausado'
     COMPLETADO = 'COMPLETADO', 'Completado'
-    CANCELADO = 'CANDELADO', 'Cancelado'
+    CANCELADO = 'CANCELADO', 'Cancelado'
 
 class Oferta(models.Model):
     usuario = models.ForeignKey(

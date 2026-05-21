@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { getOfertas } from '../api/item.api'; // Asegúrate de que esta sea la ruta a tu archivo de API
+import { useState, useMemo, useEffect, useContext } from 'react'; 
+import { AuthContext } from '../context/AuthContext';
+import { getOfertas } from '../api/item.api'; 
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
 import FiltroTags from '../components/FiltroTags';
@@ -7,6 +8,7 @@ import TarjetaOferta from '../components/TarjetaOferta';
 import ModalDetalleOferta from '../components/ModalDetalleOferta';
 
 function OfertasPage() {
+  const { usuario } = useContext(AuthContext);
   const [ofertas, setOfertas] = useState([]);
   const [filtros, setFiltros] = useState({ tipoBuscado: '', cantidadMinima: 0 });
   const [busqueda, setBusqueda] = useState('');
@@ -14,7 +16,6 @@ function OfertasPage() {
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
 
   // Obtener ID del usuario logueado (Ajusta la clave según tu sistema de login)
-  const usuarioLogueadoId = parseInt(localStorage.getItem('usuario_id'));
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -54,7 +55,11 @@ function OfertasPage() {
     return ofertas.filter((o) => {
       
       // 1. REGLA DE NEGOCIO: Solo activas y no propias
-      if (o.estado !== 'ACTIVO' || o.usuario === usuarioLogueadoId) return false;
+      if (o.estado !== 'ACTIVO') return false;
+
+      if (usuario?.id && o.usuario === usuario.id) {
+        return false; // Esto oculta las ofertas que son del usuario logueado
+      }
 
       // 2. BÚSQUEDA POR TEXTO (Palabra clave)
       // Buscamos en nombre de usuario, descripción o categorías
@@ -88,7 +93,7 @@ function OfertasPage() {
 
       return true;
     });
-  }, [ofertas, filtros, busqueda, tagActivo, usuarioLogueadoId]);
+  }, [ofertas, filtros, busqueda, tagActivo]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
