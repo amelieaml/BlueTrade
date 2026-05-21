@@ -10,21 +10,6 @@ import { crearOferta, getServicios, getOfertas } from '../api/item.api';
 // Importamos el archivo de estilos para heredar la tipografía y los cimientos de diseño
 import '../styles/RegisterPage.css';
 
-const MIS_OFERTAS_MOCK = [
-  {
-    id: 'OFE-001',
-    estado: 'ACTIVO',
-    itemOfrecido: { tipo: 'agua', litros: 1000 },
-    itemSolicitado: { tipo: 'servicio', categoria: 'electricidad', horasEstimadas: 4 }
-  },
-  {
-    id: 'OFE-042',
-    estado: 'PROCESANDO',
-    itemOfrecido: { tipo: 'servicio', categoria: 'plomeria', horasEstimadas: 3 },
-    itemSolicitado: { tipo: 'agua', litros: 800 }
-  }
-];
-
 function DashboardPage() {
   const navigate = useNavigate();
   const [isModerator] = useState(true);
