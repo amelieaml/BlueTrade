@@ -27,6 +27,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
+        
         password = validated_data.pop('password', None)
         usuario = Usuario.objects.create_user(password=password, **validated_data)
         residencia = validated_data['codigo_casa']

@@ -18,7 +18,7 @@ class UsuarioManager(BaseUserManager):
         
         # Por defecto, los registros normales no son administradores
         extra_fields.setdefault('es_admin', False)
-        extra_fields.setdefault('activo', False) # Por defecto, los usuarios no están activos hasta que se verifique su residencia
+        extra_fields.setdefault('estado', EstadoUsuario.EN_ESPERA)# Por defecto, los usuarios no están activos hasta que se verifique su residencia
         
         user = self.model(email=email, nombre=nombre, ci=ci, **extra_fields)
         user.set_password(password)  
@@ -68,10 +68,10 @@ class Usuario(AbstractBaseUser):
     @property
     def is_active(self):
         """
-        Django requiere internamente la propiedad 'is_active' para ciertos métodos.
-        Hacemos que devuelva True SOLAMENTE si el estado del usuario es ACTIVO.
+        Devuelve True siempre que el usuario no esté rechazado, 
+        permitiendo así que Django valide el login.
         """
-        return self.estado == EstadoUsuario.ACTIVO
+        return self.estado != EstadoUsuario.RECHAZADO
 
     def recargar_agua(self, cantidad):
         if cantidad > 0:
