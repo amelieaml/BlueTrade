@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,6 +13,26 @@ class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
 
+    @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
+    @transaction.atomic 
+    def registro_completo(self, request):
+        usuario_serializer = UsuarioSerializer(data=request.data)
+        
+        if usuario_serializer.is_valid():
+            usuario = usuario_serializer.save()
+            archivo_fisico = request.FILES.get('certificado')
+            tipo_servicio = request.data.get('tipo_servicio')
+            
+            if archivo_fisico and tipo_servicio:
+                Certificado.objects.create(
+                    usuario=usuario,
+                    tipo_servicio_id=tipo_servicio,
+                    archivo=archivo_fisico
+                )
+            
+            return Response({"message": "Registro exitoso", "id": usuario.id}, status=status.HTTP_201_CREATED)
+        return Response(usuario_serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+    
     @action(detail=True, methods=['post'])
     def recargar_agua(self, request, pk=None):
         usuario = self.get_object() 

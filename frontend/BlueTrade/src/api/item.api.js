@@ -23,6 +23,30 @@ export const recargarAgua = async (idUsuario, cantidadLitros) => {
         cantidad: cantidadLitros
     });
 };
+/// REGISTRO COMPLETO DE CERTIFICADOS (con archivo adjunto)
+export const registrarUsuarioCompleto = async (datos) => {
+    const formData = new FormData();
+    
+    // Agregamos todos los campos al FormData
+    formData.append('ci', datos.ci);
+    formData.append('nombre', datos.nombre);
+    formData.append('email', datos.email);
+    formData.append('telefono', datos.telefono);
+    formData.append('intencion_agua', datos.intencion_agua);
+    formData.append('intencion_servicio', datos.intencion_servicio);
+    formData.append('tipo_servicio_intencion', datos.tipo_servicio_intencion);
+    formData.append('password', datos.password);
+    formData.append('codigo_casa', datos.codigo_casa);
+    
+    // Adjuntamos el archivo físico si existe
+    if (datos.certificadoArchivo) {
+        formData.append('certificado', datos.certificadoArchivo);
+    }
+
+    return axios.post('http://127.0.0.1:8000/item/test/usuarios/registro_completo/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
 
 export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertificado) => {
     const formData = new FormData();
