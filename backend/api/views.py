@@ -6,8 +6,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 
-from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer
-from .models import Servicio, Usuario, Certificado, EstadoUsuario
+from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer, OfertaSerializer
+from .models import Servicio, Usuario, Certificado, EstadoUsuario, Oferta
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -111,5 +111,8 @@ class CertificadoView(viewsets.ModelViewSet):
     serializer_class = CertificadoSerializer
     queryset = Certificado.objects.all()
     
-    # Esto es vital: le dice a Django cómo desempacar el archivo que viene desde React
     parser_classes = (MultiPartParser, FormParser)
+
+class OfertaView(viewsets.ModelViewSet):
+    serializer_class = OfertaSerializer
+    queryset = Oferta.objects.all().order_by('-creado_el')
