@@ -30,6 +30,7 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, nombre, ci, password, **extra_fields)
+    
 class EstadoUsuario(models.TextChoices):
     ACTIVO = 'ACTIVO', 'Activo'
     EN_ESPERA = 'EN_ESPERA', 'En Espera'
@@ -48,11 +49,13 @@ class Usuario(AbstractBaseUser):
     
     es_admin = models.BooleanField(default=False)
     certificado = models.BooleanField(default=False)
+
     estado = models.CharField(
         max_length=30,
         choices=EstadoUsuario.choices,
         default=EstadoUsuario.EN_ESPERA  # Por defecto entran en espera
     )
+    
     litros_agua = models.FloatField(default=0.0)
     
     codigo_casa = models.ForeignKey(Residencia, on_delete=models.PROTECT, to_field='codigo', db_column='codigo_casa')
