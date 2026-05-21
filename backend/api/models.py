@@ -93,3 +93,4 @@ class Certificado(models.Model):
     creado_el = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificados')
     tipo_servicio = models.ForeignKey('Servicio', on_delete=models.CASCADE, related_name='certificados')
+
