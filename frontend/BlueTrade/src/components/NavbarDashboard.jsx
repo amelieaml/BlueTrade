@@ -20,7 +20,7 @@ function NavbarDashboard({
   const [usuarioActivo, setUsuarioActivo] = useState(false); // Por si acaso no tenemos el estado
 
  useEffect(() => {
-    if (usuario?.estado === "ACTIVO") {
+    if (usuario?.estado === "ACTIVO" || usuario?.estado === "activo") {
       setUsuarioActivo(true);
     } else {
       setUsuarioActivo(false);
@@ -56,7 +56,7 @@ function NavbarDashboard({
             className={paginaActiva === 'ofertas' ? 'active' : ''}
             style={paginaActiva === 'ofertas' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
           >
-            Explorar Ofertas
+            Catalogo de Ofertas
           </a>)}
         {usuarioActivo && (
           <> 

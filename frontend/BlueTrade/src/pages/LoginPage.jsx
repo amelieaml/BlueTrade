@@ -22,8 +22,14 @@ function LoginPage() {
       const response = await loginUsuario({ email, password });
 
       login(response.data.user);
-
-      navigate('/dashboard'); 
+      if (response.data.user.estado === 'EN_ESPERA' || response.data.user.estado === 'en_espera') {
+        console.log("Usuario en espera, redirigiendo a perfil...");
+        navigate('/perfil'); 
+      }else{
+        console.log("Usuario activo, redirigiendo a dashboard...");
+        navigate('/dashboard');
+      }
+      
       
     } catch (error) {
       console.error("Error en el login:", error);
