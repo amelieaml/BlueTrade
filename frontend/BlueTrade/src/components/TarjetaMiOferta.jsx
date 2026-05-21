@@ -1,15 +1,26 @@
+import React from 'react';
+
 function TarjetaMiOferta({ oferta, onGestionar }) {
-  const esAgua = oferta.itemOfrecido.tipo === 'agua';
-  
-  // El color lateral depende de lo que se ofrece
+  const itemOfrecido = {
+    tipo: oferta.tipo_ofrecido, 
+    cantidad: oferta.cantidad_ofrecida || 0, 
+    categoria: oferta.categoria_ofrecida
+  };
+
+  const itemSolicitado = {
+    tipo: oferta.tipo_solicitado, 
+    cantidad: oferta.cantidad_solicitada || 0,
+    categoria: oferta.categoria_solicitada
+  };
+
+  const esAgua = itemOfrecido.tipo?.toLowerCase() === 'agua';
   const themeAccent = esAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
 
-  // Función para evaluar el enumerado del UML y asignar colores dinámicos
   const getEstadoEstilos = (estado) => {
     switch (estado) {
       case 'ACTIVO':
         return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-      case 'PROCESANDO':
+      case 'EN_ESPERA':
         return 'bg-amber-50 text-amber-600 border border-amber-100';
       case 'COMPLETADA':
         return 'bg-[#f7fbff] text-[#0066ff] border border-blue-100';
@@ -21,7 +32,7 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
   };
 
   const RenderRecurso = ({ recurso, tipoGrama }) => {
-    const isAgua = recurso.tipo === 'agua';
+    const isAgua = recurso.tipo?.toLowerCase() === 'agua';
     return (
       <div className={`p-4 rounded-xl ${tipoGrama === 'ofrece' ? 'bg-[#f8fafc]' : 'bg-[#fdf8f4]'} border border-gray-100`}>
         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
@@ -34,9 +45,13 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
             </div>
             <div>
               <p className="font-bold text-[#1a1d27] text-[15px] m-0">
-                {isAgua ? `${recurso.litros.toLocaleString()} L de Agua` : `${recurso.horasEstimadas}h de Servicio`}
+                {/* SOLUCIÓN: Usamos recurso.cantidad y le metemos el formato correcto según el tipo */}
+                {isAgua 
+                  ? `${recurso.cantidad.toLocaleString()} L de Agua` 
+                  : `${recurso.cantidad}h de Servicio`
+                }
               </p>
-              {!isAgua && (
+              {!isAgua && recurso.categoria && (
                 <span className="text-[11px] font-semibold text-[#ffb443] bg-[#ffb443]/10 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block mt-1">
                   {recurso.categoria}
                 </span>
@@ -70,7 +85,7 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
 
         {/* Cajas de Intercambio */}
         <div className="flex flex-col gap-2 flex-grow">
-          <RenderRecurso recurso={oferta.itemOfrecido} tipoGrama="ofrece" />
+          <RenderRecurso recurso={itemOfrecido} tipoGrama="ofrece" />
           
           <div className="flex justify-center -my-3 z-10">
             <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">
@@ -78,7 +93,7 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
             </div>
           </div>
 
-          <RenderRecurso recurso={oferta.itemSolicitado} tipoGrama="solicita" />
+          <RenderRecurso recurso={itemSolicitado} tipoGrama="solicita" />
         </div>
 
         {/* Footer: ID y Botón de Acción */}

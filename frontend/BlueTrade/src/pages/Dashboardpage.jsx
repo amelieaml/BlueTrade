@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
 import PanelMisOfertas from '../components/PanelMisOfertas';
 
-import { crearOferta, getServicios } from '../api/item.api';
+import { crearOferta, getServicios, getOfertas } from '../api/item.api';
 
 // Importamos el archivo de estilos para heredar la tipografía y los cimientos de diseño
 import '../styles/RegisterPage.css';
@@ -37,6 +37,7 @@ function DashboardPage() {
 
   // 🆕 Estado para almacenar los servicios reales provenientes de la base de datos
   const [serviciosDB, setServiciosDB] = useState([]);
+  const [ofertasActivas, setOfertasActivas] = useState([]); // 🆕 Aquí se guardarán tus ofertas reales de la DB
 
   // Estado del formulario de la nueva oferta (Adaptado para control automático e invertido)
   const [formData, setFormData] = useState({
@@ -50,25 +51,40 @@ function DashboardPage() {
 
   // 🆕 EFECTO: Carga los servicios desde Supabase/Django al renderizar el Dashboard
   useEffect(() => {
-    const cargarServiciosComunitarios = async () => {
+    const cargarDatosDashboard = async () => {
       try {
-        const respuesta = await getServicios();
-        setServiciosDB(respuesta.data);
+        // 1. Cargar servicios comunitarios (Tu lógica que ya funcionaba)
+        const respuestaServicios = await getServicios();
+        setServiciosDB(respuestaServicios.data);
         
-        // Inicializamos los selectores con el primer servicio de la lista para evitar campos vacíos
-        if (respuesta.data.length > 0) {
+        if (respuestaServicios.data.length > 0) {
           setFormData(prev => ({
             ...prev,
-            categoriaOfrecidaServicio: respuesta.data[0].nombre,
-            categoriaSolicitadaServicio: respuesta.data[0].nombre
+            categoriaOfrecidaServicio: respuestaServicios.data[0].nombre,
+            categoriaSolicitadaServicio: respuestaServicios.data[0].nombre
           }));
         }
+
+        // 2. 🆕 Cargar ofertas desde Django y filtrarlas en caliente
+        const respuestaOfertas = await getOfertas();
+        
+        const deUsuarioYActivas = respuestaOfertas.data.filter(oferta => 
+          oferta.usuario === usuario?.id && oferta.estado === 'ACTIVO'
+        );
+        
+        // Guardamos el resultado filtrado en el estado
+        setOfertasActivas(deUsuarioYActivas);
+
       } catch (error) {
-        console.error("Error al traer los servicios de la Base de Datos:", error);
+        console.error("Error al cargar los datos en el Dashboard:", error);
       }
     };
-    cargarServiciosComunitarios();
-  }, []);
+
+    // Solo ejecuta la función si el usuario ya está cargado y autenticado en el sistema
+    if (usuario?.id) {
+      cargarDatosDashboard();
+    }
+  }, [usuario]);
 
   // 🔄 REGLA AUTOMÁTICA: Si cambia el tipo ofrecido, reseteamos las cantidades por seguridad
   const handleInputChange = (e) => {
@@ -234,7 +250,7 @@ function DashboardPage() {
         {/* LISTADO DE OFERTAS */}
         <div className="w-full">
           <PanelMisOfertas 
-            ofertas={MIS_OFERTAS_MOCK}
+            ofertas={ofertasActivas}
             onGestionar={handleGestionarOferta}
             onCrearNueva={() => setIsModalOpen(true)}
           />

@@ -86,3 +86,14 @@ export const crearOferta = async (datosOferta) => {
         }
     });
 };
+
+export const getOfertas = async () => {
+    const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
+    const token = localStorage.getItem('token'); 
+
+    return axios.get(urlOfertas, {
+        headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+    });
+};
