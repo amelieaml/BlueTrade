@@ -105,7 +105,7 @@ function DetalleSolicitudPage() {
         return "Pendiente";
       case "ACTIVO":
         return "Aprobado";
-      case "CORRECCION_REQUERIDA":
+      case "REVISION_PENDIENTE":
         return "Corrección requerida";
       case "RECHAZADO":
         return "Rechazado";
@@ -126,7 +126,7 @@ function DetalleSolicitudPage() {
         return "badge-estado pendiente";
       case "ACTIVO":
         return "badge-estado aprobado";
-      case "CORRECCION_REQUERIDA":
+      case "REVISION_PENDIENTE":
         return "badge-estado correccion";
       case "RECHAZADO":
         return "badge-estado rechazado";
@@ -340,12 +340,12 @@ function DetalleSolicitudPage() {
 
             <button
               className={
-                usuario.estado === "CORRECCION_REQUERIDA"
+                usuario.estado === "REVISION_PENDIENTE"
                   ? "btn-secundario boton-seleccionado"
                   : "btn-secundario"
               }
-              disabled={guardando || usuario.estado === "CORRECCION_REQUERIDA"}
-              onClick={() => actualizarEstadoUsuario("CORRECCION_REQUERIDA")}
+              disabled={guardando || usuario.estado === "REVISION_PENDIENTE"}
+              onClick={() => actualizarEstadoUsuario("REVISION_PENDIENTE")}
             >
               Solicitar corrección
             </button>
