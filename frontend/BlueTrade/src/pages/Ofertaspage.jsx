@@ -1,34 +1,40 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
 import { getOfertas, getServicios } from '../api/item.api'; 
+
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
 import FiltroTags from '../components/FiltroTags';
 import TarjetaOferta from '../components/TarjetaOferta';
-import ModalDetalleOferta from '../components/ModalDetalleOferta';
+import ModalDetalleOferta from '../components/ModalDetalleOferta'; // Usamos este modelo
 import ModalCrearOferta from '../components/ModalCrearOferta'; 
+import Alerta from '../components/alerta';
 
 function OfertasPage() {
   const { usuario } = useContext(AuthContext);
+  
+  // Estados de datos
   const [ofertas, setOfertas] = useState([]);
+  const [serviciosDB, setServiciosDB] = useState([]);
+  
+  // Estados de UI y Filtros
   const [filtros, setFiltros] = useState({ tipoBuscado: '', cantidadMinima: 0 });
   const [busqueda, setBusqueda] = useState('');
   const [tagActivo, setTagActivo] = useState('');
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
-
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
-  const [serviciosDB, setServiciosDB] = useState([]);
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
+  // Carga inicial de datos
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const [responseOfertas, responseServicios] = await Promise.all([
+        const [resOfertas, resServicios] = await Promise.all([
           getOfertas(),
           getServicios()
         ]);
-        
-        setOfertas(responseOfertas.data);
-        setServiciosDB(responseServicios.data);
+        setOfertas(resOfertas.data);
+        setServiciosDB(resServicios.data);
       } catch (error) {
         console.error("Error al cargar datos:", error);
       }
@@ -36,50 +42,51 @@ function OfertasPage() {
     cargarDatos();
   }, []);
 
+  // Manejadores de eventos
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
   
   const handleConfirmar = (oferta) => {
     console.log('Iniciando transacción para:', oferta.id);
+    setAlerta({ mostrar: true, mensaje: 'Transacción iniciada correctamente.', tipo: 'success' });
     handleCerrarModal();
   };
 
   const handleOfertaCreada = (nuevaOferta) => {
     setOfertas((prev) => [nuevaOferta, ...prev]);
+    setAlerta({ mostrar: true, mensaje: '¡Oferta publicada con éxito!', tipo: 'success' });
   };
 
-  // 🆕 MODIFICACIÓN: Mapeamos directamente todas las categorías registradas en la BD
+  const handleFiltroChange = (campo, valor) => {
+    setFiltros((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  // Memoización de categorías basadas en la BD (más preciso que leer de ofertas)
   const categoriasDisponibles = useMemo(() => {
     return serviciosDB.map((s) => s.nombre);
   }, [serviciosDB]);
 
-  function handleFiltroChange(campo, valor) {
-    setFiltros((prev) => ({ ...prev, [campo]: valor }));
-  }
-
+  // Lógica de filtrado
   const ofertasFiltradas = useMemo(() => {
     const q = busqueda.toLowerCase();
     
     return ofertas.filter((o) => {
       if (o.estado !== 'ACTIVO') return false;
 
-      if (usuario?.id && o.usuario === usuario.id) {
-        return false; 
-      }
+      // Ocultar ofertas propias
+      if (usuario?.id && o.usuario === usuario.id) return false;
 
+      // Filtro de texto
       const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada}`.toLowerCase();
       if (q && !textoBusqueda.includes(q)) return false;
 
-      if (filtros.tipoBuscado) {
-        if (o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()) {
-          return false;
-        }
-      }
+      // Filtro de tipo (Agua/Servicio)
+      if (filtros.tipoBuscado && o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()) return false;
 
-      if (filtros.cantidadMinima > 0) {
-        if ((parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima) return false;
-      }
+      // Filtro de cantidad
+      if (filtros.cantidadMinima > 0 && (parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima) return false;
 
+      // Filtro de Tags
       if (tagActivo) {
         const coincideOfrecida = o.categoria_ofrecida === tagActivo;
         const coincideSolicitada = o.categoria_solicitada === tagActivo;
@@ -96,6 +103,7 @@ function OfertasPage() {
 
       <NavbarDashboard paginaActiva="ofertas" />
       
+      {/* Modales */}
       <ModalCrearOferta 
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
@@ -109,8 +117,21 @@ function OfertasPage() {
         isOpen={!!ofertaSeleccionada}
         onClose={handleCerrarModal}
         onConfirmar={handleConfirmar}
+        onRechazar={() => {
+          handleCerrarModal();
+          setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
+        }}
       />
       
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
+
+      {/* Contenido Principal */}
       <div className="max-w-[1500px] mx-auto px-6 lg:px-12 pt-12 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 bg-white/86 border border-white/90 p-8 rounded-[32px] backdrop-blur-[18px] shadow-[0_30px_80px_rgba(20,70,140,0.18)]">
           <div>
@@ -124,7 +145,7 @@ function OfertasPage() {
           
           <button 
             onClick={() => setIsModalCrearOpen(true)}
-            className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 ease-in-out cursor-pointer"
+            className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             + Publicar intercambio
           </button>
@@ -147,12 +168,17 @@ function OfertasPage() {
                   />
                 </div>
                 <hr className="border-[#0066ff]/10 my-2" />
-                <FiltroOfertas filtroTipo={filtros.tipoBuscado} cantidadMinima={filtros.cantidadMinima} onChange={handleFiltroChange} />
+                <FiltroOfertas 
+                    filtroTipo={filtros.tipoBuscado} 
+                    cantidadMinima={filtros.cantidadMinima} 
+                    onChange={handleFiltroChange} 
+                />
                 <hr className="border-[#0066ff]/10 my-2" />
-                
-                {/* Aquí pasamos las nuevas categorías globales mapeadas desde la BD */}
-                <FiltroTags tagActivo={tagActivo} onTagChange={setTagActivo} tagsDisponibles={categoriasDisponibles} />
-              
+                <FiltroTags 
+                    tagActivo={tagActivo} 
+                    onTagChange={setTagActivo} 
+                    tagsDisponibles={categoriasDisponibles} 
+                />
               </div>
             </div>
           </aside>

@@ -4,19 +4,24 @@ const API_BASE_URL = 'http://127.0.0.1:8000/item/test/usuarios/';
 
 export const getItems = async () => {
     return axios.get(API_BASE_URL);
-}
+};
 
 // Obtener todos los usuarios
 export const getUsuarios = async () => {
     return axios.get(API_BASE_URL);
 };
 
-// Obtener un usuario por ID
+// Obtener usuario por ID
+export const getUsuario = async (idUsuario) => {
+    return axios.get(`${API_BASE_URL}${idUsuario}/`);
+};
+
+// Compatibilidad con el otro archivo
 export const getUsuarioPorId = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/`);
 };
 
-// Crear un nuevo usuario
+// Crear usuario
 export const registrarUsuario = async (datosUsuario) => {
     return axios.post(API_BASE_URL, datosUsuario);
 };
@@ -29,7 +34,7 @@ export const recargarAgua = async (idUsuario, cantidadLitros) => {
 
 export const registrarUsuarioCompleto = async (datos) => {
     const formData = new FormData();
-    
+
     formData.append('ci', datos.ci);
     formData.append('nombre', datos.nombre);
     formData.append('email', datos.email);
@@ -39,24 +44,35 @@ export const registrarUsuarioCompleto = async (datos) => {
     formData.append('tipo_servicio_intencion', datos.tipo_servicio_intencion);
     formData.append('password', datos.password);
     formData.append('codigo_casa', datos.codigo_casa);
-    
+
     if (datos.certificadoArchivo) {
         formData.append('certificado', datos.certificadoArchivo);
     }
 
-    return axios.post('http://127.0.0.1:8000/item/test/usuarios/registro_completo/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return axios.post(
+        'http://127.0.0.1:8000/item/test/usuarios/registro_completo/',
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }
+    );
 };
 
-export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertificado) => {
+export const guardarCertificado = async (
+    idUsuario,
+    tipoServicio,
+    archivoCertificado
+) => {
     const formData = new FormData();
-    
-    formData.append('usuario', idUsuario); 
-    formData.append('tipo_servicio', tipoServicio); 
-    formData.append('archivo', archivoCertificado); 
 
-    const urlCertificados = 'http://127.0.0.1:8000/item/test/certificados/'; 
+    formData.append('usuario', idUsuario);
+    formData.append('tipo_servicio', tipoServicio);
+    formData.append('archivo', archivoCertificado);
+
+    const urlCertificados =
+        'http://127.0.0.1:8000/item/test/certificados/';
 
     return axios.post(urlCertificados, formData, {
         headers: {
@@ -65,56 +81,74 @@ export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertifi
     });
 };
 
-// Iniciar Sesión
+// Iniciar sesión
 export const loginUsuario = async (credenciales) => {
     return axios.post(`${API_BASE_URL}login/`, credenciales);
 };
 
 export const getCertificados = async (idUsuario) => {
-    return axios.get(`${API_BASE_URL}${idUsuario}/certificados/`);
+    return axios.get(
+        `${API_BASE_URL}${idUsuario}/certificados/`
+    );
 };
 
 export const getServicios = async (idUsuario) => {
-    return axios.get('http://127.0.0.1:8000/item/test/servicios/');
+    return axios.get(
+        'http://127.0.0.1:8000/item/test/servicios/'
+    );
 };
 
 export const crearOferta = async (datosOferta) => {
-    const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
-    const token = localStorage.getItem('token'); 
+    const urlOfertas =
+        'http://127.0.0.1:8000/item/test/ofertas/';
+
+    const token = localStorage.getItem('token');
 
     return axios.post(urlOfertas, datosOferta, {
         headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...(token && {
+                Authorization: `Bearer ${token}`
+            })
         }
     });
 };
 
 export const getOfertas = async () => {
-    const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
-    const token = localStorage.getItem('token'); 
+    const urlOfertas =
+        'http://127.0.0.1:8000/item/test/ofertas/';
+
+    const token = localStorage.getItem('token');
 
     return axios.get(urlOfertas, {
         headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...(token && {
+                Authorization: `Bearer ${token}`
+            })
         }
     });
 };
 
-// ------------------------------------------------------------------
-// 🆕 NUEVA FUNCIÓN: Actualizar una oferta existente
-// ------------------------------------------------------------------
-export const actualizarOferta = async (idOferta, datosOferta) => {
-    // Apuntamos específicamente al ID de la oferta que queremos modificar
-    const urlOfertaEspecifica = `http://127.0.0.1:8000/item/test/ofertas/${idOferta}/`;
-    const token = localStorage.getItem('token'); 
+// Actualizar oferta
+export const actualizarOferta = async (
+    idOferta,
+    datosOferta
+) => {
+    const urlOfertaEspecifica =
+        `http://127.0.0.1:8000/item/test/ofertas/${idOferta}/`;
 
-    // Usamos PATCH porque es el estándar en Django REST Framework para actualizaciones 
-    // (permite enviar todos los datos o solo los que cambiaron, como el estado a 'PAUSADO')
-    return axios.patch(urlOfertaEspecifica, datosOferta, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+    const token = localStorage.getItem('token');
+
+    return axios.patch(
+        urlOfertaEspecifica,
+        datosOferta,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && {
+                    Authorization: `Bearer ${token}`
+                })
+            }
         }
-    });
+    );
 };
