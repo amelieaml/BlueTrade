@@ -1,0 +1,84 @@
+@startuml
+
+title Monitorear y Gestionar Perfiles en Espera
+
+actor Moderador
+
+participant UI as "SolicitudesRegistroPageUI"
+participant Controlador as "ControladorUsuarios"
+participant Usuario
+participant Certificado
+participant Residencia
+database BD
+
+== Ingreso a Perfiles en Espera ==
+
+Moderador -> UI : ingresarSeccionPerfilesEnEspera()
+
+UI -> Controlador : listarPerfilesPendientes()
+
+Controlador -> Usuario : filtrarPorEstado(EN_ESPERA)
+Usuario -> BD : Seleccionar usuarios con estado pendiente o correccion
+BD --> Usuario : listaUsuarios
+
+Usuario --> Controlador : usuariosPendientes
+Controlador --> UI : respuestaListaPerfiles
+
+UI --> Moderador : mostrarListaPerfiles()
+
+== Selección de Perfil ==
+
+Moderador -> UI : seleccionarPerfil(usuarioId)
+
+UI -> Controlador : verDetallePerfil(usuarioId)
+
+Controlador -> Usuario : obtenerDatosUsuario(usuarioId)
+Usuario -> BD : Seleccionar usuario por id
+BD --> Usuario : datosUsuario
+
+Usuario --> Controlador : perfilCompleto(datos + residencia + certificados)
+Controlador --> UI : mostrarDetallePerfil()
+
+UI --> Moderador : visualizarPerfil()
+
+== Decisión del Moderador ==
+
+alt Aprobar Perfil
+
+    Moderador -> UI : aprobarPerfil(usuarioId)
+
+    UI -> Controlador : validarAprobacion(usuarioId)
+
+    Controlador -> Usuario : verificarDatosCompletos()
+
+    alt datos incompletos o certificados faltantes
+        Controlador --> UI : errorValidacion()
+        UI --> Moderador : mostrarError("Datos o certificados incompletos")
+
+    else datos completos
+
+        Controlador -> Usuario : cambiarEstado(ACTIVO)
+        Usuario -> BD : Actualizar estado a ACTIVO
+        BD --> Usuario : confirmacion
+
+        Controlador --> UI : aprobacionExitosa()
+        UI --> Moderador : mostrarConfirmacion("Perfil aprobado")
+
+    end
+
+else Solicitar Correcciones
+
+    Moderador -> UI : solicitarCorreccion(motivo)
+
+    UI -> Controlador : enviarCorreccion(usuarioId, motivo)
+
+    Controlador -> Usuario : cambiarEstado(REVISION_PENDIENTE)
+    Usuario -> BD : Actualizar estado a REVISION_PENDIENTE
+    BD --> Usuario : confirmacion
+
+    Controlador --> UI : correccionRegistrada()
+    UI --> Moderador : mostrarMensaje("Corrección enviada al usuario")
+
+end
+
+@enduml

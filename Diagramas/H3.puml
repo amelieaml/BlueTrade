@@ -1,0 +1,40 @@
+@startuml
+skinparam actorStyle stick
+
+actor Usuario
+participant ":VistaOfertas" as Vista
+participant ":Api" as Api
+participant ":Backend" as Back
+participant ":BaseDeDatos" as DB
+
+activate Usuario
+Usuario -> Vista: Entrar a OfertasPage
+activate Vista
+
+Vista -> Api: getOfertas()
+activate Api
+Api -> Back: GET /ofertas/
+activate Back
+Back -> DB: Consultar ofertas activas
+activate DB
+DB --> Back: Lista de ofertas
+deactivate DB
+Back --> Api: JSON de ofertas
+deactivate Back
+Api --> Vista: Datos de ofertas
+deactivate Api
+
+Vista --> Usuario: Mostrar todas las ofertas
+
+alt Filtros activos
+    Usuario -> Vista: Aplicar filtros (texto/tipo/tags)
+    Vista -> Vista: Filtrar lista (useMemo)
+    Vista --> Usuario: Mostrar resultados filtrados
+end
+
+Usuario -> Vista: Seleccionar oferta
+Vista -> Vista: Abrir ModalDetalleOferta
+Vista --> Usuario: Mostrar detalles de oferta
+deactivate Vista
+
+@enduml

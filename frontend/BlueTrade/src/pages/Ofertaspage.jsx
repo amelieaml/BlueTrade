@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas, getServicios } from '../api/item.api'; 
+import { getOfertas, getServicios, iniciarTransaccion, actualizarOferta } from '../api/item.api'; 
 
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
 import FiltroTags from '../components/FiltroTags';
 import TarjetaOferta from '../components/TarjetaOferta';
-import ModalDetalleOferta from '../components/ModalDetalleOferta'; // Usamos este modelo
+import ModalDetalleOferta from '../components/ModalDetalleOferta'; 
 import ModalCrearOferta from '../components/ModalCrearOferta'; 
 import Alerta from '../components/alerta';
 
@@ -46,10 +46,53 @@ function OfertasPage() {
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
   
-  const handleConfirmar = (oferta) => {
-    console.log('Iniciando transacción para:', oferta.id);
-    setAlerta({ mostrar: true, mensaje: 'Transacción iniciada correctamente.', tipo: 'success' });
-    handleCerrarModal();
+  const handleConfirmar = async () => {
+    if (!ofertaSeleccionada || !usuario) return;
+    console.log("Oferta seleccionada para confirmar:", ofertaSeleccionada);
+    
+    const tipoSolicitado = ofertaSeleccionada.tipo_solicitado?.toUpperCase();
+
+    // 2. Validamos si es agua y si el usuario NO tiene suficiente
+    if (tipoSolicitado === 'AGUA' && ofertaSeleccionada.cantidad_solicitada > usuario.litros) {
+        setAlerta({
+            mostrar: true,
+            mensaje: 'No tienes suficientes litros para confirmar esta oferta.',
+            tipo: 'error'
+        });
+        handleCerrarModal();
+        return; // Detenemos la ejecución aquí, no iniciará la transacción
+    }
+
+    try {
+        // CORRECCIÓN: El segundo parámetro debe ser el dueño de la oferta (vendedor), NO el usuario logueado (comprador)
+        const aux = await iniciarTransaccion(ofertaSeleccionada.id, ofertaSeleccionada.usuario, usuario.id);
+        console.log("Transacción iniciada:", aux.data);
+
+        // 2. Reutilizamos tu función para cambiar el estado de la oferta
+        await actualizarOferta(ofertaSeleccionada.id, {
+            estado: 'EN_PROCESO' // O el estado que utilices en tu modelo
+        });
+
+        setAlerta({ 
+          mostrar: true, 
+          mensaje: 'Transacción iniciada correctamente.', 
+          tipo: 'success' 
+        });
+
+        // Opcional: Remueve la oferta de la lista local para que ya no aparezca disponible
+        setOfertas((prev) => prev.filter((o) => o.id !== ofertaSeleccionada.id));
+       
+
+    } catch (error) {
+      console.error("Error al iniciar transacción:", error);
+      setAlerta({ 
+        mostrar: true, 
+        mensaje: error.response?.data?.error || 'Ocurrió un error al intentar iniciar la transacción.', 
+        tipo: 'error' 
+      });
+    } finally {
+      handleCerrarModal();
+    }
   };
 
   const handleOfertaCreada = (nuevaOferta) => {
@@ -61,8 +104,8 @@ function OfertasPage() {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  // Memoización de categorías basadas en la BD (más preciso que leer de ofertas)
-  const categoriasDisponibles = useMemo(() => {
+  // Memoización de categorías basadas en la BD
+  const categoriesDisponibles = useMemo(() => {
     return serviciosDB.map((s) => s.nombre);
   }, [serviciosDB]);
 
@@ -177,7 +220,7 @@ function OfertasPage() {
                 <FiltroTags 
                     tagActivo={tagActivo} 
                     onTagChange={setTagActivo} 
-                    tagsDisponibles={categoriasDisponibles} 
+                    tagsDisponibles={categoriesDisponibles} 
                 />
               </div>
             </div>

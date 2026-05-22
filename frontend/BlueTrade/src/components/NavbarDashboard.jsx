@@ -65,7 +65,17 @@ function NavbarDashboard({
             className={paginaActiva === 'historial' ? 'active' : ''}
             style={paginaActiva === 'historial' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
           >
-            Mis Intercambios
+            Mis Ofertas
+          </a>
+        </>)}
+        {usuarioActivo && (
+          <> 
+          <a 
+            href="/transacciones" 
+            className={paginaActiva === 'transacciones' ? 'active' : ''}
+            style={paginaActiva === 'transacciones' ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' } : {}}
+          >
+            Mis Transacciones
           </a>
         </>)}
         <a 

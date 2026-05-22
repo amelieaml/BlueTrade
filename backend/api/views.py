@@ -1,17 +1,19 @@
 from django.db import transaction
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
 
 from .serializer import (
     UsuarioSerializer, 
     ServicioSerializer, 
     CertificadoSerializer, 
     OfertaSerializer, 
-    UsuarioAdminSerializer
+    UsuarioAdminSerializer,
+    TransaccionSerializer
 )
-from .models import Servicio, Usuario, Certificado, Oferta
+from .models import Servicio, Usuario, Certificado, Oferta, Transaccion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -122,3 +124,15 @@ class CertificadoView(viewsets.ModelViewSet):
 class OfertaView(viewsets.ModelViewSet):
     serializer_class = OfertaSerializer
     queryset = Oferta.objects.all().order_by('-creado_el')
+
+class TransaccionViewSet(viewsets.ModelViewSet):
+    queryset = Transaccion.objects.all()
+    serializer_class = TransaccionSerializer
+    
+    # 1. Apagamos la seguridad SOLAMENTE para pruebas
+    permission_classes = [AllowAny]
+    authentication_classes = [] # <-- Vital para evitar el 403 por CSRF
+    
+    # Nota: Hemos eliminado get_queryset y perform_create temporalmente.
+    # El Serializer se encargará automáticamente de tomar el 'oferta', 'vendedor' 
+    # y 'comprador' directamente del JSON que manda React y guardarlo.

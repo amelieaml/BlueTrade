@@ -9,6 +9,7 @@ import DashboardPage from "../pages/Dashboardpage.jsx";
 import SolicitudesPage from "../pages/Solicitudes.jsx";
 import PerfilUsuario from "../pages/PerfilUsuario.jsx";
 import MisOfertasPage from "../pages/MisOfertasPage.jsx";
+import TransaccionesPage from "../pages/TransaccionesPage.jsx";
 
 import AdminDashboardPage from "../pages/AdminDashboardPage.jsx";
 import SolicitudesRegistroPage from "../pages/SolicitudesRegistroPage.jsx";
@@ -30,6 +31,7 @@ function AppRouter() {
 
         <Route path="/perfil" element={<PerfilUsuario />} />
         <Route path="/historial" element={<MisOfertasPage />} />
+        <Route path="/transacciones" element={<TransaccionesPage />} />
 
         <Route path="/admin" element={<AdminDashboardPage />} />
 

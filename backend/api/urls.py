@@ -9,6 +9,7 @@ router.register(r'usuarios', UsuarioView, 'usuario')
 router.register(r'servicios', ServicioView, 'servicio')
 router.register(r'certificados', CertificadoView, 'certificado')
 router.register(r'ofertas', OfertaView, 'oferta')
+router.register(r'transacciones', TransaccionViewSet, 'transaccion')
 
 urlpatterns = [
     path('test/', include(router.urls))

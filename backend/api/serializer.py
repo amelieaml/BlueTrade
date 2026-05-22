@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Certificado, Usuario, Residencia, Servicio, Oferta
+from .models import Certificado, Transaccion, Usuario, Residencia, Servicio, Oferta
 
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
@@ -9,6 +9,17 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'does_not_exist': 'El número de propiedad ingresado no pertenece a ninguna residencia válida de la urbanización.'
         }
     )
+    
+    # FORZAR LA INCLUSIÓN DE LAS PROPIEDADES DINÁMICAS
+    litros_disponibles = serializers.ReadOnlyField()
+    litros_bloqueados = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Usuario
+        fields = '__all__'
+        extra_kwargs = {
+            'password': {'write_only': True} 
+        }
 
     class Meta:
         model = Usuario
@@ -43,7 +54,7 @@ class UsuarioAdminSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'ci', 'nombre', 'email', 'telefono', 'codigo_casa',
             'intencion_agua', 'intencion_servicio', 'tipo_servicio_intencion',
-            'certificado', 'certificado_url', 'estado', 'litros_agua', 'es_admin',
+            'certificado', 'certificado_url', 'estado', 'litros_agua', 'es_admin','litros_disponibles', 'litros_bloqueados'
         ]
 
     def get_certificado_url(self, obj):
@@ -104,3 +115,8 @@ class OfertaSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'usuario': {'required': False}
         }
+
+class TransaccionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaccion
+        fields = '__all__'  # <-- OJO: Son DOS guiones bajos seguidos al principio y al final

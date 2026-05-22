@@ -1,0 +1,137 @@
+@startuml
+
+title Publicar y Gestionar Oferta
+
+actor Proveedor
+participant DashboardPageUI
+participant Controlador
+participant Usuario
+participant Servicio
+participant Certificado
+participant Oferta
+database BD
+
+== Ingreso al Panel ==
+
+Proveedor -> DashboardPageUI : ingresarPanel()
+
+DashboardPageUI -> Controlador : getOfertas(usuario.id)
+
+Controlador -> Oferta : filtrarOfertasActivas()
+
+Oferta -> BD : Seleccionar ofertas
+BD --> Oferta : listaOfertas
+
+Oferta --> Controlador : ofertasActivas
+Controlador --> DashboardPageUI : respuestaOfertas
+
+DashboardPageUI --> Proveedor : mostrarCatalogo()
+
+== Crear Nueva Oferta ==
+
+Proveedor -> DashboardPageUI : seleccionarNuevaOferta()
+
+DashboardPageUI --> Proveedor : mostrarFormulario()
+
+Proveedor -> DashboardPageUI : ingresarDatosOferta()
+Proveedor -> DashboardPageUI : confirmarPublicacion()
+
+DashboardPageUI -> Controlador : crearOferta()
+
+alt Servicio técnico seleccionado
+
+    Controlador -> Servicio : buscarServicio()
+    Servicio -> BD : Seleccionar servicio
+    BD --> Servicio : datosServicio
+    Servicio --> Controlador : servicio
+
+    alt Servicio requiere certificado
+
+        Controlador -> Usuario : verificarCertificado()
+
+        alt usuario.certificado == false
+            Controlador --> DashboardPageUI : errorCertificacion()
+            DashboardPageUI --> Proveedor : mostrarErrorCertificacion()
+
+        else usuario.certificado == true
+
+            Controlador -> Oferta : crearOferta(datos)
+            Oferta -> BD : Agregar Oferta
+            BD --> Oferta : ofertaGuardada
+            
+            Oferta --> Controlador : ofertaCreada 
+            Controlador --> DashboardPageUI : respuestaExitosa() 
+            DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
+
+        end
+
+    else Servicio NO requiere certificado
+
+        Servicio --> Controlador : servicioSinCertificacion()
+
+        Controlador -> Oferta : crearOferta(datos)
+        Oferta -> BD : Agregar Oferta
+        BD --> Oferta : ofertaGuardada
+
+        Oferta --> Controlador : ofertaCreada 
+        Controlador --> DashboardPageUI : respuestaExitosa() 
+        DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
+
+    end
+
+else Oferta de agua
+
+    Controlador -> Oferta : crearOferta(datos)
+    Oferta -> BD : Agregar Oferta
+    BD --> Oferta : ofertaGuardada
+
+    Oferta --> Controlador : ofertaCreada 
+    Controlador --> DashboardPageUI : respuestaExitosa() 
+    DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
+
+end
+
+
+== Gestionar Oferta ==
+
+Proveedor -> DashboardPageUI : gestionarOferta()
+
+alt Editar oferta
+
+    DashboardPageUI -> Controlador : editarOferta()
+    Controlador -> Oferta : actualizarDatos()
+
+    Oferta -> BD : Actualizar oferta
+    BD --> Oferta : ofertaActualizada
+
+    Oferta --> Controlador : confirmacion()
+    Controlador --> DashboardPageUI : ofertaEditada()
+    DashboardPageUI --> Proveedor : mostrarCambios()
+
+else Pausar oferta
+
+    DashboardPageUI -> Controlador : pausarOferta()
+    Controlador -> Oferta : cambiarEstado(PAUSADO)
+
+    Oferta -> BD : Actualizar estado
+    BD --> Oferta : estadoActualizado
+
+    Oferta --> Controlador : ofertaPausada()
+    Controlador --> DashboardPageUI : confirmacion()
+    DashboardPageUI --> Proveedor : ofertaOculta()
+
+else Cancelar oferta
+
+    DashboardPageUI -> Controlador : cancelarOferta()
+    Controlador -> Oferta : cambiarEstado(CANCELADA)
+
+    Oferta -> BD : Actualizar estado
+    BD --> Oferta : estadoActualizado
+
+    Oferta --> Controlador : ofertaCancelada()
+    Controlador --> DashboardPageUI : confirmacion()
+    DashboardPageUI --> Proveedor : ofertaEliminada()
+
+end
+
+@enduml

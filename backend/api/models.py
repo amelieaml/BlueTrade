@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class Residencia(models.Model):
     codigo = models.CharField(max_length=50, unique=True) 
@@ -78,6 +79,31 @@ class Usuario(AbstractBaseUser):
             self.save()
             return True
         return False
+    
+    @property
+    def litros_bloqueados(self):
+        # 1. Litros bloqueados cuando tú eres el VENDEDOR (creaste una oferta ofreciendo AGUA)
+        bloqueados_ventas = self.ventas.filter(
+            estado__in=['PENDIENTE', 'EN_PROCESO'],
+            oferta__tipo_ofrecido__iexact='AGUA'
+        ).aggregate(
+            total=models.Sum('oferta__cantidad_ofrecida')
+        )['total'] or 0
+
+        # 2. Litros bloqueados cuando tú eres el COMPRADOR (aceptaste una oferta que pide AGUA)
+        bloqueados_compras = self.compras.filter(
+            estado__in=['PENDIENTE', 'EN_PROCESO'],
+            oferta__tipo_solicitado__iexact='AGUA'
+        ).aggregate(
+            total=models.Sum('oferta__cantidad_solicitada')
+        )['total'] or 0
+
+        return float(bloqueados_ventas) + float(bloqueados_compras)
+
+    @property
+    def litros_disponibles(self):
+        # El saldo real es tu total histórico menos lo que está comprometido en transacciones
+        return float(self.litros_agua) - self.litros_bloqueados
 
 class Servicio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -131,3 +157,52 @@ class Oferta(models.Model):
 
     def __str__(self):
         return f"Oferta {self.id} - {self.usuario.nombre} ({self.estado})"
+    
+class EstadoTransaccion(models.TextChoices):
+    PENDIENTE = 'PENDIENTE', 'Pendiente'
+    EN_PROCESO = 'EN_PROCESO', 'En Proceso'
+    COMPLETADA = 'COMPLETADA', 'Completada'
+    CANCELADA = 'CANCELADA', 'Cancelada'
+
+class Transaccion(models.Model):
+    oferta = models.ForeignKey('Oferta', on_delete=models.PROTECT, related_name='transacciones')
+    comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='compras')
+    vendedor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ventas')
+    
+    estado = models.CharField(max_length=20, choices=EstadoTransaccion.choices, default=EstadoTransaccion.PENDIENTE)
+    
+    # Confirmaciones manuales de ambas partes
+    confirmacion_comprador = models.BooleanField(default=False)
+    confirmacion_vendedor = models.BooleanField(default=False)
+    
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+    fecha_finalizacion = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Lógica de cierre automático: si ambos confirman, se completa la transacción
+        if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != EstadoTransaccion.COMPLETADA:
+            self.estado = EstadoTransaccion.COMPLETADA
+            self.fecha_finalizacion = timezone.now()
+            
+            # Actualizamos el estado de la oferta original
+            self.oferta.estado = 'COMPLETADO'
+            self.oferta.save()
+            
+            # Deducción de recursos (Lógica de Agua)
+            if self.oferta.tipo_ofrecido.upper() == 'AGUA':
+                vendedor = self.oferta.usuario
+                vendedor.litros_agua -= self.oferta.cantidad_ofrecida
+                vendedor.save()
+                
+        super().save(*args, **kwargs)
+
+    @property
+    def litros_involucrados(self):
+        # Esta transacción, ¿cuántos litros de agua involucra?
+        # Solo nos interesa si el tipo ofrecido es AGUA
+        if self.oferta.tipo_ofrecido == 'AGUA':
+            return self.oferta.cantidad_ofrecida
+        return 0
+
+    def __str__(self):
+        return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
