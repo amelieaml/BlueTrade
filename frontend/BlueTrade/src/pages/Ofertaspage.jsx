@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas } from '../api/item.api'; 
+import { getOfertas, getServicios } from '../api/item.api'; 
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
 import FiltroTags from '../components/FiltroTags';
 import TarjetaOferta from '../components/TarjetaOferta';
 import ModalDetalleOferta from '../components/ModalDetalleOferta';
+import ModalCrearOferta from '../components/ModalCrearOferta'; 
 
 function OfertasPage() {
   const { usuario } = useContext(AuthContext);
@@ -15,15 +16,21 @@ function OfertasPage() {
   const [tagActivo, setTagActivo] = useState('');
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
 
-  // Obtener ID del usuario logueado (Ajusta la clave según tu sistema de login)
+  const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
+  const [serviciosDB, setServiciosDB] = useState([]);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const response = await getOfertas();
-        setOfertas(response.data);
+        const [responseOfertas, responseServicios] = await Promise.all([
+          getOfertas(),
+          getServicios()
+        ]);
+        
+        setOfertas(responseOfertas.data);
+        setServiciosDB(responseServicios.data);
       } catch (error) {
-        console.error("Error al cargar ofertas:", error);
+        console.error("Error al cargar datos:", error);
       }
     };
     cargarDatos();
@@ -31,19 +38,20 @@ function OfertasPage() {
 
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
+  
   const handleConfirmar = (oferta) => {
     console.log('Iniciando transacción para:', oferta.id);
     handleCerrarModal();
   };
 
+  const handleOfertaCreada = (nuevaOferta) => {
+    setOfertas((prev) => [nuevaOferta, ...prev]);
+  };
+
+  // 🆕 MODIFICACIÓN: Mapeamos directamente todas las categorías registradas en la BD
   const categoriasDisponibles = useMemo(() => {
-    const tagsSet = new Set();
-    ofertas.forEach((o) => {
-      if (o.tipo_ofrecido === 'servicio') tagsSet.add(o.categoria_ofrecida);
-      if (o.tipo_solicitado === 'servicio') tagsSet.add(o.categoria_solicitada);
-    });
-    return Array.from(tagsSet);
-  }, [ofertas]);
+    return serviciosDB.map((s) => s.nombre);
+  }, [serviciosDB]);
 
   function handleFiltroChange(campo, valor) {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
@@ -53,39 +61,26 @@ function OfertasPage() {
     const q = busqueda.toLowerCase();
     
     return ofertas.filter((o) => {
-      
-      // 1. REGLA DE NEGOCIO: Solo activas y no propias
       if (o.estado !== 'ACTIVO') return false;
 
       if (usuario?.id && o.usuario === usuario.id) {
-        return false; // Esto oculta las ofertas que son del usuario logueado
+        return false; 
       }
 
-      // 2. BÚSQUEDA POR TEXTO (Palabra clave)
-      // Buscamos en nombre de usuario, descripción o categorías
       const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada}`.toLowerCase();
       if (q && !textoBusqueda.includes(q)) return false;
 
-      // 3. FILTRO POR TIPO (Agua vs Servicio)
-      // Si el usuario elige algo en el select
-      // En OfertasPage.jsx, dentro del filter:
       if (filtros.tipoBuscado) {
-        // .toLowerCase() en ambos lados asegura que "Agua" == "agua" == "AGUA"
         if (o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()) {
           return false;
         }
       }
 
-      // 4. FILTRO DE CANTIDAD MÍNIMA (Slider)
-      // Solo aplicamos si la cantidad mayor a 0
       if (filtros.cantidadMinima > 0) {
-        // Aseguramos que la comparación sea numérica
         if ((parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima) return false;
       }
 
-      // 5. FILTRO POR TAGS (Categorías específicas)
       if (tagActivo) {
-        // Verificamos si el tag coincide con la categoría ofrecida O solicitada
         const coincideOfrecida = o.categoria_ofrecida === tagActivo;
         const coincideSolicitada = o.categoria_solicitada === tagActivo;
         if (!coincideOfrecida && !coincideSolicitada) return false;
@@ -93,7 +88,7 @@ function OfertasPage() {
 
       return true;
     });
-  }, [ofertas, filtros, busqueda, tagActivo]);
+  }, [ofertas, filtros, busqueda, tagActivo, usuario]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
@@ -101,6 +96,14 @@ function OfertasPage() {
 
       <NavbarDashboard paginaActiva="ofertas" />
       
+      <ModalCrearOferta 
+        isOpen={isModalCrearOpen}
+        onClose={() => setIsModalCrearOpen(false)}
+        onSuccess={handleOfertaCreada}
+        serviciosDB={serviciosDB}
+        usuario={usuario}
+      />
+
       <ModalDetalleOferta
         oferta={ofertaSeleccionada}
         isOpen={!!ofertaSeleccionada}
@@ -118,7 +121,11 @@ function OfertasPage() {
               Explora los recursos de intercambio en tu comunidad.
             </p>
           </div>
-          <button className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 ease-in-out cursor-pointer">
+          
+          <button 
+            onClick={() => setIsModalCrearOpen(true)}
+            className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 ease-in-out cursor-pointer"
+          >
             + Publicar intercambio
           </button>
         </div>
@@ -142,7 +149,10 @@ function OfertasPage() {
                 <hr className="border-[#0066ff]/10 my-2" />
                 <FiltroOfertas filtroTipo={filtros.tipoBuscado} cantidadMinima={filtros.cantidadMinima} onChange={handleFiltroChange} />
                 <hr className="border-[#0066ff]/10 my-2" />
+                
+                {/* Aquí pasamos las nuevas categorías globales mapeadas desde la BD */}
                 <FiltroTags tagActivo={tagActivo} onTagChange={setTagActivo} tagsDisponibles={categoriasDisponibles} />
+              
               </div>
             </div>
           </aside>

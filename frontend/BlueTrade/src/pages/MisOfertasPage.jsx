@@ -1,29 +1,46 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas } from '../api/item.api'; 
+import { getOfertas, getServicios } from '../api/item.api'; // 🆕 Agregamos getServicios
 import NavbarDashboard from '../components/NavbarDashboard';
 import TarjetaMiOferta from '../components/TarjetaMiOferta';
-import ModalDetalleOferta from '../components/ModalDetalleOferta';
+import ModalGestionarOferta from '../components/ModalGestionarOferta'; // 🆕 Cambiamos el modal
 
 function MisOfertasPage() {
   const { usuario } = useContext(AuthContext);
   const [ofertas, setOfertas] = useState([]);
+  const [serviciosDB, setServiciosDB] = useState([]); // 🆕 Estado para guardar las categorías
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const response = await getOfertas();
-        setOfertas(response.data);
+        // 🆕 Cargamos tanto las ofertas como los servicios al mismo tiempo
+        const [responseOfertas, responseServicios] = await Promise.all([
+          getOfertas(),
+          getServicios()
+        ]);
+        
+        setOfertas(responseOfertas.data);
+        setServiciosDB(responseServicios.data);
       } catch (error) {
-        console.error("Error al cargar mis ofertas:", error);
+        console.error("Error al cargar los datos:", error);
       }
     };
-    cargarDatos();
-  }, []);
+    
+    if (usuario?.id) {
+      cargarDatos();
+    }
+  }, [usuario]);
 
-  const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
+  const handleGestionar = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
+
+  // 🆕 Función para que la lista se actualice visualmente cuando editas algo en el modal
+  const handleOfertaActualizada = (ofertaEditada) => {
+    setOfertas(prev => 
+      prev.map(oferta => oferta.id === ofertaEditada.id ? { ...oferta, ...ofertaEditada } : oferta)
+    );
+  };
 
   // Lógica: Filtramos para mostrar SOLO las del usuario
   const misOfertas = useMemo(() => {
@@ -35,10 +52,14 @@ function MisOfertasPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16">
       <NavbarDashboard paginaActiva="mis-ofertas" />
       
-      <ModalDetalleOferta
-        oferta={ofertaSeleccionada}
+      {/* 🆕 Renderizamos el nuevo modal pasándole todos los props que necesita */}
+      <ModalGestionarOferta
         isOpen={!!ofertaSeleccionada}
         onClose={handleCerrarModal}
+        onSuccess={handleOfertaActualizada}
+        serviciosDB={serviciosDB}
+        usuario={usuario}
+        oferta={ofertaSeleccionada}
       />
       
       <div className="max-w-[1000px] mx-auto px-6 pt-12">
@@ -64,8 +85,13 @@ function MisOfertasPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {misOfertas.map((oferta) => (
-                <TarjetaMiOferta key={oferta.id} oferta={oferta} onVerDetalle={handleVerDetalle} />
+                <TarjetaMiOferta 
+                  key={oferta.id} 
+                  oferta={oferta} 
+                  onGestionar={handleGestionar} 
+                />
               ))}
+              
             </div>
           )}
         </section>

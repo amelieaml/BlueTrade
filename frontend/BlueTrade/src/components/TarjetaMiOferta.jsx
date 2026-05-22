@@ -1,6 +1,22 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-function TarjetaMiOferta({ oferta, onGestionar }) {
+// Añadimos una nueva prop: onCambiarEstado
+function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
+  // 1. Estado para controlar la visibilidad del menú
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef(null);
+
+  // 2. Efecto para cerrar el menú al hacer clic fuera de él
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuAbierto(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const itemOfrecido = {
     tipo: oferta.tipo_ofrecido, 
     cantidad: oferta.cantidad_ofrecida || 0, 
@@ -16,22 +32,27 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
   const esAgua = itemOfrecido.tipo?.toLowerCase() === 'agua';
   const themeAccent = esAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
 
+  // Lógica para saber qué opciones mostrar en el menú
+  const esEditable = oferta.estado === 'ACTIVO' || oferta.estado === 'PAUSADO';
+  const esEstadoPausado = oferta.estado === 'PAUSADO';
+  const esCancelable = oferta.estado !== 'CANCELADO' && oferta.estado !== 'COMPLETADO';
+
   const getEstadoEstilos = (estado) => {
-  switch (estado) {
-    case 'ACTIVO':
-      return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-    case 'EN_PROCESO':
-      return 'bg-amber-50 text-amber-600 border border-amber-100';
-    case 'PAUSADO': 
-      return 'bg-slate-100 text-slate-600 border border-slate-200';
-    case 'COMPLETADO':
-      return 'bg-[#f7fbff] text-[#0066ff] border border-blue-100';
-    case 'CANCELADO': 
-      return 'bg-red-50 text-red-500 border border-red-100';
-    default:
-      return 'bg-gray-50 text-gray-500 border border-gray-100';
-  }
-};
+    switch (estado) {
+      case 'ACTIVO':
+        return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+      case 'EN_PROCESO':
+        return 'bg-amber-50 text-amber-600 border border-amber-100';
+      case 'PAUSADO': 
+        return 'bg-slate-100 text-slate-600 border border-slate-200';
+      case 'COMPLETADO':
+        return 'bg-[#f7fbff] text-[#0066ff] border border-blue-100';
+      case 'CANCELADO': 
+        return 'bg-red-50 text-red-500 border border-red-100';
+      default:
+        return 'bg-gray-50 text-gray-500 border border-gray-100';
+    }
+  };
 
   const RenderRecurso = ({ recurso, tipoGrama }) => {
     const isAgua = recurso.tipo?.toLowerCase() === 'agua';
@@ -47,7 +68,6 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
             </div>
             <div>
               <p className="font-bold text-[#1a1d27] text-[15px] m-0">
-                {/* SOLUCIÓN: Usamos recurso.cantidad y le metemos el formato correcto según el tipo */}
                 {isAgua 
                   ? `${recurso.cantidad.toLocaleString()} L de Agua` 
                   : `${recurso.cantidad}h de Servicio`
@@ -65,27 +85,70 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
     );
   };
 
+  // Función que maneja el clic en las opciones del menú
+  const handleAccionMenu = (nuevoEstado) => {
+    setMenuAbierto(false); // Cerramos el menú
+    if (onCambiarEstado) {
+      onCambiarEstado(oferta, nuevoEstado); // Le avisamos al componente padre
+    }
+  };
+
   return (
     <article className="relative bg-white rounded-[20px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all flex flex-col h-full group">
       
-      {/* Línea lateral de color que identifica la oferta */}
       <div className={`absolute left-0 top-8 bottom-8 w-1.5 rounded-r-md ${themeAccent} opacity-80 transition-opacity`}></div>
 
       <div className="pl-3 flex flex-col h-full">
         
-        {/* Cabecera: Estado evaluado con el Enum y Menú de opciones */}
         <div className="flex justify-between items-center mb-4">
           <span className={`text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md ${getEstadoEstilos(oferta.estado)}`}>
             {oferta.estado}
           </span>
-          <button className="text-gray-400 hover:text-gray-700 transition-colors cursor-pointer bg-transparent border-none p-0">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-            </svg>
-          </button>
+          
+          {/* 3. Contenedor relativo para el botón y el menú */}
+          <div className="relative" ref={menuRef}>
+            <button 
+              onClick={() => setMenuAbierto(!menuAbierto)}
+              className="text-gray-400 hover:text-[#0066ff] transition-colors cursor-pointer bg-transparent border-none p-1 rounded-full hover:bg-blue-50"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+              </svg>
+            </button>
+
+            {/* 4. El Menú desplegable */}
+            {menuAbierto && (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.08)] z-20 py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                
+                {esEditable && (
+                  <button 
+                    onClick={() => handleAccionMenu(esEstadoPausado ? 'ACTIVO' : 'PAUSADO')}
+                    className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-amber-600 hover:bg-amber-50 cursor-pointer border-none bg-transparent transition-colors flex items-center gap-2"
+                  >
+                    {esEstadoPausado ? '▶ Activar oferta' : '⏸ Pausar oferta'}
+                  </button>
+                )}
+
+                {esCancelable && (
+                  <button 
+                    onClick={() => handleAccionMenu('CANCELADO')}
+                    className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-50 cursor-pointer border-none bg-transparent transition-colors flex items-center gap-2"
+                  >
+                    ✕ Cancelar oferta
+                  </button>
+                )}
+                
+                {/* Opcional: Mensaje si no hay acciones disponibles */}
+                {!esEditable && !esCancelable && (
+                  <div className="px-4 py-2 text-xs text-gray-400 italic">
+                    Sin acciones disponibles
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Cajas de Intercambio */}
         <div className="flex flex-col gap-2 flex-grow">
           <RenderRecurso recurso={itemOfrecido} tipoGrama="ofrece" />
           
@@ -98,7 +161,6 @@ function TarjetaMiOferta({ oferta, onGestionar }) {
           <RenderRecurso recurso={itemSolicitado} tipoGrama="solicita" />
         </div>
 
-        {/* Footer: ID y Botón de Acción */}
         <div className="mt-6 pt-4 flex items-center justify-between border-t border-gray-50">
           <span className="text-[12px] font-bold text-gray-400">ID: {oferta.id}</span>
           <button 

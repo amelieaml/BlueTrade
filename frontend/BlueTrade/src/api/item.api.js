@@ -61,7 +61,6 @@ export const guardarCertificado = async (idUsuario, tipoServicio, archivoCertifi
 };
 
 // Iniciar Sesión
-
 export const loginUsuario = async (credenciales) => {
     return axios.post(`${API_BASE_URL}login/`, credenciales);
 };
@@ -76,7 +75,6 @@ export const getServicios = async (idUsuario) => {
 
 export const crearOferta = async (datosOferta) => {
     const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
-    
     const token = localStorage.getItem('token'); 
 
     return axios.post(urlOfertas, datosOferta, {
@@ -93,6 +91,24 @@ export const getOfertas = async () => {
 
     return axios.get(urlOfertas, {
         headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+    });
+};
+
+// ------------------------------------------------------------------
+// 🆕 NUEVA FUNCIÓN: Actualizar una oferta existente
+// ------------------------------------------------------------------
+export const actualizarOferta = async (idOferta, datosOferta) => {
+    // Apuntamos específicamente al ID de la oferta que queremos modificar
+    const urlOfertaEspecifica = `http://127.0.0.1:8000/item/test/ofertas/${idOferta}/`;
+    const token = localStorage.getItem('token'); 
+
+    // Usamos PATCH porque es el estándar en Django REST Framework para actualizaciones 
+    // (permite enviar todos los datos o solo los que cambiaron, como el estado a 'PAUSADO')
+    return axios.patch(urlOfertaEspecifica, datosOferta, {
+        headers: {
+            'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` })
         }
     });
