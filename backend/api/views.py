@@ -1,14 +1,17 @@
 from django.db import transaction
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework import status
-from rest_framework.exceptions import ValidationError # Importa esto arriba
 
-from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer, OfertaSerializer, UsuarioAdminSerializer
-from .models import Servicio, Usuario, Certificado, EstadoUsuario, Oferta
+from .serializer import (
+    UsuarioSerializer, 
+    ServicioSerializer, 
+    CertificadoSerializer, 
+    OfertaSerializer, 
+    UsuarioAdminSerializer
+)
+from .models import Servicio, Usuario, Certificado, Oferta
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -17,7 +20,12 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='listar-admin')
     def listar_admin(self, request):
         usuarios = Usuario.objects.all().order_by('id')
-        serializer = UsuarioAdminSerializer(usuarios, many=True)
+        # Es vital pasar el contexto para que las URLs del certificado funcionen
+        serializer = UsuarioAdminSerializer(
+            usuarios, 
+            many=True, 
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
@@ -60,7 +68,7 @@ class UsuarioView(viewsets.ModelViewSet):
 
             nuevo_certificado = Certificado(
                 usuario=usuario_instancia, 
-                tipo_servicio=tipo_servicio,
+                tipo_servicio_id=tipo_servicio,
                 archivo=archivo_fisico
             )
             nuevo_certificado.save() 
@@ -91,7 +99,11 @@ class UsuarioView(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        serializer = UsuarioAdminSerializer(user)
+        # Pasamos el contexto aquí también para que el usuario logueado obtenga su URL de certificado
+        serializer = UsuarioAdminSerializer(
+            user, 
+            context={'request': request}
+        )
 
         return Response({
             "message": "Inicio de sesión exitoso",
@@ -105,7 +117,6 @@ class ServicioView(viewsets.ModelViewSet):
 class CertificadoView(viewsets.ModelViewSet):
     serializer_class = CertificadoSerializer
     queryset = Certificado.objects.all()
-    
     parser_classes = (MultiPartParser, FormParser)
 
 class OfertaView(viewsets.ModelViewSet):

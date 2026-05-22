@@ -12,22 +12,18 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = '__all__' # Mantiene todos los atributos automáticamente en el JSON
+        fields = '__all__'
         extra_kwargs = {
             'password': {'write_only': True} 
         }
 
     def validate_codigo_casa(self, value):
-        # value ya es el objeto Residencia encontrado en Supabase
-        
         # REGLA: Si la casa ya está ocupada, rechaza el registro inmediatamente
         if value.ocupada:
             raise serializers.ValidationError("Esta propiedad ya se encuentra vinculada a un usuario registrado.")
-
         return value
     
     def create(self, validated_data):
-        
         password = validated_data.pop('password', None)
         usuario = Usuario.objects.create_user(password=password, **validated_data)
         residencia = validated_data['codigo_casa']
@@ -40,42 +36,53 @@ class UsuarioAdminSerializer(serializers.ModelSerializer):
         slug_field='codigo',
         read_only=True
     )
+    certificado_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
         fields = [
-            'id',
-            'ci',
-            'nombre',
-            'email',
-            'telefono',
-            'codigo_casa',
-            'intencion_agua',
-            'intencion_servicio',
-            'tipo_servicio_intencion',
-            'certificado',
-            'estado',
-            'litros_agua',
-            'es_admin',
+            'id', 'ci', 'nombre', 'email', 'telefono', 'codigo_casa',
+            'intencion_agua', 'intencion_servicio', 'tipo_servicio_intencion',
+            'certificado', 'certificado_url', 'estado', 'litros_agua', 'es_admin',
         ]
 
-# Serializer para la clase Certificado
+    def get_certificado_url(self, obj):
+        request = self.context.get('request')
+        
+        # Validaciones iniciales
+        tipo_servicio_valor = obj.tipo_servicio_intencion
+        if not tipo_servicio_valor or tipo_servicio_valor in [None, '', 'null', 'None']:
+            return None
+
+        # Determinar ID (maneja si es objeto o ID directo)
+        tipo_servicio_id = tipo_servicio_valor.id if hasattr(tipo_servicio_valor, 'id') else tipo_servicio_valor
+        
+        if not tipo_servicio_id or tipo_servicio_id in [None, '', 'null', 'None']:
+            return None
+
+        # Buscar certificado
+        certificado = Certificado.objects.filter(
+            usuario_id=obj.id,
+            tipo_servicio_id=tipo_servicio_id
+        ).last()
+
+        if certificado and certificado.archivo:
+            if request is not None:
+                return request.build_absolute_uri(certificado.archivo.url)
+            return certificado.archivo.url
+        return None
+
 class CertificadoSerializer(serializers.ModelSerializer):
-    # 1. Declaramos un campo personalizado que se generará al vuelo
     archivo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Certificado
-        # 2. Agregamos el nuevo campo a la lista (puedes dejar '__all__' si prefieres, 
-        # pero es mejor ser explícito para evitar problemas)
         fields = ['id', 'archivo', 'archivo_url', 'creado_el', 'usuario', 'tipo_servicio']
 
-    # 3. Esta función construye la URL completa
     def get_archivo_url(self, obj):
-        request = self.context.get('request') # Obtenemos el contexto (quién nos está llamando)
+        request = self.context.get('request')
         if obj.archivo and hasattr(obj.archivo, 'url'):
             if request is not None:
-                # build_absolute_uri toma '/media/comprobantes/archivo.pdf' y le pega 'http://127.0.0.1:8000'
                 return request.build_absolute_uri(obj.archivo.url)
         return None
         
@@ -90,20 +97,10 @@ class OfertaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Oferta
         fields = [
-            'id', 
-            'usuario', 
-            'usuario_nombre', 
-            'estado', 
-            'tipo_ofrecido', 
-            'cantidad_ofrecida', 
-            'categoria_ofrecida', 
-            'tipo_solicitado', 
-            'cantidad_solicitada', 
-            'categoria_solicitada', 
-            'descripcion', 
-            'creado_el'
+            'id', 'usuario', 'usuario_nombre', 'estado', 'tipo_ofrecido', 
+            'cantidad_ofrecida', 'categoria_ofrecida', 'tipo_solicitado', 
+            'cantidad_solicitada', 'categoria_solicitada', 'descripcion', 'creado_el'
         ]
-    
         extra_kwargs = {
             'usuario': {'required': False}
         }

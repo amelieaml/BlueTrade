@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "../styles/DetalleSolicitudPage.css";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 function DetalleSolicitudPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,7 +23,7 @@ function DetalleSolicitudPage() {
     const cargarUsuario = async () => {
       try {
         const respuesta = await fetch(
-          "http://127.0.0.1:8000/item/test/usuarios/listar-admin/"
+          `${API_BASE_URL}/item/test/usuarios/listar-admin/`
         );
 
         if (!respuesta.ok) {
@@ -65,7 +67,7 @@ function DetalleSolicitudPage() {
       setError("");
 
       const respuesta = await fetch(
-        `http://127.0.0.1:8000/item/test/usuarios/${usuario.id}/`,
+        `${API_BASE_URL}/item/test/usuarios/${usuario.id}/`,
         {
           method: "PATCH",
           headers: {
@@ -152,6 +154,43 @@ function DetalleSolicitudPage() {
 
     return "Sin intención registrada";
   };
+
+  const obtenerCertificadoUrl = () => {
+    if (!usuario) return null;
+
+    /*
+      Recomendado desde backend:
+      usuario.certificado_url = "http://127.0.0.1:8000/media/certificados/archivo.jpg"
+
+      También se dejan otras opciones por si tu backend devuelve:
+      usuario.certificado
+      usuario.certificado.imagen
+      usuario.certificado.archivo
+      usuario.certificado.url
+    */
+    const certificado =
+      usuario.certificado_url ||
+      usuario.certificado?.imagen ||
+      usuario.certificado?.archivo ||
+      usuario.certificado?.url ||
+      usuario.certificado;
+
+    if (!certificado || certificado === true) {
+      return null;
+    }
+
+    if (typeof certificado !== "string") {
+      return null;
+    }
+
+    if (certificado.startsWith("http://") || certificado.startsWith("https://")) {
+      return certificado;
+    }
+
+    return `${API_BASE_URL}${certificado}`;
+  };
+
+  const certificadoUrl = obtenerCertificadoUrl();
 
   if (cargando) {
     return (
@@ -304,9 +343,32 @@ function DetalleSolicitudPage() {
 
             <div className="dato-item">
               <span>Certificado</span>
-              <strong>{usuario.certificado ? "Cargado" : "No cargado"}</strong>
+              <strong>{certificadoUrl ? "Cargado" : "No cargado"}</strong>
             </div>
           </div>
+
+          {certificadoUrl ? (
+            <div className="certificado-preview">
+              <img
+                src={certificadoUrl}
+                alt="Certificado del usuario"
+                className="certificado-imagen"
+              />
+
+              <a
+                href={certificadoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="certificado-link"
+              >
+                Ver certificado en tamaño completo
+              </a>
+            </div>
+          ) : (
+            <p className="certificado-vacio">
+              Este usuario no ha cargado ningún certificado.
+            </p>
+          )}
         </article>
       </section>
 
