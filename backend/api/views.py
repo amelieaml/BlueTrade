@@ -7,12 +7,18 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.exceptions import ValidationError # Importa esto arriba
 
-from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer, OfertaSerializer
+from .serializer import UsuarioSerializer, ServicioSerializer, CertificadoSerializer, OfertaSerializer, UsuarioAdminSerializer
 from .models import Servicio, Usuario, Certificado, EstadoUsuario, Oferta
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
+
+    @action(detail=False, methods=['get'], url_path='listar-admin')
+    def listar_admin(self, request):
+        usuarios = Usuario.objects.all().order_by('id')
+        serializer = UsuarioAdminSerializer(usuarios, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
@@ -79,30 +85,18 @@ class UsuarioView(viewsets.ModelViewSet):
 
         user = authenticate(username=email, password=password)
 
-        if user is not None:
-            # Si el usuario NO está activo, interceptamos según su estado específico
-            if user.estado != EstadoUsuario.ACTIVO:
-                return Response(
-                    {
-                        "user": {
-                            "email": user.email,
-                            "estado": user.estado.lower()  # Enviamos 'en_espera', 'rechazado', etc.
-                        }
-                    }, 
-                    status=status.HTTP_200_OK
-                )
-            
-            serializer = self.get_serializer(user)
-            
-            return Response({
-                "message": "Inicio de sesión exitoso",
-                "user": serializer.data
-            }, status=status.HTTP_200_OK)
-        else:
+        if user is None:
             return Response(
                 {"error": "Credenciales inválidas. Verifica tu correo y contraseña"}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+        serializer = UsuarioAdminSerializer(user)
+
+        return Response({
+            "message": "Inicio de sesión exitoso",
+            "user": serializer.data
+        }, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer

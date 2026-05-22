@@ -1,46 +1,109 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/SolicitudesRegistroPage.css";
 
 function SolicitudesRegistroPage() {
-  const solicitudes = [
-    {
-      id: 1,
-      nombre: "Carlos González",
-      correo: "carlos@email.com",
-      propiedad: "Casa A-12",
-      intencion: "Proveedor de agua",
-      estado: "Pendiente",
-    },
-    {
-      id: 2,
-      nombre: "María Rodríguez",
-      correo: "maria@email.com",
-      propiedad: "Casa B-04",
-      intencion: "Servicio técnico",
-      estado: "Corrección requerida",
-    },
-    {
-      id: 3,
-      nombre: "José Pérez",
-      correo: "jose@email.com",
-      propiedad: "Casa C-09",
-      intencion: "Proveedor de agua y servicio técnico",
-      estado: "Aprobado",
-    },
-  ];
+  const navigate = useNavigate();
 
-  const obtenerClaseEstado = (estado) => {
-    switch (estado) {
-      case "Pendiente":
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const cargarSolicitudes = async () => {
+      try {
+        const respuesta = await fetch(
+          "http://127.0.0.1:8000/item/test/usuarios/listar-admin/"
+        );
+
+        if (!respuesta.ok) {
+          throw new Error("No se pudieron obtener los usuarios");
+        }
+
+        const data = await respuesta.json();
+
+        const usuariosOrdenados = data.sort((a, b) => {
+          if (a.es_admin === b.es_admin) {
+            return a.id - b.id;
+          }
+
+          return a.es_admin ? 1 : -1;
+        });
+
+        setSolicitudes(usuariosOrdenados);
+      } catch (error) {
+        console.error("Error al obtener usuarios:", error);
+        setError("No se pudieron cargar los usuarios registrados.");
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarSolicitudes();
+  }, []);
+
+  const obtenerClaseEstado = (usuario) => {
+    if (usuario.es_admin) {
+      return "estado admin";
+    }
+
+    switch (usuario.estado) {
+      case "EN_ESPERA":
         return "estado pendiente";
-      case "Aprobado":
+      case "ACTIVO":
         return "estado aprobado";
-      case "Corrección requerida":
+      case "CORRECCION_REQUERIDA":
         return "estado correccion";
-      case "Rechazado":
+      case "RECHAZADO":
         return "estado rechazado";
       default:
         return "estado";
     }
+  };
+
+  const formatearEstado = (usuario) => {
+    if (usuario.es_admin) {
+      return "ADMIN";
+    }
+
+    switch (usuario.estado) {
+      case "EN_ESPERA":
+        return "Pendiente";
+      case "ACTIVO":
+        return "Aprobado";
+      case "CORRECCION_REQUERIDA":
+        return "Corrección requerida";
+      case "RECHAZADO":
+        return "Rechazado";
+      default:
+        return usuario.estado;
+    }
+  };
+
+  const obtenerIntencion = (usuario) => {
+    if (usuario.intencion_agua && usuario.intencion_servicio) {
+      return "Proveedor de agua y servicio técnico";
+    }
+
+    if (usuario.intencion_agua) {
+      return "Proveedor de agua";
+    }
+
+    if (usuario.intencion_servicio) {
+      return "Servicio técnico";
+    }
+
+    return "Sin intención registrada";
+  };
+
+  const volverPanelAdmin = () => {
+    navigate("/admin");
+  };
+
+  const verSolicitud = (usuario) => {
+    navigate(`/admin/solicitudes/${usuario.id}`, {
+      state: { usuario },
+    });
   };
 
   return (
@@ -54,6 +117,10 @@ function SolicitudesRegistroPage() {
             la comunidad.
           </p>
         </div>
+
+        <button className="btn-volver-admin" onClick={volverPanelAdmin}>
+          Volver
+        </button>
       </section>
 
       <section className="solicitudes-card">
@@ -64,52 +131,74 @@ function SolicitudesRegistroPage() {
           </div>
 
           <span className="contador-solicitudes">
-            {solicitudes.length} solicitudes
+            {solicitudes.length} usuarios
           </span>
         </div>
 
-        <div className="tabla-contenedor">
-          <table className="tabla-solicitudes">
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Propiedad</th>
-                <th>Intención</th>
-                <th>Estado</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
+        {cargando && (
+          <p className="mensaje-solicitudes">Cargando usuarios...</p>
+        )}
 
-            <tbody>
-              {solicitudes.map((solicitud) => (
-                <tr key={solicitud.id}>
-                  <td>
-                    <div className="usuario-info">
-                      <strong>{solicitud.nombre}</strong>
-                      <span>{solicitud.correo}</span>
-                    </div>
-                  </td>
+        {error && <p className="mensaje-error">{error}</p>}
 
-                  <td>{solicitud.propiedad}</td>
+        {!cargando && !error && solicitudes.length === 0 && (
+          <p className="mensaje-solicitudes">No hay usuarios registrados.</p>
+        )}
 
-                  <td>{solicitud.intencion}</td>
-
-                  <td>
-                    <span className={obtenerClaseEstado(solicitud.estado)}>
-                      {solicitud.estado}
-                    </span>
-                  </td>
-
-                  <td>
-                    <button className="btn-ver-solicitud">
-                      Ver solicitud
-                    </button>
-                  </td>
+        {!cargando && !error && solicitudes.length > 0 && (
+          <div className="tabla-contenedor">
+            <table className="tabla-solicitudes">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Propiedad</th>
+                  <th>Intención</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              <tbody>
+                {solicitudes.map((solicitud) => (
+                  <tr
+                    key={solicitud.id}
+                    className={solicitud.es_admin ? "fila-admin" : ""}
+                  >
+                    <td>
+                      <div className="usuario-info">
+                        <strong>{solicitud.nombre}</strong>
+                        <span>{solicitud.email}</span>
+                      </div>
+                    </td>
+
+                    <td>Casa {solicitud.codigo_casa}</td>
+
+                    <td>{obtenerIntencion(solicitud)}</td>
+
+                    <td>
+                      <span className={obtenerClaseEstado(solicitud)}>
+                        {formatearEstado(solicitud)}
+                      </span>
+                    </td>
+
+                    <td>
+                      {solicitud.es_admin ? (
+                        <span className="accion-admin">Sin acción</span>
+                      ) : (
+                        <button
+                          className="btn-ver-solicitud"
+                          onClick={() => verSolicitud(solicitud)}
+                        >
+                          Ver solicitud
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   );
