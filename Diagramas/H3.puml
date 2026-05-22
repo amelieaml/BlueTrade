@@ -1,40 +1,56 @@
 @startuml
 skinparam actorStyle stick
 
-actor Usuario
-participant ":VistaOfertas" as Vista
-participant ":Api" as Api
-participant ":Backend" as Back
-participant ":BaseDeDatos" as DB
+actor "Usuario" as user
+participant "page : OfertasPage" as page
+participant "api : item.api.js" as api
+participant "view : OfertaView" as view
+participant "orm : Oferta.objects" as orm
+participant "db : PostgreSQL" as db
+participant "modal : ModalDetalleOferta" as modal
 
-activate Usuario
-Usuario -> Vista: Entrar a OfertasPage
-activate Vista
+activate user
+user -> page : Ingresar a /ofertas
+activate page
 
-Vista -> Api: getOfertas()
-activate Api
-Api -> Back: GET /ofertas/
-activate Back
-Back -> DB: Consultar ofertas activas
-activate DB
-DB --> Back: Lista de ofertas
-deactivate DB
-Back --> Api: JSON de ofertas
-deactivate Back
-Api --> Vista: Datos de ofertas
-deactivate Api
+page -> api : getOfertas()
+activate api
 
-Vista --> Usuario: Mostrar todas las ofertas
+api -> view : GET /item/test/ofertas/
+activate view
 
-alt Filtros activos
-    Usuario -> Vista: Aplicar filtros (texto/tipo/tags)
-    Vista -> Vista: Filtrar lista (useMemo)
-    Vista --> Usuario: Mostrar resultados filtrados
+view -> orm : filter(estado='ACTIVO')
+activate orm
+
+orm -> db : SELECT * FROM oferta WHERE estado='ACTIVO'
+activate db
+db --> orm : registros físicos (Filas)
+deactivate db
+
+orm --> view : QuerySet (Objetos Python)
+deactivate orm
+
+view --> api : JSON (Texto plano)
+deactivate view
+
+api --> page : Datos de ofertas
+deactivate api
+
+page -> page : setOfertas(datos)
+page --> user : Mostrar catálogo inicial
+
+loop [Mientras el usuario modifique texto o tags]
+    user -> page : handleFiltroChange(valor)
+    page -> page : ofertasFiltradas = useMemo(filtrar)
+    page --> user : Actualizar tarjetas visuales
 end
 
-Usuario -> Vista: Seleccionar oferta
-Vista -> Vista: Abrir ModalDetalleOferta
-Vista --> Usuario: Mostrar detalles de oferta
-deactivate Vista
+user -> page : handleVerDetalle(oferta)
+page -> modal : <<create>> instanciar(oferta)
+activate modal
+modal --> user : Mostrar ventana con detalles
+deactivate modal
 
+deactivate page
+deactivate user
 @enduml

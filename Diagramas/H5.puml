@@ -1,0 +1,42 @@
+@startuml
+skinparam actorStyle hollow
+
+actor "Comprador" as C
+participant "OfertasPageUI" as I
+participant "ControladorTransaccion" as CT
+participant "Usuario" as U
+participant "Oferta" as O
+participant "Transaccion" as T
+database "Base de Datos" as DB
+
+== 1. Carga del Catálogo ==
+C -> I: Ingresa al catálogo
+I -> CT: Solicitar ofertas disponibles
+CT -> DB: Buscar ofertas con estado 'ACTIVO'
+DB --> CT: Retorna lista de ofertas
+CT --> I: Muestra ofertas en pantalla
+
+== 2. Proceso de Aceptación y Bloqueo de Recursos ==
+C -> I: Selecciona oferta y confirma (ID oferta)
+I -> CT: Iniciar intercambio (envía ID oferta y ID comprador)
+
+CT -> O: Obtener datos de la oferta seleccionada
+CT -> U: Calcular litros disponibles (ID comprador)
+note right: El cálculo resta los litros comprometidos en transacciones 'PENDIENTE' o 'EN_PROCESO' del saldo total.
+
+alt [Saldo suficiente para garantizar]
+    == 3. Creación y Registro del Intercambio ==
+    CT -> T: Crear instancia de nueva transacción
+    CT -> O: Cambiar estado de oferta a 'EN_PROCESO'
+    
+    CT -> DB: Guardar nuevo registro de transacción
+    CT -> DB: Actualizar estado de oferta en BD
+    
+    DB --> CT: Confirmación de registro exitoso
+    CT --> I: Confirmar al usuario: "Recursos bloqueados y transacción iniciada"
+    I --> C: Muestra mensaje de éxito
+else [Saldo insuficiente]
+    CT -> I: Retornar error de saldo insuficiente
+    I --> C: Muestra mensaje de alerta al usuario
+end
+@enduml

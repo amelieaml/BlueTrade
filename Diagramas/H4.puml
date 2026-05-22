@@ -1,137 +1,66 @@
 @startuml
+skinparam style strictuml
+skinparam actorStyle stick
+skinparam maxmessagesize 150
 
-title Publicar y Gestionar Oferta
+actor "Usuario" as user
+participant "OfertasPageUI" as page
+participant "Controlador" as api
+participant "OfertaView" as view
+participant "Oferta" as orm
+database "BD" as db
+participant "ModalDetalleOferta" as modal
 
-actor Proveedor
-participant DashboardPageUI
-participant Controlador
-participant Usuario
-participant Servicio
-participant Certificado
-participant Oferta
-database BD
+activate user
+user -> page : Entrar al Catálogo de ofertas
+activate page
 
-== Ingreso al Panel ==
+== Fase 1: Carga inicial de datos ==
 
-Proveedor -> DashboardPageUI : ingresarPanel()
+page -> api : Pedir ofertas ( getOfertas() )
+activate api
 
-DashboardPageUI -> Controlador : getOfertas(usuario.id)
+api -> view : Conseguir ofertas
+activate view
 
-Controlador -> Oferta : filtrarOfertasActivas()
+view -> orm : Buscar ofertas activas ( all() )
+activate orm
 
-Oferta -> BD : Seleccionar ofertas
-BD --> Oferta : listaOfertas
+orm -> db : Seleccionar Ofertas con estado Activo
+activate db
+db --> orm : Lista de registros de la base de datos
+deactivate db
 
-Oferta --> Controlador : ofertasActivas
-Controlador --> DashboardPageUI : respuestaOfertas
+orm --> view : Lista de ofertas (Objetos Python)
+deactivate orm
 
-DashboardPageUI --> Proveedor : mostrarCatalogo()
+view --> api : Datos de las ofertas en formato JSON
+deactivate view
 
-== Crear Nueva Oferta ==
+api --> page : Resultados de la API/Controlador
+deactivate api
 
-Proveedor -> DashboardPageUI : seleccionarNuevaOferta()
+page -> page : Guardar datos ( setOfertas() )
+page --> user : Mostrar el catálogo en pantalla
 
-DashboardPageUI --> Proveedor : mostrarFormulario()
+== Fase 2: Filtrado y búsqueda ==
 
-Proveedor -> DashboardPageUI : ingresarDatosOferta()
-Proveedor -> DashboardPageUI : confirmarPublicacion()
-
-DashboardPageUI -> Controlador : crearOferta()
-
-alt Servicio técnico seleccionado
-
-    Controlador -> Servicio : buscarServicio()
-    Servicio -> BD : Seleccionar servicio
-    BD --> Servicio : datosServicio
-    Servicio --> Controlador : servicio
-
-    alt Servicio requiere certificado
-
-        Controlador -> Usuario : verificarCertificado()
-
-        alt usuario.certificado == false
-            Controlador --> DashboardPageUI : errorCertificacion()
-            DashboardPageUI --> Proveedor : mostrarErrorCertificacion()
-
-        else usuario.certificado == true
-
-            Controlador -> Oferta : crearOferta(datos)
-            Oferta -> BD : Agregar Oferta
-            BD --> Oferta : ofertaGuardada
-            
-            Oferta --> Controlador : ofertaCreada 
-            Controlador --> DashboardPageUI : respuestaExitosa() 
-            DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
-
-        end
-
-    else Servicio NO requiere certificado
-
-        Servicio --> Controlador : servicioSinCertificacion()
-
-        Controlador -> Oferta : crearOferta(datos)
-        Oferta -> BD : Agregar Oferta
-        BD --> Oferta : ofertaGuardada
-
-        Oferta --> Controlador : ofertaCreada 
-        Controlador --> DashboardPageUI : respuestaExitosa() 
-        DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
-
-    end
-
-else Oferta de agua
-
-    Controlador -> Oferta : crearOferta(datos)
-    Oferta -> BD : Agregar Oferta
-    BD --> Oferta : ofertaGuardada
-
-    Oferta --> Controlador : ofertaCreada 
-    Controlador --> DashboardPageUI : respuestaExitosa() 
-    DashboardPageUI --> Proveedor : mostrarOfertaPublicada()
-
+loop Mientras el usuario busca y filtra opciones
+    user -> page : Cambiar filtros o texto ( handleFiltroChange )
+    page -> page : Filtrar lista
+    page --> user : Actualizar tarjetas mostradas al instante
 end
 
+== Fase 3: Selección y detalles ==
 
-== Gestionar Oferta ==
+user -> page : Clic en "Ver detalles" ( handleVerDetalle )
+page -> page : Guardar oferta seleccionada ( setOfertaSeleccionada )
 
-Proveedor -> DashboardPageUI : gestionarOferta()
+page -> modal ** : <<create>> Abrir ventana modal
+activate modal
+modal --> user : Mostrar los detalles completos de la oferta
+deactivate modal
 
-alt Editar oferta
-
-    DashboardPageUI -> Controlador : editarOferta()
-    Controlador -> Oferta : actualizarDatos()
-
-    Oferta -> BD : Actualizar oferta
-    BD --> Oferta : ofertaActualizada
-
-    Oferta --> Controlador : confirmacion()
-    Controlador --> DashboardPageUI : ofertaEditada()
-    DashboardPageUI --> Proveedor : mostrarCambios()
-
-else Pausar oferta
-
-    DashboardPageUI -> Controlador : pausarOferta()
-    Controlador -> Oferta : cambiarEstado(PAUSADO)
-
-    Oferta -> BD : Actualizar estado
-    BD --> Oferta : estadoActualizado
-
-    Oferta --> Controlador : ofertaPausada()
-    Controlador --> DashboardPageUI : confirmacion()
-    DashboardPageUI --> Proveedor : ofertaOculta()
-
-else Cancelar oferta
-
-    DashboardPageUI -> Controlador : cancelarOferta()
-    Controlador -> Oferta : cambiarEstado(CANCELADA)
-
-    Oferta -> BD : Actualizar estado
-    BD --> Oferta : estadoActualizado
-
-    Oferta --> Controlador : ofertaCancelada()
-    Controlador --> DashboardPageUI : confirmacion()
-    DashboardPageUI --> Proveedor : ofertaEliminada()
-
-end
-
+deactivate page
+deactivate user
 @enduml
