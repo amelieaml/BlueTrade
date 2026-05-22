@@ -35,6 +35,30 @@ class UsuarioSerializer(serializers.ModelSerializer):
         residencia.save()
         return usuario
 
+class UsuarioAdminSerializer(serializers.ModelSerializer):
+    codigo_casa = serializers.SlugRelatedField(
+        slug_field='codigo',
+        read_only=True
+    )
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id',
+            'ci',
+            'nombre',
+            'email',
+            'telefono',
+            'codigo_casa',
+            'intencion_agua',
+            'intencion_servicio',
+            'tipo_servicio_intencion',
+            'certificado',
+            'estado',
+            'litros_agua',
+            'es_admin',
+        ]
+
 # Serializer para la clase Certificado
 class CertificadoSerializer(serializers.ModelSerializer):
     # 1. Declaramos un campo personalizado que se generará al vuelo

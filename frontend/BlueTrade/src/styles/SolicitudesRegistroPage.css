@@ -8,6 +8,10 @@
 }
 
 .solicitudes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
   margin-bottom: 32px;
 }
 
@@ -33,6 +37,30 @@
   font-size: 1rem;
   line-height: 1.7;
   color: var(--text);
+}
+
+.btn-volver-admin {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--accent-gradient);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: 0 10px 24px rgba(0, 102, 255, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-volver-admin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0, 102, 255, 0.28);
+}
+
+.btn-volver-admin:active {
+  transform: translateY(0);
 }
 
 .solicitudes-card {
@@ -70,6 +98,24 @@
   color: var(--accent);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.mensaje-solicitudes {
+  margin: 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: #f8fbff;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mensaje-error {
+  margin: 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(240, 68, 56, 0.12);
+  color: #b42318;
+  font-weight: 700;
 }
 
 .tabla-contenedor {
@@ -149,6 +195,23 @@
   color: #b42318;
 }
 
+.estado.admin {
+  background: rgba(124, 58, 237, 0.14);
+  color: #6d28d9;
+}
+
+.fila-admin {
+  background: rgba(124, 58, 237, 0.035);
+}
+
+.accion-admin {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
 .btn-ver-solicitud {
   border: none;
   border-radius: 999px;
@@ -158,6 +221,7 @@
   font-weight: 800;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-ver-solicitud:hover {
@@ -165,9 +229,22 @@
   box-shadow: 0 10px 22px rgba(0, 102, 255, 0.22);
 }
 
+.btn-ver-solicitud:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .solicitudes-page {
     padding: 32px 20px;
+  }
+
+  .solicitudes-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-volver-admin {
+    width: 100%;
   }
 
   .solicitudes-card {

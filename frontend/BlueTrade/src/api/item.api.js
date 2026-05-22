@@ -11,6 +11,11 @@ export const getUsuarios = async () => {
     return axios.get(API_BASE_URL);
 };
 
+// Obtener un usuario por ID
+export const getUsuarioPorId = async (idUsuario) => {
+    return axios.get(`${API_BASE_URL}${idUsuario}/`);
+};
+
 // Crear un nuevo usuario
 export const registrarUsuario = async (datosUsuario) => {
     return axios.post(API_BASE_URL, datosUsuario);
@@ -97,3 +102,4 @@ export const getOfertas = async () => {
         }
     });
 };
+

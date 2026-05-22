@@ -16,34 +16,60 @@ function LoginPage() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setErrorMsg("");
+  setLoading(true);
 
-    try {
-      const response = await loginUsuario({ email: email.toLowerCase(), password });
+  try {
+    const response = await loginUsuario({
+      email: email.toLowerCase(),
+      password,
+    });
 
-      login(response.data.user);
-      if (response.data.user.estado === 'EN_ESPERA' || response.data.user.estado === 'en_espera') {
-        console.log("Usuario en espera, redirigiendo a perfil...");
-        navigate('/perfil'); 
-      } else {
-        console.log("Usuario activo, redirigiendo a dashboard...");
-        navigate('/dashboard');
-      }
-      
-    } catch (error) {
-      console.error("Error en el login:", error);
-      if (error.response?.data?.error) {
-        setErrorMsg(error.response.data.error);
-      } else {
-        setErrorMsg('No se pudo conectar con el servidor. Inténtalo más tarde.');
-      }
-    } finally {
-      setLoading(false);
+    const usuario = response.data.user;
+
+    console.log("Respuesta completa del login:", response.data);
+    console.log("Usuario recibido:", usuario);
+    console.log("Valor de es_admin:", usuario.es_admin);
+    console.log("Tipo de es_admin:", typeof usuario.es_admin);
+
+    login(usuario);
+
+    const estado = usuario.estado?.toLowerCase();
+
+    const esAdmin =
+      usuario.es_admin === true ||
+      usuario.es_admin === "true" ||
+      usuario.es_admin === 1 ||
+      usuario.es_admin === "1";
+
+    if (esAdmin) {
+      console.log("Usuario admin, redirigiendo a /admin");
+      navigate("/admin");
+      return;
     }
-  };
+
+    if (estado === "en_espera") {
+      console.log("Usuario en espera, redirigiendo a /perfil");
+      navigate("/perfil");
+      return;
+    }
+
+    console.log("Usuario normal, redirigiendo a /dashboard");
+    navigate("/dashboard");
+  } catch (error) {
+    console.error("Error en el login:", error);
+
+    if (error.response?.data?.error) {
+      setErrorMsg(error.response.data.error);
+    } else {
+      setErrorMsg("No se pudo conectar con el servidor. Inténtalo más tarde.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // SVGs para los ojitos de la contraseña
   const iconEyeOpen = (
