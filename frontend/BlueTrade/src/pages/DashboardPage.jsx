@@ -27,7 +27,7 @@ const formInicial = {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const { usuario } = useContext(AuthContext);
+  const { usuario, obtenerPerfilActualizado } = useContext(AuthContext);
 
 const [datosUsuario, setDatosUsuario] = useState(null);
 
