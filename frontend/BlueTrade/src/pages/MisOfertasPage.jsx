@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas, getServicios } from '../api/item.api'; // 🆕 Agregamos getServicios
+import { getOfertas, getServicios } from '../api/item.api'; 
 import NavbarDashboard from '../components/NavbarDashboard';
 import TarjetaMiOferta from '../components/TarjetaMiOferta';
-import ModalGestionarOferta from '../components/ModalGestionarOferta'; // 🆕 Cambiamos el modal
+import ModalGestionarOferta from '../components/ModalGestionarOferta';
 
 function MisOfertasPage() {
   const { usuario } = useContext(AuthContext);
@@ -14,7 +14,6 @@ function MisOfertasPage() {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        // 🆕 Cargamos tanto las ofertas como los servicios al mismo tiempo
         const [responseOfertas, responseServicios] = await Promise.all([
           getOfertas(),
           getServicios()
@@ -35,14 +34,12 @@ function MisOfertasPage() {
   const handleGestionar = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
 
-  // 🆕 Función para que la lista se actualice visualmente cuando editas algo en el modal
   const handleOfertaActualizada = (ofertaEditada) => {
     setOfertas(prev => 
       prev.map(oferta => oferta.id === ofertaEditada.id ? { ...oferta, ...ofertaEditada } : oferta)
     );
   };
 
-  // Lógica: Filtramos para mostrar SOLO las del usuario
   const misOfertas = useMemo(() => {
     if (!usuario?.id) return [];
     return ofertas.filter((o) => o.usuario === usuario.id);
@@ -52,7 +49,6 @@ function MisOfertasPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16">
       <NavbarDashboard paginaActiva="mis-ofertas" />
       
-      {/* 🆕 Renderizamos el nuevo modal pasándole todos los props que necesita */}
       <ModalGestionarOferta
         isOpen={!!ofertaSeleccionada}
         onClose={handleCerrarModal}
