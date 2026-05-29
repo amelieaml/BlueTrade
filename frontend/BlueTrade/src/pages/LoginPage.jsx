@@ -45,8 +45,8 @@ const handleSubmit = async (e) => {
       usuario.es_admin === "1";
 
     if (esAdmin) {
-      console.log("Usuario admin, redirigiendo a /admin");
-      navigate("/admin");
+      console.log("Usuario admin, redirigiendo a /dashboard");
+      navigate("/dashboard");
       return;
     }
 

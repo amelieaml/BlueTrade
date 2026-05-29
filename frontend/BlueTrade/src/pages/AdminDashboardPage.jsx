@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import NavbarDashboard from "../components/NavbarDashboard";
 import "../styles/AdminDashboardPage.css";
 
 function AdminDashboardPage() {
@@ -77,94 +78,81 @@ function AdminDashboardPage() {
     navigate(ruta);
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("token");
-    sessionStorage.clear();
-
-    navigate("/login");
-  };
 
   return (
-    <main className="admin-profile-dashboard">
-      <button
-        type="button"
-        className="admin-logout-button"
-        onClick={cerrarSesion}
-      >
-        Cerrar sesión
-      </button>
+  <main className="admin-profile-dashboard">
+    <NavbarDashboard paginaActiva="admin" />
 
-      <section className="admin-dashboard-content">
-        <div className="admin-main-card">
-          <div className="admin-card-header">
-            <span className="admin-small-label">Panel administrativo</span>
+    <section className="admin-dashboard-content">
+      <div className="admin-main-card">
+        <div className="admin-card-header">
+          <span className="admin-small-label">Panel administrativo</span>
 
-            <h1>Dashboard de administrador</h1>
+          <h1>Dashboard de administrador</h1>
 
-            <p>
-              Gestiona usuarios, solicitudes, ofertas y operaciones principales
-              de BlueTrade desde un solo panel.
-            </p>
-          </div>
+          <p>
+            Gestiona usuarios, solicitudes, ofertas y operaciones principales
+            de BlueTrade desde un solo panel.
+          </p>
+        </div>
 
-          <hr className="admin-card-divider" />
+        <hr className="admin-card-divider" />
 
-          <div className="admin-action-row">
-            {opcionesAdmin.map((opcion, index) => (
-              <button
-                type="button"
-                className="admin-circle-action"
-                key={opcion.titulo}
-                onClick={() => manejarClick(opcion.ruta)}
+        <div className="admin-action-row">
+          {opcionesAdmin.map((opcion, index) => (
+            <button
+              type="button"
+              className="admin-circle-action"
+              key={opcion.titulo}
+              onClick={() => manejarClick(opcion.ruta)}
+            >
+              <span
+                className={`admin-circle-icon ${
+                  index === 0 ? "admin-circle-icon-primary" : ""
+                }`}
               >
-                <span
-                  className={`admin-circle-icon ${
-                    index === 0 ? "admin-circle-icon-primary" : ""
-                  }`}
-                >
-                  {opcion.icono}
-                </span>
+                {opcion.icono}
+              </span>
 
-                <span className="admin-circle-text">{opcion.accion}</span>
-              </button>
-            ))}
+              <span className="admin-circle-text">{opcion.accion}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <section className="admin-summary-section">
+        <div className="admin-section-title-row">
+          <div>
+            <span className="admin-section-eyebrow">Opciones disponibles</span>
+            <h2>Gestión del sistema</h2>
           </div>
         </div>
 
-        <section className="admin-summary-section">
-          <div className="admin-section-title-row">
-            <div>
-              <span className="admin-section-eyebrow">Opciones disponibles</span>
-              <h2>Gestión del sistema</h2>
-            </div>
-          </div>
+        <div className="admin-dashboard-grid">
+          {opcionesAdmin.map((opcion) => (
+            <article className="admin-dashboard-card" key={opcion.titulo}>
+              <div>
+                <span className="admin-card-tag">{opcion.etiqueta}</span>
 
-          <div className="admin-dashboard-grid">
-            {opcionesAdmin.map((opcion) => (
-              <article className="admin-dashboard-card" key={opcion.titulo}>
-                <div>
-                  <span className="admin-card-tag">{opcion.etiqueta}</span>
+                <h3>{opcion.titulo}</h3>
 
-                  <h3>{opcion.titulo}</h3>
+                <p>{opcion.descripcion}</p>
+              </div>
 
-                  <p>{opcion.descripcion}</p>
-                </div>
-
-                <button
-                  type="button"
-                  className="admin-card-button"
-                  onClick={() => manejarClick(opcion.ruta)}
-                >
-                  Entrar
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
+              <button
+                type="button"
+                className="admin-card-button"
+                onClick={() => manejarClick(opcion.ruta)}
+              >
+                Entrar
+              </button>
+            </article>
+          ))}
+        </div>
       </section>
-    </main>
-  );
+    </section>
+  </main>
+);
 }
 
 export default AdminDashboardPage;
