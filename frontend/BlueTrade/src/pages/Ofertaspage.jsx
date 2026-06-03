@@ -24,53 +24,48 @@ function OfertasPage() {
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
-
-  // Carga inicial de datos
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const [resOfertas, resServicios] = await Promise.all([
-          getOfertas(),
-          getServicios()
-        ]);
-        setOfertas(resOfertas.data);
-        setServiciosDB(resServicios.data);
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
-      }
-    };
-    cargarDatos();
-  }, []);
+  
+  
+  const cargarDatos = async () => {
+    try {
+      const [resOfertas, resServicios] = await Promise.all([
+        getOfertas(),
+        getServicios()
+      ]);
+      setOfertas(resOfertas.data);
+      setServiciosDB(resServicios.data);
+    } catch (error) {
+      console.error("Error al cargar datos:", error);
+    }
+  };
 
   // Manejadores de eventos
-  const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
-  const handleCerrarModal = () => setOfertaSeleccionada(null);
-  
-  const handleConfirmar = async () => {
+  const verDetalleOferta = (oferta) => setOfertaSeleccionada(oferta);
+  const cerrarModal = () => setOfertaSeleccionada(null);
+
+  const confirmarOferta = async () => {
     if (!ofertaSeleccionada || !usuario) return;
     console.log("Oferta seleccionada para confirmar:", ofertaSeleccionada);
     
     const tipoSolicitado = ofertaSeleccionada.tipo_solicitado?.toUpperCase();
 
-    // 2. Validamos si es agua y si el usuario NO tiene suficiente
+    //Valida si es agua y si el usuario NO tiene suficiente
     if (tipoSolicitado === 'AGUA' && ofertaSeleccionada.cantidad_solicitada > usuario.litros) {
         setAlerta({
             mostrar: true,
             mensaje: 'No tienes suficientes litros para confirmar esta oferta.',
             tipo: 'error'
         });
-        handleCerrarModal();
-        return; // Detenemos la ejecución aquí, no iniciará la transacción
+        cerrarModal();
+        return; 
     }
 
     try {
-        // CORRECCIÓN: El segundo parámetro debe ser el dueño de la oferta (vendedor), NO el usuario logueado (comprador)
         const aux = await iniciarTransaccion(ofertaSeleccionada.id, ofertaSeleccionada.usuario, usuario.id);
         console.log("Transacción iniciada:", aux.data);
-
-        // 2. Reutilizamos tu función para cambiar el estado de la oferta
+        //actualiza la oferta 
         await actualizarOferta(ofertaSeleccionada.id, {
-            estado: 'EN_PROCESO' // O el estado que utilices en tu modelo
+            estado: 'EN_PROCESO' 
         });
 
         setAlerta({ 
@@ -79,7 +74,7 @@ function OfertasPage() {
           tipo: 'success' 
         });
 
-        // Opcional: Remueve la oferta de la lista local para que ya no aparezca disponible
+       // Remueve la oferta de la lista local para que ya no aparezca disponible
         setOfertas((prev) => prev.filter((o) => o.id !== ofertaSeleccionada.id));
        
 
@@ -91,11 +86,11 @@ function OfertasPage() {
         tipo: 'error' 
       });
     } finally {
-      handleCerrarModal();
+      cerrarModal();
     }
   };
 
-  const handleOfertaCreada = (nuevaOferta) => {
+  const ofertaCreada = (nuevaOferta) => {
     setOfertas((prev) => [nuevaOferta, ...prev]);
     setAlerta({ mostrar: true, mensaje: '¡Oferta publicada con éxito!', tipo: 'success' });
   };
@@ -139,7 +134,11 @@ function OfertasPage() {
       return true;
     });
   }, [ofertas, filtros, busqueda, tagActivo, usuario]);
-
+  
+  useEffect(() => {
+    
+    cargarDatos();
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
@@ -150,7 +149,7 @@ function OfertasPage() {
       <ModalCrearOferta 
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
-        onSuccess={handleOfertaCreada}
+        onSuccess={ofertaCreada}
         serviciosDB={serviciosDB}
         usuario={usuario}
       />
@@ -158,10 +157,10 @@ function OfertasPage() {
       <ModalDetalleOferta
         oferta={ofertaSeleccionada}
         isOpen={!!ofertaSeleccionada}
-        onClose={handleCerrarModal}
-        onConfirmar={handleConfirmar}
+        onClose={cerrarModal}
+        onConfirmar={confirmarOferta}
         onRechazar={() => {
-          handleCerrarModal();
+          cerrarModal();
           setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
         }}
       />
@@ -240,7 +239,7 @@ function OfertasPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {ofertasFiltradas.map((oferta) => (
-                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={handleVerDetalle} />
+                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={verDetalleOferta} />
                   ))}
                 </div>
               )}

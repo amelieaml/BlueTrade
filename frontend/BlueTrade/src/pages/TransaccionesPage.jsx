@@ -8,20 +8,15 @@ function TransaccionesPage() {
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); // 'compras' o 'ventas'
 
-  useEffect(() => {
-    const cargarTransacciones = async () => {
-      try {
-        const response = await getMisTransacciones();
-        setTransacciones(response.data);
-      } catch (error) {
-        console.error("Error al cargar las transacciones:", error);
-      }
-    };
-
-    if (usuario?.id) {
-      cargarTransacciones();
+  const cargarTransacciones = async () => {
+    try {
+      const response = await getMisTransacciones();
+      setTransacciones(response.data);
+    } catch (error) {
+      console.error("Error al cargar las transacciones:", error);
     }
-  }, [usuario]);
+  };
+  
 
   // Filtrado en el cliente basado en el rol del usuario logueado
   const misCompras = useMemo(() => {
@@ -49,7 +44,11 @@ function TransaccionesPage() {
       </span>
     );
   };
-
+  useEffect(() => {
+    if (usuario?.id) {
+      cargarTransacciones();
+    }
+  }, [usuario]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />

@@ -14,10 +14,10 @@ function PerfilUsuario() {
     return nombre.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const handleFileChange = (e) => {
+  const subirArchivo = (e) => {
     setArchivo(e.target.files[0]);
   };
-
+  
   const handleUpload = async () => {
     if (!archivo) return;
     setCargando(true);
@@ -94,7 +94,7 @@ function PerfilUsuario() {
                 <label className="block text-sm font-bold text-[#102033] mb-2">Subir nuevo certificado</label>
                 <input 
                   type="file" 
-                  onChange={handleFileChange}
+                  onChange={subirArchivo}
                   className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#0066ff] file:text-white hover:file:bg-[#0052cc] cursor-pointer" 
                 />
                 {archivo && (

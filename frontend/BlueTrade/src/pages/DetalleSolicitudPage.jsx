@@ -19,7 +19,7 @@ function DetalleSolicitudPage() {
     if (usuario) {
       return;
     }
-
+    /*Esto deberia ir en el item api --- */
     const cargarUsuario = async () => {
       try {
         const respuesta = await fetch(
@@ -55,7 +55,7 @@ function DetalleSolicitudPage() {
   const volverSolicitudes = () => {
     navigate("/admin/usuarios");
   };
-
+   /*Esto deberia ir en el item api --- */
   const actualizarEstadoUsuario = async (nuevoEstado) => {
     if (!usuario || guardando) {
       return;
