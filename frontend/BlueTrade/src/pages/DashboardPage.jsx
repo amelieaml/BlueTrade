@@ -26,16 +26,16 @@ function DashboardPage() {
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
   const [isModerator] = useState(true); // O lógica para detectar rol
 
-  useEffect(() => {
-    const cargarDatosDashboard = async () => {
+  const cargarDatosDashboard = async () => {
       try {
+        //toma las peticiones de los datos al mismo tiempo
         const [respuestaServicios, respuestaOfertas] = await Promise.all([
           getServicios(),
           getOfertas()
         ]);
         
         setServiciosDB(respuestaServicios.data);
-        
+        //valida las ofertas que pertenecen al usuario y que estén activas
         const deUsuarioYActivas = respuestaOfertas.data.filter(oferta => 
           oferta.usuario === usuario?.id && oferta.estado === 'ACTIVO'
         );
@@ -43,19 +43,20 @@ function DashboardPage() {
       } catch (error) {
         console.error("Error al cargar los datos:", error);
       }
-    };
+  };
 
-    if (usuario?.id) cargarDatosDashboard();
-  }, [usuario]);
 
   // --- Manejadores de Acciones ---
 
-  const handleAccionDashboard = (tipoAccion) => {
-    switch (tipoAccion) {
-      case 'crear': setIsModalCrearOpen(true); break;
-      case 'recargar': setIsRecargaModalOpen(true); break;
-      case 'catalogo': navigate('/ofertas'); break;
-      default: break;
+  const activarModalesAccion = (tipoAccion) => {
+    if (tipoAccion) {
+      if(tipoAccion === 'crear') {
+        setIsModalCrearOpen(true)
+      }else if(tipoAccion === 'recargar') {
+        setIsRecargaModalOpen(true);
+      }else if(tipoAccion === 'catalogo') {
+        navigate('/ofertas');
+      }
     }
   };
 
@@ -87,6 +88,11 @@ function DashboardPage() {
     setOfertaParaGestionar(null);
   };
 
+  useEffect(() => {
+  
+    if (usuario?.id) cargarDatosDashboard();
+  }, [usuario]);
+
   return (
     <div className="min-h-screen bg-[#f7fbff] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%),linear-gradient(135deg,#f7fbff_0%,#eef6ff_45%,#ffffff_100%)] text-[#102033] font-sans pb-16 relative">
       
@@ -112,7 +118,7 @@ function DashboardPage() {
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-11 w-full pb-2">
             
             {/* Crear */}
-            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => handleAccionDashboard('crear')}>
+            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => activarModalesAccion('crear')}>
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white shadow-[0_8px_20px_rgba(15,95,237,0.24)] hover:shadow-lg transition-all">
                 <svg className="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               </div>
@@ -120,7 +126,7 @@ function DashboardPage() {
             </div>
 
             {/* Recargar */}
-            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => handleAccionDashboard('recargar')}>
+            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => activarModalesAccion('recargar')}>
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white border border-[#e2e8f0] hover:border-blue-400 text-[#3D4F6E] transition-all">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
               </div>
@@ -128,7 +134,7 @@ function DashboardPage() {
             </div>
 
              {/* Catálogo */}
-            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => handleAccionDashboard('catalogo')}>
+            <div className="flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => activarModalesAccion('catalogo')}>
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white border border-[#e2e8f0] hover:border-blue-400 text-[#3D4F6E] transition-all">
                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h16.875c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125H3.375a1.125 1.125 0 0 1-1.125-1.125V7.125Z" /></svg>
               </div>
