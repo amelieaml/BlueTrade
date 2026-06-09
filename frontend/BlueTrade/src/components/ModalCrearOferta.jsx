@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
 import { crearOferta } from '../api/item.api';
 
+const IconoAgua = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16a5 5 0 005-5c0-2.76-2.5-5.5-5-8.5-2.5 3-5 5.74-5 8.5a5 5 0 005 5z" />
+  </svg>
+);
+
+const IconoServicio = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+  </svg>
+);
+
 function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) {
   const [errores, setErrores] = useState({});
   const [formData, setFormData] = useState({
@@ -15,6 +34,14 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
   if (!isOpen) return null;
 
   const tipoSolicitadoCalculado = formData.tipoOfrecido === 'agua' ? 'servicio' : 'agua';
+
+  const esOfreceAgua = formData.tipoOfrecido === 'agua';
+  const colorOfrece = esOfreceAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
+  const iconoOfrece = esOfreceAgua ? <IconoAgua /> : <IconoServicio />;
+
+  const esSolicitaAgua = tipoSolicitadoCalculado === 'agua';
+  const colorSolicita = esSolicitaAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
+  const iconoSolicita = esSolicitaAgua ? <IconoAgua /> : <IconoServicio />;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -34,7 +61,6 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     e.preventDefault();
     setErrores({});
 
-    // Validación de certificado
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
       if (servicioSeleccionado?.necesita_certificado && !usuario.certificado) {
@@ -58,9 +84,8 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       const respuesta = await crearOferta(payload);
       if (respuesta.status === 201) {
         alert("¡Oferta publicada exitosamente!");
-        onSuccess(respuesta.data); // Le avisamos al Dashboard que se creó
+        onSuccess(respuesta.data); 
         
-        // Limpiamos el formulario
         setFormData({
           tipoOfrecido: 'agua',
           cantidadOfrecida: '',
@@ -98,11 +123,13 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
         </div>
 
         <form className="p-6 md:p-7 overflow-y-auto flex flex-col gap-5" onSubmit={handleSubmit}>
+          
           {/* OFRECE */}
           <div className="p-5 pr-[18px] pl-6 rounded-[18px] border border-black/[0.04] bg-[#f8fafc] relative w-full box-border text-left">
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#5b8cff] opacity-80 rounded-l-[18px]" />
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${colorOfrece} opacity-80 rounded-l-[18px] transition-colors duration-300`} />
+            
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-base leading-none">{formData.tipoOfrecido === 'agua' ? '💧' : '🔧'}</span>
+              <span className={`text-base leading-none ${esOfreceAgua ? 'text-[#5b8cff]' : 'text-[#ffb443]'}`}>{iconoOfrece}</span>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ofrece</span>
             </div>
 
@@ -136,15 +163,18 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
             </div>
           </div>
 
-          <div className="flex justify-center -my-2 shrink-0">
-            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">↓</div>
+          <div className="flex justify-center -my-2 shrink-0 z-10">
+            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">
+              <IconoFlechaAbajo />
+            </div>
           </div>
 
           {/* SOLICITA */}
           <div className="p-5 pr-[18px] pl-6 rounded-[18px] border border-black/[0.04] bg-[#fdf8f4] relative w-full box-border text-left">
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#ffb443] opacity-80 rounded-l-[18px]" />
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${colorSolicita} opacity-80 rounded-l-[18px] transition-colors duration-300`} />
+            
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-base leading-none">{tipoSolicitadoCalculado === 'agua' ? '💧' : '🔧'}</span>
+              <span className={`text-base leading-none ${esSolicitaAgua ? 'text-[#5b8cff]' : 'text-[#ffb443]'}`}>{iconoSolicita}</span>
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">A cambio de</span>
             </div>
 
@@ -177,7 +207,7 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
             <textarea name="descripcion" rows="2" value={formData.descripcion} onChange={handleInputChange} className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10 resize-none"/>
           </div>
 
-          <div className="register-approval-notice !p-3.5 !rounded-xl text-xs text-left">
+          <div className="bg-[#f0f6ff] text-[#0066ff] p-3.5 rounded-xl text-xs text-left border border-blue-100">
             <strong>Importante:</strong> al publicar la oferta, estará disponible inmediatamente.
           </div>
 

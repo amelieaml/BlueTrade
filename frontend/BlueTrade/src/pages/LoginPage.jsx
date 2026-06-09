@@ -44,11 +44,11 @@ function LoginPage() {
         usuario.es_admin === 1 ||
         usuario.es_admin === "1";
 
-      if (esAdmin) {
-        console.log("Usuario admin, redirigiendo a /admin");
-        navigate("/admin");
-        return;
-      }
+    if (esAdmin) {
+      console.log("Usuario admin, redirigiendo a /dashboard");
+      navigate("/dashboard");
+      return;
+    }
 
       if (estado === "en_espera") {
         console.log("Usuario en espera, redirigiendo a /perfil");

@@ -1,22 +1,65 @@
+import React from 'react';
+
+const IconoAgua = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16a5 5 0 005-5c0-2.76-2.5-5.5-5-8.5-2.5 3-5 5.74-5 8.5a5 5 0 005 5z" />
+  </svg>
+);
+
+const IconoServicio = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+  </svg>
+);
+
 function ModalDetalleMiOferta({ oferta, isOpen, onClose, onConfirmar }) {
   if (!isOpen || !oferta) return null;
 
-  const esAgua = oferta.itemOfrecido.tipo === 'agua';
-  const themeColor = esAgua ? 'text-[#5b8cff]' : 'text-[#ffb443]';
-  const themeBg = esAgua ? 'bg-[#5b8cff]/10' : 'bg-[#ffb443]/10';
+  const esAgua = oferta.tipo_ofrecido === 'agua' || oferta.tipo_ofrecido === 'AGUA';
+  
+  const detalleOfrecido = oferta.tipo_ofrecido;
+  const cantidadOfrecida = oferta.cantidad_ofrecida;
+
+  const detalleSolicitado = oferta.tipo_solicitado;
+  const cantidadSolicitada = oferta.cantidad_solicitada;
+  
+  const config = {
+    AGUA: {
+      color: '#5b8cff',
+      bg: 'bg-[#f0f6ff]',
+      border: 'border-[#5b8cff]/20',
+      icono: <IconoAgua className="w-8 h-8 text-[#5b8cff]" />
+    },
+    SERVICIO: {
+      color: '#ffb443',
+      bg: 'bg-[#fffaf5]',
+      border: 'border-[#ffb443]/20',
+      icono: <IconoServicio className="w-8 h-8 text-[#ffb443]" />
+    }
+  };
+
+  const estiloOfrecido = config[oferta.tipo_ofrecido?.toUpperCase() || 'AGUA'];
+  const estiloSolicitado = config[oferta.tipo_solicitado?.toUpperCase() || 'SERVICIO'];
+
+  const nombreUsuario = oferta.usuario_nombre || "Usuario";
+  const avatarLetra = nombreUsuario.charAt(0).toUpperCase();
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      {/* Fondo con desenfoque */}
       <div 
         className="absolute inset-0 bg-[#0f172a]/30 backdrop-blur-md transition-opacity animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Contenedor del Modal */}
       <div className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 font-['Poppins',_sans-serif]">
         
-        {/* Botón Cerrar */}
         <button 
           onClick={onClose}
           className="absolute top-6 right-6 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all z-10 cursor-pointer"
@@ -27,73 +70,61 @@ function ModalDetalleMiOferta({ oferta, isOpen, onClose, onConfirmar }) {
         </button>
 
         <div className="p-8 sm:p-10">
-          {/* Encabezado: Info del Usuario */}
           <div className="flex items-center gap-4 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0066ff] to-[#00b8ff] text-white flex items-center justify-center text-xl font-black shadow-lg shadow-blue-500/20">
-              {oferta.usuario.charAt(0)}
+              {avatarLetra}
             </div>
             <div>
-              <h2 className="text-2xl font-black text-[#102033] tracking-tight m-0">Detalles de la Oferta</h2>
-              <p className="text-gray-400 text-sm font-medium m-0">Publicada por <span className="text-[#0066ff]">{oferta.usuario}</span> • {oferta.urbanizacion}</p>
+              <h2 className="text-2xl font-black text-[#102033] tracking-tight m-0">Detalles de Mi Oferta</h2>
+              <p className="text-gray-400 text-sm font-medium m-0">Publicada por <span className="text-[#0066ff]">{nombreUsuario}</span></p>
             </div>
           </div>
 
-          {/* Cuerpo: El Intercambio */}
           <div className="space-y-6">
             
-            {/* Box: Lo que recibes */}
-            <div className="p-6 rounded-[24px] bg-[#f8fafc] border border-blue-500/5">
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#5b8cff] mb-3 block">Recibirás (Ofrecido)</span>
+            <div className={`p-6 rounded-[24px] ${estiloOfrecido.bg} border ${estiloOfrecido.border}`}>
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloOfrecido.color }}>Ofreces</span>
               <div className="flex items-center gap-4">
-                <div className="text-3xl">
-                  {esAgua ? '💧' : '🔧'}
+                <div className="flex items-center justify-center">
+                  {estiloOfrecido.icono}
                 </div>
                 <div>
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {esAgua ? `${oferta.itemOfrecido.litros.toLocaleString()} Litros de Agua` : `${oferta.itemOfrecido.horasEstimadas}h de Servicio`}
+                    {esAgua ? `${(cantidadOfrecida || 0).toLocaleString()} Litros de Agua` : `${cantidadOfrecida || 0}h de Servicio`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">{esAgua ? oferta.itemOfrecido.descripcion : oferta.itemOfrecido.descripcionDetallada}</p>
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed capitalize">{detalleOfrecido?.toLowerCase()}</p>
                 </div>
               </div>
             </div>
 
-            {/* Icono de flujo */}
-            <div className="flex justify-center -my-3">
+            <div className="flex justify-center -my-3 relative z-10">
               <div className="w-12 h-12 rounded-full bg-white border-4 border-[#f7fbff] shadow-sm flex items-center justify-center text-blue-500 font-bold">
-                ↓
+                <IconoFlechaAbajo className="w-5 h-5" />
               </div>
             </div>
 
-            {/* Box: Lo que entregas */}
-            <div className="p-6 rounded-[24px] bg-[#fffaf5] border border-orange-500/5">
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#ffb443] mb-3 block">Entregarás (Solicitado)</span>
+            <div className={`p-6 rounded-[24px] ${estiloSolicitado.bg} border ${estiloSolicitado.border}`}>
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloSolicitado.color }}>Solicitas</span>
               <div className="flex items-center gap-4">
-                <div className="text-3xl">
-                  {!esAgua ? '💧' : '🔧'}
+                <div className="flex items-center justify-center">
+                  {estiloSolicitado.icono}
                 </div>
                 <div>
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {!esAgua ? `${oferta.itemSolicitado.litros.toLocaleString()} Litros de Agua` : `${oferta.itemSolicitado.horasEstimadas}h de ${oferta.itemSolicitado.categoria}`}
+                    {!esAgua ? `${(cantidadSolicitada || 0).toLocaleString()} Litros de Agua` : `${cantidadSolicitada || 0}h de Servicio`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">{!esAgua ? oferta.itemSolicitado.descripcion : oferta.itemSolicitado.descripcionDetallada}</p>
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">{oferta.descripcion}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Footer: Acciones */}
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <button 
               onClick={onClose}
-              className="flex-1 px-6 py-4 border border-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
+              className="w-full px-6 py-4 border border-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
             >
-              Cancelar
-            </button>
-            <button 
-              onClick={() => onConfirmar(oferta)}
-              className="flex-[2] px-6 py-4 bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white font-bold rounded-2xl shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
-            >
-              Empezar transacción
+              Cerrar
             </button>
           </div>
 

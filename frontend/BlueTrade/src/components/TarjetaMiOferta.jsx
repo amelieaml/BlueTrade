@@ -1,12 +1,47 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-// Añadimos una nueva prop: onCambiarEstado
+const IconoAgua = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16a5 5 0 005-5c0-2.76-2.5-5.5-5-8.5-2.5 3-5 5.74-5 8.5a5 5 0 005 5z" />
+  </svg>
+);
+
+const IconoServicio = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const IconoFlechaAbajo = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+  </svg>
+);
+
+const IconoPlay = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const IconoPausa = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const IconoCancelar = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
-  // 1. Estado para controlar la visibilidad del menú
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef(null);
 
-  // 2. Efecto para cerrar el menú al hacer clic fuera de él
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -32,7 +67,6 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
   const esAgua = itemOfrecido.tipo?.toLowerCase() === 'agua';
   const themeAccent = esAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
 
-  // Lógica para saber qué opciones mostrar en el menú
   const esEditable = oferta.estado === 'ACTIVO' || oferta.estado === 'PAUSADO';
   const esEstadoPausado = oferta.estado === 'PAUSADO';
   const esCancelable = oferta.estado !== 'CANCELADO' && oferta.estado !== 'COMPLETADO';
@@ -63,8 +97,8 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
         </span>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isAgua ? 'bg-[#5b8cff]/10 text-[#5b8cff]' : 'bg-[#ffb443]/10 text-[#ffb443]'}`}>
-              {isAgua ? '💧' : '🔧'}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isAgua ? 'bg-[#5b8cff]/10 text-[#5b8cff]' : 'bg-[#ffb443]/10 text-[#ffb443]'}`}>
+              {isAgua ? <IconoAgua /> : <IconoServicio />}
             </div>
             <div>
               <p className="font-bold text-[#1a1d27] text-[15px] m-0">
@@ -85,11 +119,10 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
     );
   };
 
-  // Función que maneja el clic en las opciones del menú
   const handleAccionMenu = (nuevoEstado) => {
-    setMenuAbierto(false); // Cerramos el menú
+    setMenuAbierto(false);
     if (onCambiarEstado) {
-      onCambiarEstado(oferta, nuevoEstado); // Le avisamos al componente padre
+      onCambiarEstado(oferta, nuevoEstado);
     }
   };
 
@@ -105,7 +138,6 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
             {oferta.estado}
           </span>
           
-          {/* 3. Contenedor relativo para el botón y el menú */}
           <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setMenuAbierto(!menuAbierto)}
@@ -116,7 +148,6 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
               </svg>
             </button>
 
-            {/* 4. El Menú desplegable */}
             {menuAbierto && (
               <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.08)] z-20 py-1.5 animate-in fade-in zoom-in-95 duration-100">
                 
@@ -125,7 +156,11 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
                     onClick={() => handleAccionMenu(esEstadoPausado ? 'ACTIVO' : 'PAUSADO')}
                     className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-amber-600 hover:bg-amber-50 cursor-pointer border-none bg-transparent transition-colors flex items-center gap-2"
                   >
-                    {esEstadoPausado ? '▶ Activar oferta' : '⏸ Pausar oferta'}
+                    {esEstadoPausado ? (
+                      <><IconoPlay /> Activar oferta</>
+                    ) : (
+                      <><IconoPausa /> Pausar oferta</>
+                    )}
                   </button>
                 )}
 
@@ -134,11 +169,10 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
                     onClick={() => handleAccionMenu('CANCELADO')}
                     className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-50 cursor-pointer border-none bg-transparent transition-colors flex items-center gap-2"
                   >
-                    ✕ Cancelar oferta
+                    <IconoCancelar /> Cancelar oferta
                   </button>
                 )}
                 
-                {/* Opcional: Mensaje si no hay acciones disponibles */}
                 {!esEditable && !esCancelable && (
                   <div className="px-4 py-2 text-xs text-gray-400 italic">
                     Sin acciones disponibles
@@ -153,8 +187,8 @@ function TarjetaMiOferta({ oferta, onGestionar, onCambiarEstado }) {
           <RenderRecurso recurso={itemOfrecido} tipoGrama="ofrece" />
           
           <div className="flex justify-center -my-3 z-10">
-            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">
-              ↓
+            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm">
+              <IconoFlechaAbajo />
             </div>
           </div>
 
