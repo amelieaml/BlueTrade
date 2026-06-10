@@ -74,7 +74,7 @@ function DashboardPage() {
         setIsRecargaModalOpen(false);
         setCantidadRecarga('');
       }
-    } catch (error) {
+    } catch {
       setAlerta({ mostrar: true, mensaje: "Error al recargar", tipo: "error" });
     }
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import NavbarDashboard from "../components/NavbarDashboard";
 import "../styles/SolicitudesRegistroPage.css";
 
 function SolicitudesRegistroPage() {
@@ -42,6 +43,16 @@ function SolicitudesRegistroPage() {
     cargarSolicitudes();
   }, []);
 
+  const usuariosAdmins = solicitudes.filter((usuario) => usuario.es_admin);
+
+  const solicitudesPendientes = solicitudes.filter(
+    (usuario) => !usuario.es_admin && usuario.estado !== "ACTIVO"
+  );
+
+  const usuariosAceptados = solicitudes.filter(
+    (usuario) => !usuario.es_admin && usuario.estado === "ACTIVO"
+  );
+
   const obtenerClaseEstado = (usuario) => {
     if (usuario.es_admin) {
       return "estado admin";
@@ -53,6 +64,8 @@ function SolicitudesRegistroPage() {
       case "ACTIVO":
         return "estado aprobado";
       case "CORRECCION_REQUERIDA":
+      case "REVISION_PENDIENTE":
+      case "EN_REVISION":
         return "estado correccion";
       case "RECHAZADO":
         return "estado rechazado";
@@ -72,11 +85,13 @@ function SolicitudesRegistroPage() {
       case "ACTIVO":
         return "Aprobado";
       case "CORRECCION_REQUERIDA":
+      case "REVISION_PENDIENTE":
+      case "EN_REVISION":
         return "Corrección requerida";
       case "RECHAZADO":
         return "Rechazado";
       default:
-        return usuario.estado;
+        return usuario.estado || "Sin estado";
     }
   };
 
@@ -106,34 +121,93 @@ function SolicitudesRegistroPage() {
     });
   };
 
+  const renderTablaUsuarios = (usuarios, tipo) => {
+    const mostrarEstado = tipo !== "aceptados";
+    const mostrarAccion = tipo !== "admin";
+
+    if (usuarios.length === 0) {
+      return (
+        <p className="mensaje-solicitudes">
+          No hay usuarios en esta categoría.
+        </p>
+      );
+    }
+
+    return (
+      <div className="tabla-contenedor">
+        <table className="tabla-solicitudes">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Propiedad</th>
+              <th>Intención</th>
+              {mostrarEstado && <th>Estado</th>}
+              {mostrarAccion && <th>Acción</th>}
+            </tr>
+          </thead>
+
+          <tbody>
+            {usuarios.map((usuario) => (
+              <tr
+                key={usuario.id}
+                className={usuario.es_admin ? "fila-admin" : ""}
+              >
+                <td>
+                  <div className="usuario-info">
+                    <strong>{usuario.nombre}</strong>
+                    <span>{usuario.email}</span>
+                  </div>
+                </td>
+
+                <td>Casa {usuario.codigo_casa}</td>
+
+                <td>{obtenerIntencion(usuario)}</td>
+
+                {mostrarEstado && (
+                  <td>
+                    <span className={obtenerClaseEstado(usuario)}>
+                      {formatearEstado(usuario)}
+                    </span>
+                  </td>
+                )}
+
+                {mostrarAccion && (
+                  <td>
+                    <button
+                      className="btn-ver-solicitud"
+                      onClick={() => verSolicitud(usuario)}
+                    >
+                      Ver solicitud
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
-    <main className="solicitudes-page">
-      <section className="solicitudes-header">
-        <div>
-          <p className="solicitudes-etiqueta">Panel administrativo</p>
-          <h1>Solicitudes de registro</h1>
-          <p>
-            Revisa los perfiles enviados por los usuarios y valida su ingreso a
-            la comunidad.
-          </p>
-        </div>
+    <>
+      <NavbarDashboard paginaActiva="administrador" />
 
-        <button className="btn-volver-admin" onClick={volverPanelAdmin}>
-          Volver
-        </button>
-      </section>
-
-      <section className="solicitudes-card">
-        <div className="solicitudes-card-header">
+      <main className="solicitudes-page">
+        <section className="solicitudes-header">
           <div>
-            <h2>Usuarios registrados</h2>
-            <p>Lista de perfiles pendientes o ya revisados por administración.</p>
+            <p className="solicitudes-etiqueta">Panel administrativo</p>
+            <h1>Gestión de usuarios</h1>
+            <p>
+              Administra solicitudes pendientes, usuarios aceptados y cuentas con permisos
+              administrativos dentro de la comunidad.
+            </p>
           </div>
 
-          <span className="contador-solicitudes">
-            {solicitudes.length} usuarios
-          </span>
-        </div>
+          <button className="btn-volver-admin" onClick={volverPanelAdmin}>
+            Volver
+          </button>
+        </section>
 
         {cargando && (
           <p className="mensaje-solicitudes">Cargando usuarios...</p>
@@ -146,61 +220,62 @@ function SolicitudesRegistroPage() {
         )}
 
         {!cargando && !error && solicitudes.length > 0 && (
-          <div className="tabla-contenedor">
-            <table className="tabla-solicitudes">
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Propiedad</th>
-                  <th>Intención</th>
-                  <th>Estado</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
+          <section className="solicitudes-widgets">
+            <article className="solicitudes-card admins-widget">
+              <div className="solicitudes-card-header">
+                <div>
+                  <h2>Administradores</h2>
+                  <p>Usuarios con permisos administrativos dentro del sistema.</p>
+                </div>
 
-              <tbody>
-                {solicitudes.map((solicitud) => (
-                  <tr
-                    key={solicitud.id}
-                    className={solicitud.es_admin ? "fila-admin" : ""}
-                  >
-                    <td>
-                      <div className="usuario-info">
-                        <strong>{solicitud.nombre}</strong>
-                        <span>{solicitud.email}</span>
-                      </div>
-                    </td>
+                <span className="contador-solicitudes">
+                  {usuariosAdmins.length} admins
+                </span>
+              </div>
 
-                    <td>Casa {solicitud.codigo_casa}</td>
+              {renderTablaUsuarios(usuariosAdmins, "admin")}
+            </article>
 
-                    <td>{obtenerIntencion(solicitud)}</td>
+            <div className="solicitudes-grid">
+              <article className="solicitudes-card pendientes-widget">
+                <div className="solicitudes-card-header">
+                  <div>
+                    <h2>Solicitudes pendientes</h2>
+                    <p>
+                      Usuarios que todavía requieren revisión, corrección o
+                      decisión administrativa.
+                    </p>
+                  </div>
 
-                    <td>
-                      <span className={obtenerClaseEstado(solicitud)}>
-                        {formatearEstado(solicitud)}
-                      </span>
-                    </td>
+                  <span className="contador-solicitudes">
+                    {solicitudesPendientes.length} solicitudes
+                  </span>
+                </div>
 
-                    <td>
-                      {solicitud.es_admin ? (
-                        <span className="accion-admin">Sin acción</span>
-                      ) : (
-                        <button
-                          className="btn-ver-solicitud"
-                          onClick={() => verSolicitud(solicitud)}
-                        >
-                          Ver solicitud
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                {renderTablaUsuarios(solicitudesPendientes, "pendientes")}
+              </article>
+
+              <article className="solicitudes-card aceptados-widget">
+                <div className="solicitudes-card-header">
+                  <div>
+                    <h2>Usuarios aceptados</h2>
+                    <p>
+                      Usuarios aprobados que ya forman parte de la comunidad.
+                    </p>
+                  </div>
+
+                  <span className="contador-solicitudes">
+                    {usuariosAceptados.length} usuarios
+                  </span>
+                </div>
+
+                {renderTablaUsuarios(usuariosAceptados, "aceptados")}
+              </article>
+            </div>
+          </section>
         )}
-      </section>
-    </main>
+      </main>
+    </>
   );
 }
 
