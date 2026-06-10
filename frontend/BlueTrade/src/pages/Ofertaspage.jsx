@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useContext } from 'react'; 
+import { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { getOfertas, getServicios, iniciarTransaccion, actualizarOferta, obtenerCertificadosUsuario } from '../api/item.api'; 
 
@@ -154,50 +154,64 @@ function OfertasPage() {
     });
   }, [serviciosDB, busqueda, tagActivo]);
 
-  // Lógica de filtrado
-  const ofertasFiltradas = useMemo(() => {
-    const q = busqueda.toLowerCase();
-    
-    return ofertas.filter((o) => {
-      if (o.estado !== 'ACTIVO') return false;
+// Lógica de filtrado
+const esAdmin =
+  usuario?.es_admin === true ||
+  usuario?.es_admin === 'true' ||
+  usuario?.es_admin === 1 ||
+  usuario?.es_admin === '1';
 
-      // Ocultar ofertas propias
-      if (usuario?.id && o.usuario === usuario.id) return false;
+const aplicarFiltrosOferta = useCallback((o) => {
+  const q = busqueda.toLowerCase();
 
-      // Filtro de texto
-      const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada}`.toLowerCase();
-      if (q && !textoBusqueda.includes(q)) return false;
+  // Si NO es admin, ocultar ofertas propias
+  if (!esAdmin && usuario?.id && o.usuario === usuario.id) return false;
 
-      // Filtro de tipo (Agua/Servicio)
-      if (filtros.tipoBuscado && o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()) return false;
+  // Filtro de texto
+  const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada} ${o.estado}`.toLowerCase();
+  if (q && !textoBusqueda.includes(q)) return false;
 
-      // Filtro de cantidad
-      if (filtros.cantidadMinima > 0 && (parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima) return false;
+  // Filtro de tipo Agua/Servicio
+  if (
+    filtros.tipoBuscado &&
+    o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()
+  ) {
+    return false;
+  }
 
-      // Filtro de Tags
-      if (tagActivo) {
-        const coincideOfrecida = o.categoria_ofrecida === tagActivo;
-        const coincideSolicitada = o.categoria_solicitada === tagActivo;
-        if (!coincideOfrecida && !coincideSolicitada) return false;
-      }
+  // Filtro de cantidad mínima
+  if (
+    filtros.cantidadMinima > 0 &&
+    (parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima
+  ) {
+    return false;
+  }
 
-      return true;
-    });
-  }, [ofertas, filtros, busqueda, tagActivo, usuario]);
-  
-  const listaResultadosCombinados = useMemo(() => {
-    // Mapeamos los elementos añadiendo un atributo 'tipoComponente' para diferenciarlos en el ciclo render
-    const ofertasMapeadas = ofertasFiltradas.map(o => ({ ...o, tipoComponente: 'OFERTA' }));
-    const serviciosMapeados = serviciosExternosFiltrados.map(s => ({ ...s, tipoComponente: 'SERVICIO_EXTERNO' }));
-    
-    // Los unimos. Los servicios externos saldrán mezclados al final o al inicio
-    return [...ofertasMapeadas, ...serviciosMapeados];
-  }, [ofertasFiltradas, serviciosExternosFiltrados]);
-  
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-  
+  // Filtro de tags
+  if (tagActivo) {
+    const coincideOfrecida = o.categoria_ofrecida === tagActivo;
+    const coincideSolicitada = o.categoria_solicitada === tagActivo;
+
+    if (!coincideOfrecida && !coincideSolicitada) return false;
+  }
+
+  return true;
+}, [busqueda, filtros, tagActivo, usuario, esAdmin]);
+
+const ofertasActivasFiltradas = useMemo(() => {
+  return ofertas
+    .filter((o) => o.estado === 'ACTIVO')
+    .filter(aplicarFiltrosOferta);
+}, [ofertas, aplicarFiltrosOferta]);
+
+const otrasOfertasFiltradas = useMemo(() => {
+  if (!esAdmin) return [];
+
+  return ofertas
+    .filter((o) => o.estado !== 'ACTIVO')
+    .filter(aplicarFiltrosOferta);
+}, [ofertas, esAdmin, aplicarFiltrosOferta]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
@@ -287,41 +301,58 @@ function OfertasPage() {
             </div>
           </aside>
 
-          <section className="flex-grow w-full">
+          <section className="flex-grow w-full flex flex-col gap-8">
             <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-8">
               <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex justify-between items-center">
-                <h3 className="text-2xl font-extrabold text-[#102033]">Resultados disponibles</h3>
+                <h3 className="text-2xl font-extrabold text-[#102033]">Ofertas activas</h3>
                 <p className="text-sm font-bold text-[#0066ff] bg-[#0066ff]/10 px-4 py-2 rounded-full inline-flex m-0">
-                  {listaResultadosCombinados.length} totales
+                  {ofertasActivasFiltradas.length} encontradas
                 </p>
               </div>
 
-              {listaResultadosCombinados.length === 0 ? (
-                <div className="text-center py-20 text-[#637489]">No se encontraron resultados para la búsqueda.</div>
+              {ofertasActivasFiltradas.length === 0 ? (
+                <div className="text-center py-20 text-[#637489]">
+                  No hay ofertas activas disponibles.
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {listaResultadosCombinados.map((item) => {
-                    if (item.tipoComponente === 'OFERTA') {
-                      return (
-                        <TarjetaOferta 
-                          key={`oferta-${item.id}`} 
-                          oferta={item} 
-                          onVerDetalle={handleVerDetalle} 
-                        />
-                      );
-                    } else {
-                      return (
-                        <TarjetaServicioExterno 
-                          key={`ext-${item.id}`} 
-                          servicio={item} 
-                          onRedireccionar={manejarRedireccionExterna} 
-                        />
-                      );
-                    }
-                  })}
+                  {ofertasActivasFiltradas.map((oferta) => (
+                    <TarjetaOferta
+                      key={oferta.id}
+                      oferta={oferta}
+                      onVerDetalle={handleVerDetalle}
+                    />
+                  ))}
                 </div>
               )}
             </div>
+
+            {esAdmin && (
+              <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-8">
+                <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex justify-between items-center">
+                  <h3 className="text-2xl font-extrabold text-[#102033]">Otras ofertas</h3>
+                  <p className="text-sm font-bold text-[#0066ff] bg-[#0066ff]/10 px-4 py-2 rounded-full inline-flex m-0">
+                    {otrasOfertasFiltradas.length} encontradas
+                  </p>
+                </div>
+
+                {otrasOfertasFiltradas.length === 0 ? (
+                  <div className="text-center py-20 text-[#637489]">
+                    No hay otras ofertas registradas.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {otrasOfertasFiltradas.map((oferta) => (
+                      <TarjetaOferta
+                        key={oferta.id}
+                        oferta={oferta}
+                        onVerDetalle={handleVerDetalle}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </div>
