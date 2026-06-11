@@ -46,52 +46,54 @@ function OfertasPage() {
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
   
+  // En OfertasPage.jsx
   const handleConfirmar = async () => {
+    // 1. Validaciones de seguridad iniciales
     if (!ofertaSeleccionada || !usuario) return;
-    console.log("Oferta seleccionada para confirmar:", ofertaSeleccionada);
     
+    // Validación de lógica de negocio (Agua)
     const tipoSolicitado = ofertaSeleccionada.tipo_solicitado?.toUpperCase();
-
-    // 2. Validamos si es agua y si el usuario NO tiene suficiente
-    if (tipoSolicitado === 'AGUA' && ofertaSeleccionada.cantidad_solicitada > usuario.litros) {
+    if (tipoSolicitado === 'AGUA' && ofertaSeleccionada.cantidad_solicitada > usuario.litros_disponibles) {
         setAlerta({
             mostrar: true,
             mensaje: 'No tienes suficientes litros para confirmar esta oferta.',
             tipo: 'error'
         });
         handleCerrarModal();
-        return; // Detenemos la ejecución aquí, no iniciará la transacción
+        return;
     }
 
     try {
-        // CORRECCIÓN: El segundo parámetro debe ser el dueño de la oferta (vendedor), NO el usuario logueado (comprador)
-        const aux = await iniciarTransaccion(ofertaSeleccionada.id, ofertaSeleccionada.usuario, usuario.id);
-        console.log("Transacción iniciada:", aux.data);
+        // 2. Llamada a la API
+        // IMPORTANTE: Los nombres de los campos deben ser 'oferta' y 'comprador'
+        // para coincidir con el data.get() de tu views.py
+        await iniciarTransaccion(ofertaSeleccionada.id, usuario.id);
+        console.log("Transacción creada correctamente");
 
-        // 2. Reutilizamos tu función para cambiar el estado de la oferta
+        // 3. Actualización de estado de la oferta
         await actualizarOferta(ofertaSeleccionada.id, {
-            estado: 'EN_PROCESO' // O el estado que utilices en tu modelo
+            estado: 'EN_PROCESO'
         });
 
+        // 4. Feedback al usuario
         setAlerta({ 
-          mostrar: true, 
-          mensaje: 'Transacción iniciada correctamente.', 
-          tipo: 'success' 
+            mostrar: true, 
+            mensaje: 'Transacción iniciada correctamente.', 
+            tipo: 'success' 
         });
 
-        // Opcional: Remueve la oferta de la lista local para que ya no aparezca disponible
+        // 5. Limpieza visual (quitar la oferta de la lista activa)
         setOfertas((prev) => prev.filter((o) => o.id !== ofertaSeleccionada.id));
-       
 
     } catch (error) {
-      console.error("Error al iniciar transacción:", error);
-      setAlerta({ 
-        mostrar: true, 
-        mensaje: error.response?.data?.error || 'Ocurrió un error al intentar iniciar la transacción.', 
-        tipo: 'error' 
-      });
+        console.error("Error al iniciar transacción:", error);
+        setAlerta({ 
+            mostrar: true, 
+            mensaje: 'Error al procesar la solicitud. Verifica la consola.', 
+            tipo: 'error' 
+        });
     } finally {
-      handleCerrarModal();
+        handleCerrarModal();
     }
   };
 

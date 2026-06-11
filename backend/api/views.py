@@ -121,18 +121,86 @@ class CertificadoView(viewsets.ModelViewSet):
     queryset = Certificado.objects.all()
     parser_classes = (MultiPartParser, FormParser)
 
+
 class OfertaView(viewsets.ModelViewSet):
     serializer_class = OfertaSerializer
     queryset = Oferta.objects.all().order_by('-creado_el')
 
+    def create(self, request, *args, **kwargs):
+        """
+        Flujo de POO Estricto:
+        1. El controlador recibe los datos JSON.
+        2. El controlador gestiona la obtención de la instancia del usuario.
+        3. El controlador delega la validación al Serializer.
+        4. El controlador realiza la persistencia (save).
+        """
+        data = request.data.copy()
+        
+        # 1. Obtención de la instancia del usuario (Asumiendo que el frontend envía usuario_id)
+        usuario_id = data.get('usuario_id')
+        if not usuario_id:
+            return Response({"error": "El campo 'usuario_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            usuario_instancia = Usuario.objects.get(pk=usuario_id)
+        except Usuario.DoesNotExist:
+            return Response({"error": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Validación a través del Serializer
+        # Excluimos 'usuario' de la data validada temporalmente para inyectar la instancia después
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # 3. Creación explícita de la instancia
+        # Usamos .validated_data para asegurar que solo tenemos datos limpios
+        nueva_oferta = Oferta(
+            usuario=usuario_instancia,
+            tipo_ofrecido=serializer.validated_data.get('tipo_ofrecido'),
+            cantidad_ofrecida=serializer.validated_data.get('cantidad_ofrecida'),
+            categoria_ofrecida=serializer.validated_data.get('categoria_ofrecida'),
+            tipo_solicitado=serializer.validated_data.get('tipo_solicitado'),
+            cantidad_solicitada=serializer.validated_data.get('cantidad_solicitada'),
+            categoria_solicitada=serializer.validated_data.get('categoria_solicitada'),
+            descripcion=serializer.validated_data.get('descripcion')
+        )
+
+        nueva_oferta.save()
+
+        return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
+
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.all()
     serializer_class = TransaccionSerializer
-    
-    # 1. Apagamos la seguridad SOLAMENTE para pruebas
     permission_classes = [AllowAny]
-    authentication_classes = [] # <-- Vital para evitar el 403 por CSRF
+    authentication_classes = []
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        
+        oferta_id = data.get('oferta') or data.get('oferta_id')
+        comprador_id = data.get('comprador') or data.get('comprador_id')
+        
+        if not oferta_id or not comprador_id:
+            return Response({"error": "No se encontraron los IDs necesarios"}, status=400)
+
+        try:
+            # 1. Obtenemos la oferta para poder identificar al vendedor
+            oferta_instancia = Oferta.objects.get(pk=oferta_id)
+            
+            # 2. Creamos la transacción asignando el vendedor de la oferta
+            nueva_transaccion = Transaccion.objects.create(
+                oferta=oferta_instancia, # Asignamos la instancia, no solo el ID
+                vendedor=oferta_instancia.usuario, # AQUÍ ESTABA EL ERROR: faltaba asignar esto
+                comprador_id=comprador_id,
+                estado='PENDIENTE',
+                confirmacion_comprador=False,
+                confirmacion_vendedor=False
+            )
+            return Response(TransaccionSerializer(nueva_transaccion).data, status=201)
+            
+        except Oferta.DoesNotExist:
+            return Response({"error": "La oferta no existe"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
     
-    # Nota: Hemos eliminado get_queryset y perform_create temporalmente.
-    # El Serializer se encargará automáticamente de tomar el 'oferta', 'vendedor' 
-    # y 'comprador' directamente del JSON que manda React y guardarlo.
+    

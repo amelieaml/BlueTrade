@@ -155,20 +155,17 @@ export const actualizarOferta = async (
 
 const URL_TRANSACCIONES = 'http://127.0.0.1:8000/item/test/transacciones/';
 
-// 1. Iniciar transacción (El comprador crea el "contrato")
-export const iniciarTransaccion = async (ofertaId, vendedorId, compradorId) => {
-    const token = localStorage.getItem('token');
-    return axios.post(URL_TRANSACCIONES, {
-        oferta: ofertaId,
-        vendedor: vendedorId,
-        comprador: compradorId // Añadimos el comprador al payload
-    }, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` })
-        }
+// item.api.js
+
+// item.api.js
+
+export const iniciarTransaccion = async (ofertaId, compradorId) => {
+    return axios.post('http://127.0.0.1:8000/item/test/transacciones/', {
+        oferta: ofertaId,      // <--- Backend espera 'oferta'
+        comprador: compradorId // <--- Backend espera 'comprador'
     });
 };
+
 // 2. Obtener todas las transacciones del usuario logueado
 export const getMisTransacciones = async () => {
     const token = localStorage.getItem('token');

@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { crearOferta } from '../api/item.api';
+import { AuthContext } from '../context/AuthContext'; 
 
-function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) {
+// Eliminamos 'usuario' de las props, lo tomamos del contexto
+function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB }) {
+  const { usuario } = useContext(AuthContext); 
   const [errores, setErrores] = useState({});
   const [formData, setFormData] = useState({
     tipoOfrecido: 'agua',
@@ -34,17 +37,19 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     e.preventDefault();
     setErrores({});
 
-    // Validación de certificado
+    // 1. Validación de certificado antes de enviar nada al backend
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      if (servicioSeleccionado?.necesita_certificado && !usuario.certificado) {
+      // Asumimos que usuario.certificado es el objeto o booleano que valida el permiso
+      if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
         setErrores({ certificado: "Este servicio requiere una certificación técnica." });
         return;
       }
     }
 
+    // 2. Construcción del payload (ESTRICTO para el backend)
     const payload = {
-      usuario: usuario?.id,
+      usuario_id: usuario?.id, // Este es el ID que tu controlador (views.py) espera
       tipo_ofrecido: formData.tipoOfrecido.toUpperCase(),
       descripcion: formData.descripcion,
       cantidad_ofrecida: parseFloat(formData.cantidadOfrecida),
@@ -54,29 +59,16 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
     };
 
+    // 3. Envío al controlador
     try {
       const respuesta = await crearOferta(payload);
-      if (respuesta.status === 201) {
-        alert("¡Oferta publicada exitosamente!");
-        onSuccess(respuesta.data); // Le avisamos al Dashboard que se creó
-        
-        // Limpiamos el formulario
-        setFormData({
-          tipoOfrecido: 'agua',
-          cantidadOfrecida: '',
-          categoriaOfrecidaServicio: serviciosDB[0]?.nombre || '',
-          cantidadSolicitada: '',
-          categoriaSolicitadaServicio: serviciosDB[0]?.nombre || '',
-          descripcion: ''
-        });
-        onClose();
-      }
+      alert("¡Oferta publicada exitosamente!");
+      onSuccess(respuesta.data);
+      onClose();
     } catch (error) {
       console.error("Error al publicar la oferta:", error);
-      const mensajeError = error.response?.data?.non_field_errors?.[0] || 
-                           error.response?.data?.detail || 
-                           "Hubo un error al intentar registrar tu intercambio.";
-      alert(mensajeError);
+      const mensaje = error.response?.data?.detail || "Hubo un error al registrar tu intercambio.";
+      alert(mensaje);
     }
   };
 
