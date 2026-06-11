@@ -15,34 +15,34 @@ function LoginPage() {
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+   /*acomodar nombre y logica de la funcion --- */
+  const iniciarSesion = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setLoading(true);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setErrorMsg("");
-  setLoading(true);
+    try {
+      const response = await loginUsuario({
+        email: email.toLowerCase(),
+        password,
+      });
 
-  try {
-    const response = await loginUsuario({
-      email: email.toLowerCase(),
-      password,
-    });
+      const usuario = response.data.user;
 
-    const usuario = response.data.user;
+      console.log("Respuesta completa del login:", response.data);
+      console.log("Usuario recibido:", usuario);
+      console.log("Valor de es_admin:", usuario.es_admin);
+      console.log("Tipo de es_admin:", typeof usuario.es_admin);
 
-    console.log("Respuesta completa del login:", response.data);
-    console.log("Usuario recibido:", usuario);
-    console.log("Valor de es_admin:", usuario.es_admin);
-    console.log("Tipo de es_admin:", typeof usuario.es_admin);
+      login(usuario);
 
-    login(usuario);
+      const estado = usuario.estado?.toLowerCase();
 
-    const estado = usuario.estado?.toLowerCase();
-
-    const esAdmin =
-      usuario.es_admin === true ||
-      usuario.es_admin === "true" ||
-      usuario.es_admin === 1 ||
-      usuario.es_admin === "1";
+      const esAdmin =
+        usuario.es_admin === true ||
+        usuario.es_admin === "true" ||
+        usuario.es_admin === 1 ||
+        usuario.es_admin === "1";
 
     if (esAdmin) {
       console.log("Usuario admin, redirigiendo a /dashboard");
@@ -50,26 +50,26 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    if (estado === "en_espera") {
-      console.log("Usuario en espera, redirigiendo a /perfil");
-      navigate("/perfil");
-      return;
-    }
+      if (estado === "en_espera") {
+        console.log("Usuario en espera, redirigiendo a /perfil");
+        navigate("/perfil");
+        return;
+      }
 
-    console.log("Usuario normal, redirigiendo a /dashboard");
-    navigate("/dashboard");
-  } catch (error) {
-    console.error("Error en el login:", error);
+      console.log("Usuario normal, redirigiendo a /dashboard");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error en el login:", error);
 
-    if (error.response?.data?.error) {
-      setErrorMsg(error.response.data.error);
-    } else {
-      setErrorMsg("No se pudo conectar con el servidor. Inténtalo más tarde.");
+      if (error.response?.data?.error) {
+        setErrorMsg(error.response.data.error);
+      } else {
+        setErrorMsg("No se pudo conectar con el servidor. Inténtalo más tarde.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // SVGs para los ojitos de la contraseña
   const iconEyeOpen = (
@@ -144,7 +144,7 @@ const handleSubmit = async (e) => {
             <p>Ingresa tus credenciales para continuar.</p>
           </div>
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={iniciarSesion}>
             <div className="form-group">
               <label htmlFor="email">Correo electrónico</label>
               <input
@@ -190,7 +190,8 @@ const handleSubmit = async (e) => {
               <a href="/recuperar-password">¿Olvidaste tu contraseña?</a>
             </div>
 
-            <button type="submit" className="login-submit-btn" disabled={loading}>
+            <button type="submit" className="login-submit-btn" disabled={loading}
+            >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>

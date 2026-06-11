@@ -42,14 +42,12 @@ function PerfilUsuario() {
     }
   };
 
-  const handleFileChange = (e) => {
+  const subirArchivo = (e) => {
     setArchivo(e.target.files[0]);
   };
-
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!archivo || !tipoServicio) return;
-    
+  
+  const handleUpload = async () => {
+    if (!archivo) return;
     setCargando(true);
     try {
       const formData = new FormData();

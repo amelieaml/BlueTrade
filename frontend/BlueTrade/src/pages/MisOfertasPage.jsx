@@ -29,7 +29,10 @@ function MisOfertasPage() {
     if (usuario?.id) {
       cargarDatos();
     }
-  }, [usuario]);
+  });
+  //guarda la oferta seleccionada para mostrarla en el modal de gestion
+  const gestionarOferta = (oferta) => setOfertaSeleccionada(oferta);
+  const cerrarModal = () => setOfertaSeleccionada(null);
 
   const handleGestionar = (oferta) => setOfertaSeleccionada(oferta);
   const handleCerrarModal = () => setOfertaSeleccionada(null);
@@ -44,15 +47,20 @@ function MisOfertasPage() {
     if (!usuario?.id) return [];
     return ofertas.filter((o) => o.usuario === usuario.id);
   }, [ofertas, usuario]);
-
+  useEffect(() => {
+  
+    if (usuario?.id) {
+      cargarDatos();
+    }
+  }, [usuario]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16">
       <NavbarDashboard paginaActiva="mis-ofertas" />
       
       <ModalGestionarOferta
         isOpen={!!ofertaSeleccionada}
-        onClose={handleCerrarModal}
-        onSuccess={handleOfertaActualizada}
+        onClose={cerrarModal}
+        onSuccess={actualizarOfertas}
         serviciosDB={serviciosDB}
         usuario={usuario}
         oferta={ofertaSeleccionada}
@@ -84,7 +92,7 @@ function MisOfertasPage() {
                 <TarjetaMiOferta 
                   key={oferta.id} 
                   oferta={oferta} 
-                  onGestionar={handleGestionar} 
+                  onGestionar={gestionarOferta} 
                 />
               ))}
               

@@ -8,7 +8,7 @@ function SolicitudesRegistroPage() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-
+   /*esa funcion deberia ir en item a[i--- */
   useEffect(() => {
     const cargarSolicitudes = async () => {
       try {

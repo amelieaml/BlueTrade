@@ -167,6 +167,7 @@ export const iniciarTransaccion = async (ofertaId, compradorId) => {
 };
 
 // 2. Obtener todas las transacciones del usuario logueado
+ /*revisar como funciona esta tipo q es lo de headers--- */
 export const getMisTransacciones = async () => {
     const token = localStorage.getItem('token');
     return axios.get(URL_TRANSACCIONES, {

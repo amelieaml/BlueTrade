@@ -24,23 +24,20 @@ function OfertasPage() {
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
-
-  // Carga inicial de datos
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const [resOfertas, resServicios] = await Promise.all([
-          getOfertas(),
-          getServicios()
-        ]);
-        setOfertas(resOfertas.data);
-        setServiciosDB(resServicios.data);
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
-      }
-    };
-    cargarDatos();
-  }, []);
+  
+  
+  const cargarDatos = async () => {
+    try {
+      const [resOfertas, resServicios] = await Promise.all([
+        getOfertas(),
+        getServicios()
+      ]);
+      setOfertas(resOfertas.data);
+      setServiciosDB(resServicios.data);
+    } catch (error) {
+      console.error("Error al cargar datos:", error);
+    }
+  };
 
   // Manejadores de eventos
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
@@ -97,7 +94,7 @@ function OfertasPage() {
     }
   };
 
-  const handleOfertaCreada = (nuevaOferta) => {
+  const ofertaCreada = (nuevaOferta) => {
     setOfertas((prev) => [nuevaOferta, ...prev]);
     setAlerta({ mostrar: true, mensaje: '¡Oferta publicada con éxito!', tipo: 'success' });
   };
@@ -141,7 +138,11 @@ function OfertasPage() {
       return true;
     });
   }, [ofertas, filtros, busqueda, tagActivo, usuario]);
-
+  
+  useEffect(() => {
+    
+    cargarDatos();
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
@@ -152,7 +153,7 @@ function OfertasPage() {
       <ModalCrearOferta 
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
-        onSuccess={handleOfertaCreada}
+        onSuccess={ofertaCreada}
         serviciosDB={serviciosDB}
         usuario={usuario}
       />
@@ -160,10 +161,10 @@ function OfertasPage() {
       <ModalDetalleOferta
         oferta={ofertaSeleccionada}
         isOpen={!!ofertaSeleccionada}
-        onClose={handleCerrarModal}
-        onConfirmar={handleConfirmar}
+        onClose={cerrarModal}
+        onConfirmar={confirmarOferta}
         onRechazar={() => {
-          handleCerrarModal();
+          cerrarModal();
           setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
         }}
       />
@@ -242,7 +243,7 @@ function OfertasPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {ofertasFiltradas.map((oferta) => (
-                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={handleVerDetalle} />
+                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={verDetalleOferta} />
                   ))}
                 </div>
               )}

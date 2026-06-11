@@ -14,12 +14,6 @@ function DashboardPage() {
   const navigate = useNavigate();
   const { usuario, obtenerPerfilActualizado } = useContext(AuthContext);
 
-  const esAdmin =
-  usuario?.es_admin === true ||
-  usuario?.es_admin === "true" ||
-  usuario?.es_admin === 1 ||
-  usuario?.es_admin === "1";
-
   // Estados de UI y Modales
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [isRecargaModalOpen, setIsRecargaModalOpen] = useState(false);
@@ -30,7 +24,8 @@ function DashboardPage() {
   const [ofertasActivas, setOfertasActivas] = useState([]);
   const [cantidadRecarga, setCantidadRecarga] = useState('');
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
-  
+  const [isModerator] = useState(true); // O lógica para detectar rol
+
   useEffect(() => {
     const cargarDatosDashboard = async () => {
       try {
@@ -95,7 +90,7 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f7fbff] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%),linear-gradient(135deg,#f7fbff_0%,#eef6ff_45%,#ffffff_100%)] text-[#102033] font-sans pb-16 relative">
       
-      <NavbarDashboard paginaActiva="dashboard" esAdmin={esAdmin} />
+      <NavbarDashboard paginaActiva="dashboard" />
 
       <div className="max-w-[1500px] mx-auto px-6 lg:px-12 pt-10 flex flex-col items-center">
         
