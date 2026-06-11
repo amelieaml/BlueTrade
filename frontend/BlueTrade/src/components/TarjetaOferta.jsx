@@ -1,7 +1,25 @@
 import React from 'react';
 
+const IconoAgua = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16a5 5 0 005-5c0-2.76-2.5-5.5-5-8.5-2.5 3-5 5.74-5 8.5a5 5 0 005 5z" />
+  </svg>
+);
+
+const IconoServicio = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const IconoFlechaAbajo = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+  </svg>
+);
+
 function TarjetaOferta({ oferta, onVerDetalle }) {
-  // 1. Mapeo de datos planos provenientes del Serializer
   const itemOfrecido = {
     tipo: oferta.tipo_ofrecido,
     cantidad: oferta.cantidad_ofrecida || 0,
@@ -14,11 +32,9 @@ function TarjetaOferta({ oferta, onVerDetalle }) {
     categoria: oferta.categoria_solicitada
   };
 
-  // Estilos basados en lo que se ofrece
   const esAgua = itemOfrecido.tipo?.toLowerCase() === 'agua';
   const themeAccent = esAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
 
-  // 2. Extracción segura del nombre de usuario
   const nombreUsuario = oferta.usuario_nombre || "Usuario";
   const avatarLetra = nombreUsuario.charAt(0).toUpperCase();
 
@@ -31,8 +47,8 @@ function TarjetaOferta({ oferta, onVerDetalle }) {
         </span>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isAgua ? 'bg-[#5b8cff]/10 text-[#5b8cff]' : 'bg-[#ffb443]/10 text-[#ffb443]'}`}>
-              {isAgua ? '💧' : '🔧'}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isAgua ? 'bg-[#5b8cff]/10 text-[#5b8cff]' : 'bg-[#ffb443]/10 text-[#ffb443]'}`}>
+              {isAgua ? <IconoAgua /> : <IconoServicio />}
             </div>
             <div>
               <p className="font-bold text-[#1a1d27] text-[15px] m-0">
@@ -72,8 +88,8 @@ function TarjetaOferta({ oferta, onVerDetalle }) {
           <RenderRecurso recurso={itemOfrecido} tipoGrama="ofrece" />
           
           <div className="flex justify-center -my-3 z-10">
-            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm text-xs font-bold">
-              ↓
+            <div className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm">
+              <IconoFlechaAbajo />
             </div>
           </div>
 

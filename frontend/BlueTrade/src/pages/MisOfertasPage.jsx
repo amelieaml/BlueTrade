@@ -10,33 +10,27 @@ function MisOfertasPage() {
   const [ofertas, setOfertas] = useState([]);
   const [serviciosDB, setServiciosDB] = useState([]); // 🆕 Estado para guardar las categorías
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
-
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        // 🆕 Cargamos tanto las ofertas como los servicios al mismo tiempo
-        const [responseOfertas, responseServicios] = await Promise.all([
-          getOfertas(),
-          getServicios()
-        ]);
-        
-        setOfertas(responseOfertas.data);
-        setServiciosDB(responseServicios.data);
-      } catch (error) {
-        console.error("Error al cargar los datos:", error);
-      }
-    };
-    
-    if (usuario?.id) {
-      cargarDatos();
+  
+  const cargarDatos = async () => {
+    try {
+      // 🆕 Cargamos tanto las ofertas como los servicios al mismo tiempo
+      const [responseOfertas, responseServicios] = await Promise.all([
+        getOfertas(),
+        getServicios()
+      ]);
+      
+      setOfertas(responseOfertas.data);
+      setServiciosDB(responseServicios.data);
+    } catch (error) {
+      console.error("Error al cargar los datos:", error);
     }
-  }, [usuario]);
+  };
+  //guarda la oferta seleccionada para mostrarla en el modal de gestion
+  const gestionarOferta = (oferta) => setOfertaSeleccionada(oferta);
+  const cerrarModal = () => setOfertaSeleccionada(null);
 
-  const handleGestionar = (oferta) => setOfertaSeleccionada(oferta);
-  const handleCerrarModal = () => setOfertaSeleccionada(null);
-
-  // 🆕 Función para que la lista se actualice visualmente cuando editas algo en el modal
-  const handleOfertaActualizada = (ofertaEditada) => {
+ 
+  const actualizarOfertas = (ofertaEditada) => {
     setOfertas(prev => 
       prev.map(oferta => oferta.id === ofertaEditada.id ? { ...oferta, ...ofertaEditada } : oferta)
     );
@@ -47,7 +41,12 @@ function MisOfertasPage() {
     if (!usuario?.id) return [];
     return ofertas.filter((o) => o.usuario === usuario.id);
   }, [ofertas, usuario]);
-
+  useEffect(() => {
+  
+    if (usuario?.id) {
+      cargarDatos();
+    }
+  }, [usuario]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16">
       <NavbarDashboard paginaActiva="mis-ofertas" />
@@ -55,8 +54,8 @@ function MisOfertasPage() {
       {/* 🆕 Renderizamos el nuevo modal pasándole todos los props que necesita */}
       <ModalGestionarOferta
         isOpen={!!ofertaSeleccionada}
-        onClose={handleCerrarModal}
-        onSuccess={handleOfertaActualizada}
+        onClose={cerrarModal}
+        onSuccess={actualizarOfertas}
         serviciosDB={serviciosDB}
         usuario={usuario}
         oferta={ofertaSeleccionada}
@@ -88,7 +87,7 @@ function MisOfertasPage() {
                 <TarjetaMiOferta 
                   key={oferta.id} 
                   oferta={oferta} 
-                  onGestionar={handleGestionar} 
+                  onGestionar={gestionarOferta} 
                 />
               ))}
               

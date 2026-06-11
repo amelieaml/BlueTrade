@@ -21,26 +21,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'password': {'write_only': True} 
         }
 
-    class Meta:
-        model = Usuario
-        fields = '__all__'
-        extra_kwargs = {
-            'password': {'write_only': True} 
-        }
-
     def validate_codigo_casa(self, value):
         # REGLA: Si la casa ya está ocupada, rechaza el registro inmediatamente
         if value.ocupada:
             raise serializers.ValidationError("Esta propiedad ya se encuentra vinculada a un usuario registrado.")
         return value
-    
-    def create(self, validated_data):
-        password = validated_data.pop('password', None)
-        usuario = Usuario.objects.create_user(password=password, **validated_data)
-        residencia = validated_data['codigo_casa']
-        residencia.ocupada = True
-        residencia.save()
-        return usuario
 
 class UsuarioAdminSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(

@@ -38,19 +38,17 @@ function RegisterPage() {
     confirmPassword: ''
   });
 
-  useEffect(() => {
-    const cargarServicios = async () => {
-      try {
-        const respuesta = await getServicios();
-        setServiciosBD(respuesta.data);
-      } catch (error) {
-        console.error("Error al cargar los servicios:", error);
-      }
-    };
-    cargarServicios();
-  }, []);
+  const cargarServicios = async () => {
+    try {
+      const respuesta = await getServicios();
+      setServiciosBD(respuesta.data);
+    } catch (error) {
+      console.error("Error al cargar los servicios:", error);
+    }
+  };
 
-  const handleChange = (e) => {
+   /*arreglar esta funcion--- */
+  const validarCampo = (e) => {
     const { name, value } = e.target;
     let newValue = value;
 
@@ -83,8 +81,8 @@ function RegisterPage() {
     if (name === 'cedula') setErrorCedula('');
     if (name === 'propiedad') setErrorPropiedad('');
   };
-
-  const handleSubmit = async (e) => {
+ /*REVISAR LA LOGICA Y ARREGLARLA--- */
+  const registrarUsuario = async (e) => {
     e.preventDefault();
     
     setErrorEmail('');
@@ -177,7 +175,11 @@ function RegisterPage() {
       <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
     </svg>
   );
-
+  
+  useEffect(() => {
+   
+    cargarServicios();
+  }, []);
   return (
     <div className="register-page">
       <header className="register-navbar">
@@ -237,7 +239,7 @@ function RegisterPage() {
             </p>
           </div>
 
-          <form className="register-form" onSubmit={handleSubmit}>
+          <form className="register-form" onSubmit={registrarUsuario}>
             <div className="form-section">
               <h3>Datos personales</h3>
 
@@ -250,7 +252,7 @@ function RegisterPage() {
                     name="nombre"
                     placeholder="Ej. Carlos Gonzalez"
                     value={formData.nombre}
-                    onChange={handleChange}
+                    onChange={validarCampo}
                     required
                   />
                 </div>
@@ -265,7 +267,7 @@ function RegisterPage() {
                     maxLength="10"
                     inputMode="numeric"
                     value={formData.cedula}
-                    onChange={handleChange}
+                    onChange={validarCampo}
                     required
                   />
                   {errorCedula && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorCedula}</span>}
@@ -279,7 +281,7 @@ function RegisterPage() {
                     name="email"
                     placeholder="ejemplo@correo.com"
                     value={formData.email}
-                    onChange={handleChange}
+                    onChange={validarCampo}
                     required
                     className={errorEmail === 'Formato inválido' ? 'input-error' : ''}
                   />
@@ -293,7 +295,7 @@ function RegisterPage() {
                       id="prefijo"
                       name="prefijo"
                       value={formData.prefijo}
-                      onChange={handleChange}
+                      onChange={validarCampo}
                       required
                     >
                       <option value="" disabled hidden>---</option>
@@ -315,7 +317,7 @@ function RegisterPage() {
                       maxLength="7"
                       inputMode="numeric"
                       value={formData.telefono}
-                      onChange={handleChange}
+                      onChange={validarCampo}
                       required
                       className={errorTelefono ? 'input-error' : ''}
                     />
@@ -341,7 +343,7 @@ function RegisterPage() {
                     name="propiedad"
                     placeholder="Ej. Casa A-12 / Torre 3 Apt. 4B"
                     value={formData.propiedad}
-                    onChange={handleChange}
+                    onChange={validarCampo}
                     required
                   />
                   {errorPropiedad && <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errorPropiedad}</span>}
@@ -452,7 +454,7 @@ function RegisterPage() {
                       name="password"
                       placeholder="Crea una contraseña"
                       value={formData.password}
-                      onChange={handleChange}
+                      onChange={validarCampo}
                       required
                       style={{ paddingRight: '2.5rem', width: '100%' }}
                     />
@@ -475,7 +477,7 @@ function RegisterPage() {
                       name="confirmPassword"
                       placeholder="Repite la contraseña"
                       value={formData.confirmPassword}
-                      onChange={handleChange}
+                      onChange={validarCampo}
                       required
                       style={{ paddingRight: '2.5rem', width: '100%' }}
                     />
