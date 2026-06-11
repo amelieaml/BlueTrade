@@ -22,7 +22,6 @@ const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
 );
 
 function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) {
-  const { usuario } = useContext(AuthContext); 
   const [errores, setErrores] = useState({});
   const [formData, setFormData] = useState({
     tipoOfrecido: 'agua',

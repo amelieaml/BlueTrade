@@ -189,8 +189,8 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             
             # 2. Creamos la transacción asignando el vendedor de la oferta
             nueva_transaccion = Transaccion.objects.create(
-                oferta=oferta_instancia, # Asignamos la instancia, no solo el ID
-                vendedor=oferta_instancia.usuario, # AQUÍ ESTABA EL ERROR: faltaba asignar esto
+                oferta=oferta_instancia, 
+                vendedor=oferta_instancia.usuario, 
                 comprador_id=comprador_id,
                 estado='PENDIENTE',
                 confirmacion_comprador=False,
