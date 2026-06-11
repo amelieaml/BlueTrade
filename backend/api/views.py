@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 
+
 from .serializer import (
     UsuarioSerializer, 
     ServicioSerializer, 
@@ -33,21 +34,30 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
     def registro_completo(self, request):
+        # 1. Validación: El serializador solo verifica que los datos están bien
         usuario_serializer = UsuarioSerializer(data=request.data)
         
-        if usuario_serializer.is_valid():
-            usuario = usuario_serializer.save()
-            archivo_fisico = request.FILES.get('certificado')
-            tipo_servicio = request.data.get('tipo_servicio')
+        if usuario_serializer.is_valid(): 
+            nuevo_usuario = Usuario(
+                nombre=usuario_serializer.validated_data['nombre'],
+                ci=usuario_serializer.validated_data['ci'],
+                email=usuario_serializer.validated_data['email'],
+                codigo_casa=usuario_serializer.validated_data['codigo_casa']
+            )
             
-            if archivo_fisico and tipo_servicio:
-                Certificado.objects.create(
-                    usuario=usuario,
-                    tipo_servicio_id=tipo_servicio,
-                    archivo=archivo_fisico
-                )
+            # 3. Configuración POO: Asignamos lógica de negocio (setter)
+            nuevo_usuario.set_password(request.data.get('password'))
             
-            return Response({"message": "Registro exitoso", "id": usuario.id}, status=status.HTTP_201_CREATED)
+            # 4. Persistencia manual: Tú decides cuándo se guarda
+            nuevo_usuario.save()
+            
+            # 5. Lógica de negocio adicional: controlando el estado del otro objeto
+            residencia = nuevo_usuario.codigo_casa
+            residencia.ocupada = True
+            residencia.save()
+
+            return Response({"message": "Usuario registrado exitosamente"}, status=status.HTTP_201_CREATED)
+        
         return Response(usuario_serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
     
     @action(detail=True, methods=['post'])
@@ -124,6 +134,8 @@ class CertificadoView(viewsets.ModelViewSet):
 class OfertaView(viewsets.ModelViewSet):
     serializer_class = OfertaSerializer
     queryset = Oferta.objects.all().order_by('-creado_el')
+
+   
 
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.all()

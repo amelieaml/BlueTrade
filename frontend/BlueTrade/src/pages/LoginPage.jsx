@@ -144,7 +144,7 @@ function LoginPage() {
             <p>Ingresa tus credenciales para continuar.</p>
           </div>
 
-          <form className="login-form">
+          <form className="login-form" onSubmit={iniciarSesion}>
             <div className="form-group">
               <label htmlFor="email">Correo electrónico</label>
               <input
@@ -191,7 +191,6 @@ function LoginPage() {
             </div>
 
             <button type="submit" className="login-submit-btn" disabled={loading}
-              onclick={() => {iniciarSesion();}}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
