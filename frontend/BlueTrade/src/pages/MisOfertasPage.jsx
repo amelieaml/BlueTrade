@@ -10,34 +10,27 @@ function MisOfertasPage() {
   const [ofertas, setOfertas] = useState([]);
   const [serviciosDB, setServiciosDB] = useState([]); // 🆕 Estado para guardar las categorías
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
-
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const [responseOfertas, responseServicios] = await Promise.all([
-          getOfertas(),
-          getServicios()
-        ]);
-        
-        setOfertas(responseOfertas.data);
-        setServiciosDB(responseServicios.data);
-      } catch (error) {
-        console.error("Error al cargar los datos:", error);
-      }
-    };
-    
-    if (usuario?.id) {
-      cargarDatos();
+  
+  const cargarDatos = async () => {
+    try {
+      // 🆕 Cargamos tanto las ofertas como los servicios al mismo tiempo
+      const [responseOfertas, responseServicios] = await Promise.all([
+        getOfertas(),
+        getServicios()
+      ]);
+      
+      setOfertas(responseOfertas.data);
+      setServiciosDB(responseServicios.data);
+    } catch (error) {
+      console.error("Error al cargar los datos:", error);
     }
-  });
+  };
   //guarda la oferta seleccionada para mostrarla en el modal de gestion
   const gestionarOferta = (oferta) => setOfertaSeleccionada(oferta);
   const cerrarModal = () => setOfertaSeleccionada(null);
 
-  const handleGestionar = (oferta) => setOfertaSeleccionada(oferta);
-  const handleCerrarModal = () => setOfertaSeleccionada(null);
-
-  const handleOfertaActualizada = (ofertaEditada) => {
+ 
+  const actualizarOfertas = (ofertaEditada) => {
     setOfertas(prev => 
       prev.map(oferta => oferta.id === ofertaEditada.id ? { ...oferta, ...ofertaEditada } : oferta)
     );
