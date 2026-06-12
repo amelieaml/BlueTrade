@@ -87,16 +87,14 @@ class ServicioSerializer(serializers.ModelSerializer):
         model = Servicio
         fields = '__all__' 
 
+# serializer.py
+
 class OfertaSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.ReadOnlyField(source='usuario.nombre')
 
     class Meta:
         model = Oferta
-        fields = [
-            'id', 'usuario', 'usuario_nombre', 'estado', 'tipo_ofrecido', 
-            'cantidad_ofrecida', 'categoria_ofrecida', 'tipo_solicitado', 
-            'cantidad_solicitada', 'categoria_solicitada', 'descripcion', 'creado_el'
-        ]
+        fields = '__all__' 
         extra_kwargs = {
             'usuario': {'required': False}
         }
@@ -104,4 +102,10 @@ class OfertaSerializer(serializers.ModelSerializer):
 class TransaccionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaccion
-        fields = '__all__'  # <-- OJO: Son DOS guiones bajos seguidos al principio y al final
+        fields = '__all__'
+        extra_kwargs = {
+            'oferta': {'required': False},
+            'estado': {'required': False},
+            'confirmacion_comprador': {'required': False},
+            'confirmacion_vendedor': {'required': False}
+        }

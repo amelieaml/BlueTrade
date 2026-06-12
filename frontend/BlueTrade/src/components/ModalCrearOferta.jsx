@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { crearOferta } from '../api/item.api';
+import { AuthContext } from '../context/AuthContext'; 
 
 const IconoAgua = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,14 +64,16 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
 
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      if (servicioSeleccionado?.necesita_certificado && !usuario.certificado) {
+      // Asumimos que usuario.certificado es el objeto o booleano que valida el permiso
+      if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
         setErrores({ certificado: "Este servicio requiere una certificación técnica." });
         return;
       }
     }
 
+    // 2. Construcción del payload (ESTRICTO para el backend)
     const payload = {
-      usuario: usuario?.id,
+      usuario_id: usuario?.id, // Este es el ID que tu controlador (views.py) espera
       tipo_ofrecido: formData.tipoOfrecido.toUpperCase(),
       descripcion: formData.descripcion,
       cantidad_ofrecida: parseFloat(formData.cantidadOfrecida),
@@ -80,6 +83,7 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
     };
 
+    // 3. Envío al controlador
     try {
       const respuesta = await crearOferta(payload);
       if (respuesta.status === 201) {
@@ -98,10 +102,8 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       }
     } catch (error) {
       console.error("Error al publicar la oferta:", error);
-      const mensajeError = error.response?.data?.non_field_errors?.[0] || 
-                           error.response?.data?.detail || 
-                           "Hubo un error al intentar registrar tu intercambio.";
-      alert(mensajeError);
+      const mensaje = error.response?.data?.detail || "Hubo un error al registrar tu intercambio.";
+      alert(mensaje);
     }
   };
 
