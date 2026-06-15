@@ -161,10 +161,10 @@ function OfertasPage() {
       <ModalDetalleOferta
         oferta={ofertaSeleccionada}
         isOpen={!!ofertaSeleccionada}
-        onClose={cerrarModal}
-        onConfirmar={confirmarOferta}
+        onClose={handleCerrarModal}
+        onConfirmar={handleConfirmar}
         onRechazar={() => {
-          cerrarModal();
+          handleCerrarModal();
           setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
         }}
       />
@@ -243,7 +243,7 @@ function OfertasPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {ofertasFiltradas.map((oferta) => (
-                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={verDetalleOferta} />
+                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={handleVerDetalle} />
                   ))}
                 </div>
               )}

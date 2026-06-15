@@ -293,7 +293,7 @@ function PerfilUsuario() {
                   }`}>
                     <input 
                       type="file" 
-                      onChange={handleFileChange}
+                      onChange={subirArchivo}
                       required
                       className="dropzone-input-oculto" 
                     />
