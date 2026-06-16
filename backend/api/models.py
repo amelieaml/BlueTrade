@@ -102,7 +102,6 @@ class Usuario(AbstractBaseUser):
 
     @property
     def litros_disponibles(self):
-        # El saldo real es tu total histórico menos lo que está comprometido en transacciones
         return float(self.litros_agua) - self.litros_bloqueados
 
 class Servicio(models.Model):
@@ -118,9 +117,6 @@ class Certificado(models.Model):
     creado_el = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificados')
     tipo_servicio = models.ForeignKey('Servicio', on_delete=models.CASCADE, related_name='certificados')
-
-from django.db import models
-from django.conf import settings
 
 class EstadoOferta(models.TextChoices):
     ACTIVO = 'ACTIVO', 'Activo'
@@ -171,7 +167,6 @@ class Transaccion(models.Model):
     
     estado = models.CharField(max_length=20, choices=EstadoTransaccion.choices, default=EstadoTransaccion.PENDIENTE)
     
-    # Confirmaciones manuales de ambas partes
     confirmacion_comprador = models.BooleanField(default=False)
     confirmacion_vendedor = models.BooleanField(default=False)
     
@@ -179,12 +174,10 @@ class Transaccion(models.Model):
     fecha_finalizacion = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        # Lógica de cierre automático: si ambos confirman, se completa la transacción
         if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != EstadoTransaccion.COMPLETADA:
             self.estado = EstadoTransaccion.COMPLETADA
             self.fecha_finalizacion = timezone.now()
             
-            # Actualizamos el estado de la oferta original
             self.oferta.estado = 'COMPLETADO'
             self.oferta.save()
             
@@ -198,8 +191,7 @@ class Transaccion(models.Model):
 
     @property
     def litros_involucrados(self):
-        # Esta transacción, ¿cuántos litros de agua involucra?
-        # Solo nos interesa si el tipo ofrecido es AGUA
+
         if self.oferta.tipo_ofrecido == 'AGUA':
             return self.oferta.cantidad_ofrecida
         return 0

@@ -111,7 +111,6 @@ class UsuarioView(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Pasamos el contexto aquí también para que el usuario logueado obtenga su URL de certificado
         serializer = UsuarioAdminSerializer(
             user, 
             context={'request': request}
@@ -137,16 +136,9 @@ class OfertaView(viewsets.ModelViewSet):
     queryset = Oferta.objects.all().order_by('-creado_el')
 
     def create(self, request, *args, **kwargs):
-        """
-        Flujo de POO Estricto:
-        1. El controlador recibe los datos JSON.
-        2. El controlador gestiona la obtención de la instancia del usuario.
-        3. El controlador delega la validación al Serializer.
-        4. El controlador realiza la persistencia (save).
-        """
+        
         data = request.data.copy()
         
-        # 1. Obtención de la instancia del usuario (Asumiendo que el frontend envía usuario_id)
         usuario_id = data.get('usuario_id')
         if not usuario_id:
             return Response({"error": "El campo 'usuario_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
@@ -156,13 +148,9 @@ class OfertaView(viewsets.ModelViewSet):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 2. Validación a través del Serializer
-        # Excluimos 'usuario' de la data validada temporalmente para inyectar la instancia después
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        # 3. Creación explícita de la instancia
-        # Usamos .validated_data para asegurar que solo tenemos datos limpios
         nueva_oferta = Oferta(
             usuario=usuario_instancia,
             tipo_ofrecido=serializer.validated_data.get('tipo_ofrecido'),
@@ -194,10 +182,9 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             return Response({"error": "No se encontraron los IDs necesarios"}, status=400)
 
         try:
-            # 1. Obtenemos la oferta para poder identificar al vendedor
+            
             oferta_instancia = Oferta.objects.get(pk=oferta_id)
             
-            # 2. Creamos la transacción asignando el vendedor de la oferta
             nueva_transaccion = Transaccion.objects.create(
                 oferta=oferta_instancia, 
                 vendedor=oferta_instancia.usuario, 

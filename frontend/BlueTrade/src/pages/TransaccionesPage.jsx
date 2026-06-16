@@ -21,14 +21,20 @@ function TransaccionesPage() {
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); 
 
-  const cargarTransacciones = async () => {
-    try {
-      const response = await getMisTransacciones();
-      setTransacciones(response.data);
-    } catch (error) {
-      console.error("Error al cargar las transacciones:", error);
+  useEffect(() => {
+    const cargarTransacciones = async () => {
+      try {
+        const response = await getMisTransacciones();
+        setTransacciones(response.data);
+      } catch (error) {
+        console.error("Error al cargar las transacciones:", error);
+      }
+    };
+
+    if (usuario?.id) {
+      cargarTransacciones();
     }
-  };
+  }, [usuario]);
   
 
   const misCompras = useMemo(() => {

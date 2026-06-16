@@ -10,7 +10,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         }
     )
     
-    # FORZAR LA INCLUSIÓN DE LAS PROPIEDADES DINÁMICAS
     litros_disponibles = serializers.ReadOnlyField()
     litros_bloqueados = serializers.ReadOnlyField()
 
@@ -45,18 +44,15 @@ class UsuarioAdminSerializer(serializers.ModelSerializer):
     def get_certificado_url(self, obj):
         request = self.context.get('request')
         
-        # Validaciones iniciales
         tipo_servicio_valor = obj.tipo_servicio_intencion
         if not tipo_servicio_valor or tipo_servicio_valor in [None, '', 'null', 'None']:
             return None
 
-        # Determinar ID (maneja si es objeto o ID directo)
         tipo_servicio_id = tipo_servicio_valor.id if hasattr(tipo_servicio_valor, 'id') else tipo_servicio_valor
         
         if not tipo_servicio_id or tipo_servicio_id in [None, '', 'null', 'None']:
             return None
 
-        # Buscar certificado
         certificado = Certificado.objects.filter(
             usuario_id=obj.id,
             tipo_servicio_id=tipo_servicio_id
@@ -87,7 +83,6 @@ class ServicioSerializer(serializers.ModelSerializer):
         model = Servicio
         fields = '__all__' 
 
-# serializer.py
 
 class OfertaSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.ReadOnlyField(source='usuario.nombre')
