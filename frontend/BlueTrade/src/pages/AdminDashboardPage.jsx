@@ -7,7 +7,7 @@ function AdminDashboardPage() {
 
   const opcionesAdmin = [
     {
-      titulo: "Usuarios y solicitudes",
+      titulo: "Gestión de usuarios",
       descripcion:
         "Revisar perfiles pendientes, certificados técnicos, datos de propiedad y solicitudes de registro.",
       ruta: "/admin/usuarios",
@@ -29,7 +29,7 @@ function AdminDashboardPage() {
       ),
     },
     {
-      titulo: "Ofertas publicadas",
+      titulo: "Ofertas públicas",
       descripcion:
         "Supervisar las ofertas de intercambio de agua y servicios dentro de la urbanización.",
       ruta: "/ofertas",
@@ -50,109 +50,88 @@ function AdminDashboardPage() {
         </svg>
       ),
     },
-    {
-      titulo: "Solicitudes",
-      descripcion:
-        "Consultar solicitudes enviadas por usuarios y validar información asociada a sus perfiles.",
-      ruta: "/solicitudes",
-      etiqueta: "Solicitudes",
-      accion: "Revisar",
-      icono: (
-        <svg
-          className="admin-action-icon"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-          />
-        </svg>
-      ),
-    },
   ];
 
   const manejarClick = (ruta) => {
     navigate(ruta);
   };
 
-
   return (
-  <main className="admin-profile-dashboard">
-    <NavbarDashboard paginaActiva="admin" />
+    <main className="admin-profile-dashboard">
+      <NavbarDashboard paginaActiva="admin" />
 
-    <section className="admin-dashboard-content">
-      <div className="admin-main-card">
-        <div className="admin-card-header">
-          <span className="admin-small-label">Panel administrativo</span>
+      <section className="admin-dashboard-content">
+        <div className="admin-main-card">
+          <div className="admin-card-header">
+            <span className="admin-small-label">Panel administrativo</span>
 
-          <h1>Dashboard de administrador</h1>
+            <h1>Dashboard de administrador</h1>
 
-          <p>
-            Gestiona usuarios, solicitudes, ofertas y operaciones principales
-            de BlueTrade desde un solo panel.
-          </p>
-        </div>
+            <p>
+              Gestiona usuarios, ofertas y operaciones principales de BlueTrade
+              desde un solo panel.
+            </p>
+          </div>
 
-        <hr className="admin-card-divider" />
+          <hr className="admin-card-divider" />
 
-        <div className="admin-action-row">
-          {opcionesAdmin.map((opcion, index) => (
-            <button
-              type="button"
-              className="admin-circle-action"
-              key={opcion.titulo}
-              onClick={() => manejarClick(opcion.ruta)}
-            >
-              <span
-                className={`admin-circle-icon ${
-                  index === 0 ? "admin-circle-icon-primary" : ""
-                }`}
+          <div className="admin-action-row">
+            {opcionesAdmin.map((opcion, index) => (
+              <button
+                type="button"
+                className="admin-circle-action"
+                key={opcion.titulo}
+                onClick={() => manejarClick(opcion.ruta)}
               >
-                {opcion.icono}
-              </span>
+                <span
+                  className={`admin-circle-icon ${
+                    index === 0 ? "admin-circle-icon-primary" : ""
+                  }`}
+                >
+                  {opcion.icono}
+                </span>
 
-              <span className="admin-circle-text">{opcion.accion}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <section className="admin-summary-section">
-        <div className="admin-section-title-row">
-          <div>
-            <span className="admin-section-eyebrow">Opciones disponibles</span>
-            <h2>Gestión del sistema</h2>
+                <span className="admin-circle-text">{opcion.accion}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="admin-dashboard-grid">
-          {opcionesAdmin.map((opcion) => (
-            <article className="admin-dashboard-card" key={opcion.titulo}>
-              <div>
-                <span className="admin-card-tag">{opcion.etiqueta}</span>
+        <section className="admin-summary-section">
+          <div className="admin-section-title-row">
+            <div>
+              <span className="admin-section-eyebrow">
+                Opciones disponibles
+              </span>
+              <h2>Gestión del sistema</h2>
+            </div>
+          </div>
 
-                <h3>{opcion.titulo}</h3>
+          <div className="admin-dashboard-grid">
+            {opcionesAdmin.map((opcion) => (
+              <article className="admin-dashboard-card" key={opcion.titulo}>
+                <div>
+                  <span className="admin-card-tag">{opcion.etiqueta}</span>
 
-                <p>{opcion.descripcion}</p>
-              </div>
+                  <h3>{opcion.titulo}</h3>
 
-              <button
-                type="button"
-                className="admin-card-button"
-                onClick={() => manejarClick(opcion.ruta)}
-              >
-                Entrar
-              </button>
-            </article>
-          ))}
-        </div>
+                  <p>{opcion.descripcion}</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="admin-card-button"
+                  onClick={() => manejarClick(opcion.ruta)}
+                >
+                  Entrar
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
-    </section>
-  </main>
-);
+    </main>
+  );
 }
 
 export default AdminDashboardPage;

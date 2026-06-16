@@ -63,20 +63,132 @@
   transform: translateY(0);
 }
 
+/* CONTENEDOR PRINCIPAL DE LOS 3 WIDGETS */
+
+.solicitudes-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* WIDGETS */
+
+.solicitudes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+  align-items: start;
+}
+
 .solicitudes-card {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 24px;
   box-shadow: 0 20px 50px rgba(16, 32, 51, 0.08);
   padding: 28px;
+  min-width: 0;
 }
+
+.solicitudes-grid .solicitudes-card {
+  padding: 22px;
+}
+
+/* WIDGET ADMINISTRADORES - MORADO */
+
+.admins-widget {
+  width: 100%;
+  border-color: rgba(124, 58, 237, 0.22);
+  background:
+    linear-gradient(180deg, rgba(124, 58, 237, 0.055), rgba(255, 255, 255, 0.96)),
+    var(--bg);
+}
+
+.admins-widget .solicitudes-card-header h2 {
+  color: #6d28d9;
+}
+
+.admins-widget .contador-solicitudes {
+  background: rgba(124, 58, 237, 0.14);
+  color: #6d28d9;
+}
+
+.admins-widget .tabla-solicitudes th {
+  background: rgba(124, 58, 237, 0.08);
+}
+
+/* WIDGET SOLICITUDES PENDIENTES - NARANJA */
+
+.pendientes-widget {
+  border-color: rgba(255, 184, 0, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 184, 0, 0.075), rgba(255, 255, 255, 0.96)),
+    var(--bg);
+}
+
+.pendientes-widget .solicitudes-card-header h2 {
+  color: #9a6a00;
+}
+
+.pendientes-widget .contador-solicitudes {
+  background: rgba(255, 184, 0, 0.16);
+  color: #9a6a00;
+}
+
+.pendientes-widget .tabla-solicitudes th {
+  background: rgba(255, 184, 0, 0.09);
+}
+
+.pendientes-widget .btn-ver-solicitud {
+  background: linear-gradient(135deg, #ffb800 0%, #d97706 100%);
+}
+
+.pendientes-widget .btn-ver-solicitud:hover {
+  box-shadow: 0 10px 22px rgba(255, 184, 0, 0.24);
+}
+
+/* WIDGET USUARIOS ACEPTADOS - VERDE */
+
+.aceptados-widget {
+  border-color: rgba(18, 183, 106, 0.22);
+  background:
+    linear-gradient(180deg, rgba(18, 183, 106, 0.055), rgba(255, 255, 255, 0.96)),
+    var(--bg);
+}
+
+.aceptados-widget .solicitudes-card-header h2 {
+  color: #087443;
+}
+
+.aceptados-widget .contador-solicitudes {
+  background: rgba(18, 183, 106, 0.14);
+  color: #087443;
+}
+
+.aceptados-widget .tabla-solicitudes th {
+  background: rgba(18, 183, 106, 0.08);
+}
+
+.aceptados-widget .btn-ver-solicitud {
+  background: linear-gradient(135deg, #12b76a 0%, #087443 100%);
+}
+
+.aceptados-widget .btn-ver-solicitud:hover {
+  box-shadow: 0 10px 22px rgba(18, 183, 106, 0.22);
+}
+
+/* HEADER DE CARDS */
 
 .solicitudes-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
+}
+
+.solicitudes-grid .solicitudes-card-header {
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .solicitudes-card-header h2 {
@@ -86,9 +198,19 @@
   font-weight: 800;
 }
 
+.solicitudes-grid .solicitudes-card-header h2 {
+  font-size: 1.2rem;
+}
+
 .solicitudes-card-header p {
   margin: 6px 0 0;
   color: var(--text);
+  line-height: 1.5;
+}
+
+.solicitudes-grid .solicitudes-card-header p {
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .contador-solicitudes {
@@ -99,6 +221,13 @@
   font-weight: 700;
   white-space: nowrap;
 }
+
+.solicitudes-grid .contador-solicitudes {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+/* MENSAJES */
 
 .mensaje-solicitudes {
   margin: 0;
@@ -118,6 +247,8 @@
   font-weight: 700;
 }
 
+/* TABLAS */
+
 .tabla-contenedor {
   width: 100%;
   overflow-x: auto;
@@ -126,7 +257,15 @@
 .tabla-solicitudes {
   width: 100%;
   border-collapse: collapse;
+  min-width: 720px;
+}
+
+.admins-widget .tabla-solicitudes {
   min-width: 850px;
+}
+
+.solicitudes-grid .tabla-solicitudes {
+  min-width: 520px;
 }
 
 .tabla-solicitudes th {
@@ -138,15 +277,27 @@
   background: #f8fbff;
 }
 
+.solicitudes-grid .tabla-solicitudes th {
+  padding: 12px 9px;
+  font-size: 0.76rem;
+}
+
 .tabla-solicitudes td {
   padding: 18px 16px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
+.solicitudes-grid .tabla-solicitudes td {
+  padding: 13px 9px;
+  font-size: 0.84rem;
+}
+
 .tabla-solicitudes tr:last-child td {
   border-bottom: none;
 }
+
+/* USUARIO */
 
 .usuario-info {
   display: flex;
@@ -159,10 +310,20 @@
   font-weight: 800;
 }
 
+.solicitudes-grid .usuario-info strong {
+  font-size: 0.88rem;
+}
+
 .usuario-info span {
   font-size: 0.9rem;
   color: var(--text);
 }
+
+.solicitudes-grid .usuario-info span {
+  font-size: 0.76rem;
+}
+
+/* ESTADOS */
 
 .estado {
   display: inline-flex;
@@ -173,6 +334,11 @@
   font-size: 0.82rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.solicitudes-grid .estado {
+  padding: 6px 8px;
+  font-size: 0.72rem;
 }
 
 .estado.pendiente {
@@ -212,6 +378,8 @@
   white-space: nowrap;
 }
 
+/* BOTONES */
+
 .btn-ver-solicitud {
   border: none;
   border-radius: 999px;
@@ -224,6 +392,11 @@
   white-space: nowrap;
 }
 
+.solicitudes-grid .btn-ver-solicitud {
+  padding: 8px 11px;
+  font-size: 0.76rem;
+}
+
 .btn-ver-solicitud:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 22px rgba(0, 102, 255, 0.22);
@@ -231,6 +404,22 @@
 
 .btn-ver-solicitud:active {
   transform: translateY(0);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1200px) {
+  .solicitudes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabla-solicitudes {
+    min-width: 850px;
+  }
+
+  .solicitudes-grid .tabla-solicitudes {
+    min-width: 720px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -247,12 +436,23 @@
     width: 100%;
   }
 
-  .solicitudes-card {
+  .solicitudes-card,
+  .solicitudes-grid .solicitudes-card {
     padding: 20px;
   }
 
   .solicitudes-card-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .contador-solicitudes {
+    align-self: flex-start;
+  }
+
+  .tabla-solicitudes,
+  .admins-widget .tabla-solicitudes,
+  .solicitudes-grid .tabla-solicitudes {
+    min-width: 720px;
   }
 }
