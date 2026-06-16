@@ -11,7 +11,6 @@ node_modules/
 dist/
 build/
 .eslintcache
-dashboardpage.jsx
 
 # Sistema
 .DS_Store
