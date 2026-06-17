@@ -15,7 +15,8 @@ function PerfilUsuario() {
     const cargarServicios = async () => {
       try {
         const response = await getServicios();
-        setServiciosDB(response.data);
+        setServiciosDB(response.data.filter(s => !s.es_externo));
+        
       } catch (error) {
         console.error("Error al recuperar los servicios:", error);
       }

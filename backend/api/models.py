@@ -108,9 +108,23 @@ class Servicio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(max_length=255, unique=True)
     necesita_certificado = models.BooleanField(default=False)
+    #campos de la táctica 
+    es_externo = models.BooleanField(default=False)
+    api_origen = models.URLField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return self.nombre
+        prefix = "[Externo] " if self.es_externo else "[Interno] " #identifica que servicios son externos o internos
+        return f"{prefix}{self.nombre}"
+    
+class DirectorioServicio(models.Model):
+    nombre_servicio = models.CharField(max_length=100, unique=True)
+    api_conexion = models.URLField(max_length=255, unique=True)
+    esta_activo = models.BooleanField(default=False)
+    ultima_consulta = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        estado = "Activo" if self.esta_activo else "Inactivo"
+        return f"{self.nombre_servicio} ({estado})"  
     
 class Certificado(models.Model):
     archivo = models.FileField(upload_to='comprobantes_certificados/')
