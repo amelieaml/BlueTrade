@@ -72,12 +72,13 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
     obtenerDetallesOferta();
 
+    // Limpiar el estado cuando el modal se cierra
     if (!isOpen) setDetalleOferta(null);
   }, [isOpen, transaccion]);
 
   if (!isOpen || !transaccion) return null;
 
-  // 3. Lógica de  y roles
+  // 3. Lógica de confirmaciones y roles
   const confirmoYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
   const confirmoContraparte = vistaActiva === 'compras' ? transaccion.confirmacion_vendedor : transaccion.confirmacion_comprador;
   const miRol = vistaActiva === 'compras' ? 'Comprador' : 'Vendedor';
@@ -104,35 +105,39 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
   let miEntrega = null;
   
   if (detalleOferta) {
+    
+    // Función auxiliar para saber qué texto gris poner debajo de los litros/horas
+    const obtenerDetalle = (tipo, categoria, descripcion) => {
+      if (tipo?.toUpperCase() === 'AGUA') return 'Agua';
+      // Si es servicio, intentará mostrar la categoría. Si no hay categoría, mostrará la descripción general.
+      return categoria || descripcion || 'Servicio no especificado';
+    };
+
     if (miRol === 'Comprador') {
       miReceptor = { 
         tipo: detalleOferta.tipo_ofrecido, 
         cantidad: detalleOferta.cantidad_ofrecida, 
-        servicio: detalleOferta.categoria_ofrecida,
-        desc: detalleOferta.descripcion             
+        desc: obtenerDetalle(detalleOferta.tipo_ofrecido, detalleOferta.categoria_ofrecida, detalleOferta.descripcion) 
       };
       miEntrega = { 
         tipo: detalleOferta.tipo_solicitado, 
         cantidad: detalleOferta.cantidad_solicitada, 
-        servicio: detalleOferta.categoria_solicitada, 
-        desc: detalleOferta.descripcion 
+        desc: obtenerDetalle(detalleOferta.tipo_solicitado, detalleOferta.categoria_solicitada, detalleOferta.descripcion) 
       };
     } else {
       miReceptor = { 
         tipo: detalleOferta.tipo_solicitado, 
         cantidad: detalleOferta.cantidad_solicitada, 
-        servicio: detalleOferta.categoria_solicitada, 
-        desc: detalleOferta.descripcion 
+        desc: obtenerDetalle(detalleOferta.tipo_solicitado, detalleOferta.categoria_solicitada, detalleOferta.descripcion) 
       };
       miEntrega = { 
         tipo: detalleOferta.tipo_ofrecido, 
         cantidad: detalleOferta.cantidad_ofrecida, 
-        servicio: detalleOferta.categoria_ofrecida, 
-        desc: detalleOferta.descripcion 
+        desc: obtenerDetalle(detalleOferta.tipo_ofrecido, detalleOferta.categoria_ofrecida, detalleOferta.descripcion) 
       };
     }
   }
-  
+
   const estiloReceptor = miReceptor ? config[miReceptor.tipo?.toUpperCase() || 'AGUA'] : config.AGUA;
   const estiloEntrega = miEntrega ? config[miEntrega.tipo?.toUpperCase() || 'SERVICIO'] : config.SERVICIO;
   const estiloConfirmacion = { color: '#ffb443', bg: 'bg-[#fffaf5]', border: 'border-[#ffb443]/20' };
@@ -193,12 +198,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     </div>
                     <div>
                       <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miReceptor.tipo?.toUpperCase() === 'AGUA' 
+                        {miReceptor.tipo?.toUpperCase() === 'AGUA' || miReceptor.tipo?.toUpperCase() === 'agua' 
                           ? `${(miReceptor.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miReceptor.cantidad || 0}h de ${miReceptor.servicio || 'Servicio'}`}
+                          : `${miReceptor.cantidad || 0}h de Servicio`}
                       </h3>
-                      <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-                        {miReceptor.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miReceptor.desc}
+                      <p className="text-gray-500 text-sm mt-1 leading-relaxed capitalize">
+                        {miReceptor.desc?.toLowerCase()}
                       </p>
                     </div>
                   </div>
@@ -222,12 +227,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     </div>
                     <div>
                       <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miEntrega.tipo?.toUpperCase() === 'AGUA' 
+                        {miEntrega.tipo?.toUpperCase() === 'AGUA' || miEntrega.tipo?.toUpperCase() === 'agua' 
                           ? `${(miEntrega.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miEntrega.cantidad || 0}h de ${miEntrega.servicio || 'Servicio'}`}
+                          : `${miEntrega.cantidad || 0}h de Servicio`}
                       </h3>
                       <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-                        {miEntrega.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miEntrega.desc}
+                        {miEntrega.desc}
                       </p>
                     </div>
                   </div>
@@ -252,6 +257,9 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
                         Tú
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#ffb443]/10 text-[#e69b24] px-2 py-0.5 rounded-md">
+                          ({miRol})
+                        </span>
                       </span>
                       {confirmoYo ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -270,6 +278,9 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
                         Contraparte
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md">
+                          ({contraparteRol})
+                        </span>
                       </span>
                       {confirmoContraparte ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -289,50 +300,50 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
             </div>
           </div>
 
-          {/* --- BOTONES DE ACCIÓN --- */}
-          {['PENDIENTE', 'EN_PROCESO'].includes(transaccion.estado) ? (
-            <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
-              {(() => {
-                const yaConfirmeYo = vistaActiva === 'compras' 
-                  ? transaccion.confirmacion_comprador 
-                  : transaccion.confirmacion_vendedor;
-
-                return (
-                  <>
-                    {/* Solo puedes cancelar si eres quien entrega agua Y si aún NO has confirmado */}
-                    {entregoAgua && !yaConfirmeYo && (
-                      <button 
-                        onClick={() => onCancelar(transaccion.id)}
-                        className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
-                      >
-                        Cancelar transacción
-                      </button>
-                    )}
-
-                    {/* El botón de confirmar cambia de estado si ya confirmaste */}
-                    <button 
-                      onClick={() => onConfirmar(transaccion.id)}
-                      disabled={litrosInsuficientes || yaConfirmeYo}
-                      className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
-                        yaConfirmeYo
-                          ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
-                          : litrosInsuficientes 
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                            : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
-                      }`}
-                    >
-                      {yaConfirmeYo ? 'Ya has confirmado' : 'Confirmar'}
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-          ) : (
-            /* Mensaje o espacio alternativo cuando la transacción ya finalizó */
-            <div className="mt-10 text-center py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-medium text-sm">
-              Esta transacción ha finalizado y se encuentra en modo de solo lectura.
+          {/* --- ALERTA VISUAL DE LITROS INSUFICIENTES --- */}
+          {litrosInsuficientes && (
+            <div className="mt-8 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3">
+              <svg className="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>
+                No tienes suficientes litros ({usuario?.litros_disponibles || 0}L) para realizar esta entrega. Debes cancelar la transacción.
+              </span>
             </div>
           )}
+
+          {/* --- BOTONES DE ACCIÓN --- */}
+          <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
+            
+            <button 
+              onClick={onClose}
+              className="px-6 py-4 border border-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent"
+            >
+              Cerrar
+            </button>
+
+            {/* Solo aparece si tu rol implica entregar agua */}
+            {entregoAgua && (
+              <button 
+                onClick={() => onCancelar(transaccion.id)}
+                className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
+              >
+                Cancelar transacción
+              </button>
+            )}
+
+            <button 
+              onClick={() => onConfirmar(transaccion.id)}
+              disabled={litrosInsuficientes}
+              className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
+                litrosInsuficientes 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' // Estilo apagado si no hay litros
+                  : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+              }`}
+            >
+              Confirmar
+            </button>
+          </div>
 
         </div>
       </div>

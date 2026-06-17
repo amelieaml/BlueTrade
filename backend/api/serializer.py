@@ -98,17 +98,16 @@ class OfertaSerializer(serializers.ModelSerializer):
         }
 
 class TransaccionSerializer(serializers.ModelSerializer):
+    # 1. Traemos los nombres de los usuarios vinculados
     comprador_nombre = serializers.ReadOnlyField(source='comprador.nombre')
     vendedor_nombre = serializers.ReadOnlyField(source='vendedor.nombre')
     
+    # 2. Creamos el campo para el texto descriptivo
     oferta_resumen = serializers.SerializerMethodField()
-
-    ya_calificada = serializers.SerializerMethodField()
-    usuario_agua_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaccion
-        fields = '__all__' 
+        fields = '__all__' # Esto incluirá automáticamente los campos nuevos que definimos arriba
         extra_kwargs = {
             'oferta': {'required': False},
             'estado': {'required': False},
@@ -116,6 +115,7 @@ class TransaccionSerializer(serializers.ModelSerializer):
             'confirmacion_vendedor': {'required': False}
         }
 
+    # 3. Función que construye el texto "X Litros ⇄ Y Horas"
     def get_oferta_resumen(self, obj):
         if not obj.oferta:
             return "Oferta no disponible"
@@ -132,24 +132,3 @@ class TransaccionSerializer(serializers.ModelSerializer):
             return f"{texto_ofrecido} ⇄ {texto_solicitado}"
         except Exception:
             return f"Oferta #{obj.oferta.id}"
-
-    def get_ya_calificada(self, obj):
-        return hasattr(obj, 'resena')
-
-    def get_usuario_agua_id(self, obj):
-        if not obj.oferta:
-            return None
-        if obj.oferta.tipo_ofrecido == 'AGUA':
-            return obj.vendedor.id
-        elif obj.oferta.tipo_solicitado == 'AGUA':
-            return obj.comprador.id
-        return None
-
-class ResenaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Resena
-        fields = '__all__'
-        extra_kwargs = {
-            'evaluador': {'required': False},
-            'evaluado': {'required': False}
-        }
