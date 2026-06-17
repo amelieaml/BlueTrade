@@ -167,7 +167,7 @@ class OfertaView(viewsets.ModelViewSet):
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
 
 class TransaccionViewSet(viewsets.ModelViewSet):
-    queryset = Transaccion.objects.all()
+    queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
     serializer_class = TransaccionSerializer
     permission_classes = [AllowAny]
     authentication_classes = []

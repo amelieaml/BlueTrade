@@ -95,12 +95,37 @@ class OfertaSerializer(serializers.ModelSerializer):
         }
 
 class TransaccionSerializer(serializers.ModelSerializer):
+    # 1. Traemos los nombres de los usuarios vinculados
+    comprador_nombre = serializers.ReadOnlyField(source='comprador.nombre')
+    vendedor_nombre = serializers.ReadOnlyField(source='vendedor.nombre')
+    
+    # 2. Creamos el campo para el texto descriptivo
+    oferta_resumen = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaccion
-        fields = '__all__'
+        fields = '__all__' # Esto incluirá automáticamente los campos nuevos que definimos arriba
         extra_kwargs = {
             'oferta': {'required': False},
             'estado': {'required': False},
             'confirmacion_comprador': {'required': False},
             'confirmacion_vendedor': {'required': False}
         }
+
+    # 3. Función que construye el texto "X Litros ⇄ Y Horas"
+    def get_oferta_resumen(self, obj):
+        if not obj.oferta:
+            return "Oferta no disponible"
+            
+        try:
+            ofrecido = str(obj.oferta.tipo_ofrecido).upper()
+            cantidad_o = obj.oferta.cantidad_ofrecida
+            solicitado = str(obj.oferta.tipo_solicitado).upper()
+            cantidad_s = obj.oferta.cantidad_solicitada
+
+            texto_ofrecido = f"{cantidad_o}L de Agua" if ofrecido == 'AGUA' else f"{cantidad_o}h de Servicio"
+            texto_solicitado = f"{cantidad_s}L de Agua" if solicitado == 'AGUA' else f"{cantidad_s}h de Servicio"
+            
+            return f"{texto_ofrecido} ⇄ {texto_solicitado}"
+        except Exception:
+            return f"Oferta #{obj.oferta.id}"

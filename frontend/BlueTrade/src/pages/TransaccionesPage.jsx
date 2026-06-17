@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useMemo } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { getMisTransacciones } from '../api/item.api';
 import NavbarDashboard from '../components/NavbarDashboard';
+import TransaccionSeleccionadaModal from '../components/TransaccionSeleccionadaModal';
 
 
 const IconoCheck = ({ className = "w-4 h-4" }) => (
@@ -20,11 +21,13 @@ function TransaccionesPage() {
   const { usuario } = useContext(AuthContext);
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); 
+  const [transaccionSeleccionada, setTransaccionSeleccionada] = useState(null);
 
   useEffect(() => {
     const cargarTransacciones = async () => {
       try {
         const response = await getMisTransacciones();
+        console.log("Respuesta de mi API:", response.data);
         setTransacciones(response.data);
       } catch (error) {
         console.error("Error al cargar las transacciones:", error);
@@ -135,15 +138,24 @@ function TransaccionesPage() {
                 return (
                   <div 
                     key={tx.id} 
-                    className="border border-[#0066ff]/10 bg-white hover:border-[#0066ff]/30 rounded-2xl p-6 transition-all duration-200 shadow-[0_4px_20px_rgba(20,70,140,0.02)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                    onClick={() => setTransaccionSeleccionada(tx)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setTransaccionSeleccionada(tx); }}
+                    className="border border-[#0066ff]/10 bg-white hover:border-[#0066ff] hover:shadow-[0_8px_30px_rgba(0,102,255,0.12)] cursor-pointer rounded-2xl p-6 transition-all duration-300 transform hover:-translate-y-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#0066ff]/50"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-[#6a7b8f] tracking-wider uppercase">
-                        Transacción #{tx.id}
+                      {/* Subtítulo suave en gris, combinando el ID de transacción y la contraparte */}
+                      <span className="text-xs font-medium text-[#6a7b8f] tracking-wider uppercase">
+                        Transacción #{tx.id} • Con {vistaActiva === 'compras' ? (tx.vendedor_nombre || 'Usuario') : (tx.comprador_nombre || 'Usuario')}
                       </span>
-                      <h4 className="text-lg font-bold text-[#102033] m-0">
-                        Oferta Vinculada ID: {tx.oferta}
+                      
+                      {/* El resumen de la oferta con un peso de fuente más elegante y limpio */}
+                      <h4 className="text-lg font-medium text-[#102033] m-0">
+                        {tx.oferta_resumen || `Oferta vinculada #${tx.oferta}`}
                       </h4>
+                      
+                      {/* La fecha intacta como la tenías originalmente */}
                       <p className="text-sm text-[#5d6f82] m-0 mt-1">
                         Iniciada el: {new Date(tx.fecha_inicio).toLocaleDateString()}
                       </p>
@@ -172,6 +184,26 @@ function TransaccionesPage() {
           )}
         </div>
       </div>
+      {/* Renderizado del Modal Importado */}
+      <TransaccionSeleccionadaModal 
+        isOpen={!!transaccionSeleccionada} 
+        transaccion={transaccionSeleccionada} 
+        vistaActiva={vistaActiva}
+        usuario={usuario} // <--- NUEVO: Pasamos el usuario para validar sus litros
+        onClose={() => setTransaccionSeleccionada(null)} 
+        onConfirmar={async (idTransaccion) => {
+          // Aquí va tu llamada a la API para confirmar (ej. confirmarTransaccion(id))
+          console.log("Confirmando transacción:", idTransaccion);
+          // setAlerta({ mostrar: true, mensaje: 'Transacción confirmada', tipo: 'success' });
+          setTransaccionSeleccionada(null);
+        }}
+        onCancelar={async (idTransaccion) => {
+          // Aquí va tu llamada a la API para cancelar
+          console.log("Cancelando transacción:", idTransaccion);
+          // setAlerta({ mostrar: true, mensaje: 'Has cancelado la transacción', tipo: 'warning' });
+          setTransaccionSeleccionada(null);
+        }}
+      />
     </div>
   );
 }
