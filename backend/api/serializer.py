@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Certificado, Transaccion, Usuario, Residencia, Servicio, Oferta
+from .models import Certificado, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta
 
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
@@ -83,7 +83,11 @@ class ServicioSerializer(serializers.ModelSerializer):
         model = Servicio
         fields = '__all__' 
 
-
+class DirectorioServicioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DirectorioServicio
+        fields = '__all__'
+        
 class OfertaSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.ReadOnlyField(source='usuario.nombre')
 

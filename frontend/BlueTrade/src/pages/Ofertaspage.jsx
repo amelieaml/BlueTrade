@@ -6,6 +6,7 @@ import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
 import FiltroTags from '../components/FiltroTags';
 import TarjetaOferta from '../components/TarjetaOferta';
+import TarjetaServicioExterno from '../components/TarjetaServiciosExternos';
 import ModalDetalleOferta from '../components/ModalDetalleOferta'; 
 import ModalCrearOferta from '../components/ModalCrearOferta'; 
 import Alerta from '../components/alerta';
@@ -16,6 +17,7 @@ function OfertasPage() {
   // Estados de datos
   const [ofertas, setOfertas] = useState([]);
   const [serviciosDB, setServiciosDB] = useState([]);
+  const [serviciosInternos, setServiciosInternos] = useState([]);
   
   // Estados de UI y Filtros
   const [filtros, setFiltros] = useState({ tipoBuscado: '', cantidadMinima: 0 });
@@ -34,6 +36,7 @@ function OfertasPage() {
       ]);
       setOfertas(resOfertas.data);
       setServiciosDB(resServicios.data);
+      setServiciosInternos(resServicios.data.filter(s => !s.es_externo));
     } catch (error) {
       console.error("Error al cargar datos:", error);
     }
@@ -102,11 +105,39 @@ function OfertasPage() {
   const handleFiltroChange = (campo, valor) => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
-
+  const manejarRedireccionExterna = (url, nombreServicio) => {
+    setAlerta({
+      mostrar: true,
+      mensaje: `Redirigiendo de forma segura a la plataforma externa de ${nombreServicio}...`,
+      tipo: 'success'
+    });
+    if (url) {
+      setTimeout(() => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }, 1200);
+    }
+  };
   // Memoización de categorías basadas en la BD
   const categoriesDisponibles = useMemo(() => {
+    console.log("Calculando categorías disponibles a partir de serviciosDB:", serviciosDB);
     return serviciosDB.map((s) => s.nombre);
+
   }, [serviciosDB]);
+  const serviciosExternosFiltrados = useMemo(() => {
+    const q = busqueda.toLowerCase();
+    return serviciosDB.filter((s) => {
+      if (!s.es_externo) return false;
+      
+      // Aplicar filtro de búsqueda por palabra clave al servicio externo
+      if (q && !s.nombre.toLowerCase().includes(q) && !s.descripcion.toLowerCase().includes(q)) {
+        return false;
+      }
+      // Filtro por tags si coincide con el nombre de la categoría del servicio
+      if (tagActivo && s.nombre !== tagActivo) return false;
+
+      return true;
+    });
+  }, [serviciosDB, busqueda, tagActivo]);
 
   // Lógica de filtrado
   const ofertasFiltradas = useMemo(() => {
@@ -138,6 +169,14 @@ function OfertasPage() {
       return true;
     });
   }, [ofertas, filtros, busqueda, tagActivo, usuario]);
+   const listaResultadosCombinados = useMemo(() => {
+    // Mapeamos los elementos añadiendo un atributo 'tipoComponente' para diferenciarlos en el ciclo render
+    const ofertasMapeadas = ofertasFiltradas.map(o => ({ ...o, tipoComponente: 'OFERTA' }));
+    const serviciosMapeados = serviciosExternosFiltrados.map(s => ({ ...s, tipoComponente: 'SERVICIO_EXTERNO' }));
+    
+    // Los unimos. Los servicios externos saldrán mezclados al final o al inicio
+    return [...ofertasMapeadas, ...serviciosMapeados];
+  }, [ofertasFiltradas, serviciosExternosFiltrados]);
   
   useEffect(() => {
     
@@ -154,7 +193,7 @@ function OfertasPage() {
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
         onSuccess={ofertaCreada}
-        serviciosDB={serviciosDB}
+        serviciosDB={serviciosInternos}
         usuario={usuario}
       />
 
@@ -232,19 +271,36 @@ function OfertasPage() {
           <section className="flex-grow w-full">
             <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-8">
               <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex justify-between items-center">
-                <h3 className="text-2xl font-extrabold text-[#102033]">Resultados</h3>
+                <h3 className="text-2xl font-extrabold text-[#102033]">Resultados disponibles</h3>
                 <p className="text-sm font-bold text-[#0066ff] bg-[#0066ff]/10 px-4 py-2 rounded-full inline-flex m-0">
-                  {ofertasFiltradas.length} encontrados
+                  {listaResultadosCombinados.length} totales
                 </p>
               </div>
 
-              {ofertasFiltradas.length === 0 ? (
-                <div className="text-center py-20 text-[#637489]">No hay ofertas activas disponibles.</div>
+              {listaResultadosCombinados.length === 0 ? (
+                <div className="text-center py-20 text-[#637489]">No se encontraron resultados para la búsqueda.</div>
               ) : (
+                /* Mismo grid de dos columnas donde coexistirán ambos componentes */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {ofertasFiltradas.map((oferta) => (
-                    <TarjetaOferta key={oferta.id} oferta={oferta} onVerDetalle={handleVerDetalle} />
-                  ))}
+                  {listaResultadosCombinados.map((item) => {
+                    if (item.tipoComponente === 'OFERTA') {
+                      return (
+                        <TarjetaOferta 
+                          key={`oferta-${item.id}`} 
+                          oferta={item} 
+                          onVerDetalle={handleVerDetalle} 
+                        />
+                      );
+                    } else {
+                      return (
+                        <TarjetaServicioExterno 
+                          key={`ext-${item.id}`} 
+                          servicio={item} 
+                          onRedireccionar={manejarRedireccionExterna} 
+                        />
+                      );
+                    }
+                  })}
                 </div>
               )}
             </div>

@@ -1,4 +1,6 @@
 from django.db import transaction
+import requests
+from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,9 +14,10 @@ from .serializer import (
     CertificadoSerializer, 
     OfertaSerializer, 
     UsuarioAdminSerializer,
-    TransaccionSerializer
+    TransaccionSerializer,
+    DirectorioServicioSerializer
 )
-from .models import Servicio, Usuario, Certificado, Oferta, Transaccion
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -124,6 +127,76 @@ class UsuarioView(viewsets.ModelViewSet):
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
     queryset = Servicio.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        # verifica los servicios externos
+        total_directorio = DirectorioServicio.objects.count()
+        total_catalogo_externo = Servicio.objects.filter(es_externo=True).count()
+        
+        if total_directorio != total_catalogo_externo:
+            # instancia el controlador del directorio para ejecutar la sicncronizacion
+            directorio_view = DirectorioServicioViewSet()
+            directorio_view.ejecutar_sincronizacion_interna()
+
+        return super().list(request, *args, **kwargs)
+
+
+class DirectorioServicioViewSet(viewsets.ModelViewSet):
+    queryset = DirectorioServicio.objects.all()
+    serializer_class = DirectorioServicioSerializer
+
+    @action(detail=False, methods=['post'], url_path='sincronizar')
+    @transaction.atomic
+    def descubrir_y_actualizar(self, request):
+        resultados = self.ejecutar_sincronizacion_interna()
+        return Response({
+            "status": "Proceso de descubrimiento finalizado",
+            "resultado": resultados
+        }, status=status.HTTP_200_OK)
+
+    def ejecutar_sincronizacion_interna(self):
+        #toma la data de servicios externos
+        servicios_en_directorio = DirectorioServicio.objects.all()
+        servicios_descubiertos = []
+        nombres_externos_activos = []
+
+        for item in servicios_en_directorio:
+            try:
+                response = requests.get(item.api_conexion, timeout=5) #evalua la respuesta de las apis externas
+                if response.status_code == 200:
+                    item.esta_activo = True
+                    item.ultima_consulta = timezone.now()
+                    item.save()
+                    #valida el formato de la respuesta de la api
+                    data_externa = response.json()
+                    if isinstance(data_externa, dict):
+                        descripcion_externa = data_externa.get('descripcion', f'Servicio externo integrado desde {item.nombre_servicio}')
+                    elif isinstance(data_externa, list) and len(data_externa) > 0:
+                        descripcion_externa = data_externa[0].get('descripcion', f'Servicio externo integrado desde {item.nombre_servicio}')
+                    else:
+                        descripcion_externa = f'Servicio externo integrado desde {item.nombre_servicio}'
+                    #crea o actualiza el servicio 
+                    Servicio.objects.update_or_create(
+                        nombre=item.nombre_servicio,
+                        es_externo=True,
+                        defaults={
+                            'descripcion': descripcion_externa,
+                            'necesita_certificado': False,
+                            'api_origen': item.api_conexion
+                        }
+                    )
+                    nombres_externos_activos.append(item.nombre_servicio)
+                    servicios_descubiertos.append({"servicio": item.nombre_servicio, "estado": "Activo"})
+                else:
+                    item.esta_activo = False
+                    item.save()
+            except (requests.exceptions.RequestException, ValueError):
+                item.esta_activo = False
+                item.save()
+
+        # limpia los servicios externos no activos 
+        Servicio.objects.filter(es_externo=True).exclude(nombre__in=nombres_externos_activos).delete()
+        return servicios_descubiertos
 
 class CertificadoView(viewsets.ModelViewSet):
     serializer_class = CertificadoSerializer

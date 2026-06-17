@@ -41,7 +41,7 @@ function RegisterPage() {
   const cargarServicios = async () => {
     try {
       const respuesta = await getServicios();
-      setServiciosBD(respuesta.data);
+      setServiciosBD(respuesta.data.filter(s => !s.es_externo));
     } catch (error) {
       console.error("Error al cargar los servicios:", error);
     }

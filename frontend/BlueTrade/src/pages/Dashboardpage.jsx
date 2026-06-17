@@ -21,6 +21,7 @@ function DashboardPage() {
   
   // Datos
   const [serviciosDB, setServiciosDB] = useState([]);
+  const [serviciosInternos, setServiciosInternos] = useState([]);
   const [ofertasActivas, setOfertasActivas] = useState([]);
   const [cantidadRecarga, setCantidadRecarga] = useState('');
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
@@ -35,6 +36,7 @@ function DashboardPage() {
         ]);
         
         setServiciosDB(respuestaServicios.data);
+        setServiciosInternos(respuestaServicios.data.filter(s => !s.es_externo));
         
         const deUsuarioYActivas = respuestaOfertas.data.filter(oferta => 
           oferta.usuario === usuario?.id && oferta.estado === 'ACTIVO'
@@ -153,7 +155,7 @@ function DashboardPage() {
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
         onSuccess={handleOfertaCreada}
-        serviciosDB={serviciosDB}
+        serviciosDB={serviciosInternos}
         usuario={usuario}
       />
 
@@ -162,7 +164,7 @@ function DashboardPage() {
         oferta={ofertaParaGestionar}
         onClose={() => setOfertaParaGestionar(null)}
         onSuccess={handleOfertaActualizada}
-        serviciosDB={serviciosDB}
+        serviciosDB={serviciosInternos}
         usuario={usuario}
       />
 
