@@ -339,56 +339,23 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=500)
     
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        
-        if instance.estado == 'COMPLETADA':
-            return Response(
-                {"error": "No se puede modificar una transacción que ya ha sido completada."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
+        # 1. Ejecutamos la actualización parcial normal que DRF hace por defecto
         response = super().partial_update(request, *args, **kwargs)
         
-        instance.refresh_from_db()
+        # 2. Obtenemos la instancia actualizada de la base de datos
+        instance = self.get_object()
+        
+        # 3. Validamos si ambas partes ya dieron su confirmación
         if instance.confirmacion_comprador and instance.confirmacion_vendedor:
+            # Si el estado actual es EN_PROCESO o PENDIENTE, lo movemos a COMPLETADA
             if instance.estado in ['PENDIENTE', 'EN_PROCESO']:
                 instance.estado = 'COMPLETADA'
                 instance.save()
+                
+                # Actualizamos la respuesta que se le devuelve al frontend
                 serializer = self.get_serializer(instance)
                 return Response(serializer.data, status=status.HTTP_200_OK)
                 
         return response
-
-class ResenaViewSet(viewsets.ModelViewSet):
-    queryset = Resena.objects.all()
-    serializer_class = ResenaSerializer
-
-    def perform_create(self, serializer):
-        transaccion_id = self.request.data.get('transaccion')
-        from .models import Transaccion
-        transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
-        
-        oferta = transaccion_instancia.oferta
-        usuario_que_ofrecio_agua = None
-
-        if oferta.tipo_ofrecido == 'AGUA':
-            usuario_que_ofrecio_agua = transaccion_instancia.vendedor
-        elif oferta.tipo_solicitado == 'AGUA':
-            usuario_que_ofrecio_agua = transaccion_instancia.comprador
-
-        evaluador = self.request.user 
-        
-        if evaluador.is_anonymous:
-            evaluador = usuario_que_ofrecio_agua
-        else:
-            if evaluador != usuario_que_ofrecio_agua:
-                raise ValidationError(
-                    {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
-                )
-
-        if evaluador == transaccion_instancia.comprador:
-            evaluado = transaccion_instancia.vendedor
-        else:
-            evaluado = transaccion_instancia.comprador
-
-        serializer.save(evaluador=evaluador, evaluado=evaluado)
+    
+    

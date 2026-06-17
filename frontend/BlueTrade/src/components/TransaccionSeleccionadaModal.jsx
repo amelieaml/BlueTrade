@@ -133,7 +133,7 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
       };
     }
   }
-
+  
   const estiloReceptor = miReceptor ? config[miReceptor.tipo?.toUpperCase() || 'AGUA'] : config.AGUA;
   const estiloEntrega = miEntrega ? config[miEntrega.tipo?.toUpperCase() || 'SERVICIO'] : config.SERVICIO;
   const estiloConfirmacion = { color: '#ffb443', bg: 'bg-[#fffaf5]', border: 'border-[#ffb443]/20' };
@@ -311,28 +311,40 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
           {/* --- BOTONES DE ACCIÓN --- */}
           <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
             
+            {/* Determinar si el usuario actual ya confirmó */}
+            {(() => {
+              const yaConfirmeYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
 
-            {/* Solo aparece si tu rol implica entregar agua */}
-            {entregoAgua && (
-              <button 
-                onClick={() => onCancelar(transaccion.id)}
-                className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
-              >
-                Cancelar transacción
-              </button>
-            )}
+              return (
+                <>
+                  {/* Solo puedes cancelar si eres quien entrega agua Y si aún NO has confirmado */}
+                  {entregoAgua && !yaConfirmeYo && (
+                    <button 
+                      onClick={() => onCancelar(transaccion.id)}
+                      className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
+                    >
+                      Cancelar transacción
+                    </button>
+                  )}
 
-            <button 
-              onClick={() => onConfirmar(transaccion.id)}
-              disabled={litrosInsuficientes}
-              className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
-                litrosInsuficientes 
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' // Estilo apagado si no hay litros
-                  : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-              }`}
-            >
-              Confirmar
-            </button>
+                  {/* El botón de confirmar cambia de estado si ya confirmaste */}
+                  <button 
+                    onClick={() => onConfirmar(transaccion.id)}
+                    disabled={litrosInsuficientes || yaConfirmeYo}
+                    className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
+                      yaConfirmeYo
+                        ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
+                        : litrosInsuficientes 
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
+                    }`}
+                  >
+                    {yaConfirmeYo ? 'Ya has confirmado' : 'Confirmar'}
+                  </button>
+                </>
+              );
+            })()}
+
           </div>
 
         </div>

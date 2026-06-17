@@ -245,10 +245,53 @@ function TransaccionesPage() {
         usuario={usuario} // <--- NUEVO: Pasamos el usuario para validar sus litros
         onClose={() => setTransaccionSeleccionada(null)} 
         onConfirmar={async (idTransaccion) => {
-          // Aquí va tu llamada a la API para confirmar (ej. confirmarTransaccion(id))
-          console.log("Confirmando transacción:", idTransaccion);
-          // setAlerta({ mostrar: true, mensaje: 'Transacción confirmada', tipo: 'success' });
-          setTransaccionSeleccionada(null);
+          try {
+              // 1. Identificamos si el rol activo es comprador o vendedor usando tu estado vistaActiva
+              const esComprador = vistaActiva === 'compras';
+              
+              // 2. Armamos el objeto dinámico para el PATCH
+              const datosAEnviar = {
+                  estado: 'EN_PROCESO',
+                  ...(esComprador ? { confirmacion_comprador: true } : { confirmacion_vendedor: true })
+              };
+
+              // 3. Ejecutamos el PATCH enviando el estado y la confirmación correspondiente
+              await actualizarTransaccion(idTransaccion, datosAEnviar);
+              
+              console.log("Confirmando transacción con éxito:", idTransaccion);
+              
+              // 4. Sincronizamos el estado de React para reflejarlo de inmediato en la lista de fondo
+              setTransacciones(prevTransacciones => 
+                  prevTransacciones.map(t => 
+                      t.id === idTransaccion 
+                          ? { 
+                              ...t, 
+                              estado: 'EN_PROCESO',
+                              ...(esComprador ? { confirmacion_comprador: true } : { confirmacion_vendedor: true })
+                            } 
+                          : t
+                  )
+              );
+
+              // Descomenta tu alerta de éxito si solucionas el import más adelante
+              /*setAlerta({ 
+                  mostrar: true, 
+                  mensaje: 'Transacción confirmada y en proceso', 
+                  tipo: 'success' 
+              });*/
+
+          } catch (error) {
+              console.error("Error al confirmar la transacción en el servidor:", error);
+              
+              /*setAlerta({ 
+                  mostrar: true, 
+                  mensaje: 'No se pudo confirmar la transacción. Intenta de nuevo.', 
+                  tipo: 'error' 
+              });*/
+          } finally {
+              // 5. Cerramos el modal pase lo que pase
+              setTransaccionSeleccionada(null);
+          }
         }}
         onCancelar={async (idTransaccion) => {
           // Aquí va tu llamada a la API para cancelar
