@@ -297,29 +297,12 @@ class OfertaView(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
+        # ✨ LA SOLUCIÓN MAGISTRAL DE DJANGO ✨
+        # En lugar de mapear los 8 campos manualmente, le decimos al serializador 
+        # que guarde todo lo que validó, e inyectamos el usuario manualmente.
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
-    
-    def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        nuevo_estado = request.data.get('estado')
-        
-        if instance.tipo_ofrecido == 'AGUA' and nuevo_estado != instance.estado:
-            usuario = instance.usuario
-            cantidad = instance.cantidad_ofrecida
-
-            if instance.estado == 'ACTIVO' and nuevo_estado in ['PAUSADO', 'CANCELADO']:
-                usuario.litros_agua += cantidad
-                usuario.save()
-            
-            elif instance.estado == 'PAUSADO' and nuevo_estado == 'ACTIVO':
-                if usuario.litros_disponibles < cantidad:
-                    return Response({"detail": "Saldo insuficiente para reactivar la oferta."}, status=status.HTTP_400_BAD_REQUEST)
-                usuario.litros_agua -= cantidad
-                usuario.save()
-
-        return super().partial_update(request, *args, **kwargs)
     
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
