@@ -8,7 +8,6 @@ const IconoServicioExterno = () => (
 );
 
 function TarjetaServicioExterno({ servicio, onRedireccionar }) {
-  // Usamos un color azul eléctrico fijo para diferenciar visualmente el ecosistema externo
   const themeAccent = 'bg-[#0066ff]';
   
   // Extraemos la primera letra del origen para el avatar circular
