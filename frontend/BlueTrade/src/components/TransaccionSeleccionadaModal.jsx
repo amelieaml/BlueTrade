@@ -105,35 +105,31 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
   let miEntrega = null;
   
   if (detalleOferta) {
-    
-    // Función auxiliar para saber qué texto gris poner debajo de los litros/horas
-    const obtenerDetalle = (tipo, categoria, descripcion) => {
-      if (tipo?.toUpperCase() === 'AGUA') return 'Agua';
-      // Si es servicio, intentará mostrar la categoría. Si no hay categoría, mostrará la descripción general.
-      return categoria || descripcion || 'Servicio no especificado';
-    };
-
     if (miRol === 'Comprador') {
       miReceptor = { 
         tipo: detalleOferta.tipo_ofrecido, 
         cantidad: detalleOferta.cantidad_ofrecida, 
-        desc: obtenerDetalle(detalleOferta.tipo_ofrecido, detalleOferta.categoria_ofrecida, detalleOferta.descripcion) 
+        servicio: detalleOferta.categoria_ofrecida,
+        desc: detalleOferta.descripcion             
       };
       miEntrega = { 
         tipo: detalleOferta.tipo_solicitado, 
         cantidad: detalleOferta.cantidad_solicitada, 
-        desc: obtenerDetalle(detalleOferta.tipo_solicitado, detalleOferta.categoria_solicitada, detalleOferta.descripcion) 
+        servicio: detalleOferta.categoria_solicitada, 
+        desc: detalleOferta.descripcion 
       };
     } else {
       miReceptor = { 
         tipo: detalleOferta.tipo_solicitado, 
         cantidad: detalleOferta.cantidad_solicitada, 
-        desc: obtenerDetalle(detalleOferta.tipo_solicitado, detalleOferta.categoria_solicitada, detalleOferta.descripcion) 
+        servicio: detalleOferta.categoria_solicitada, 
+        desc: detalleOferta.descripcion 
       };
       miEntrega = { 
         tipo: detalleOferta.tipo_ofrecido, 
         cantidad: detalleOferta.cantidad_ofrecida, 
-        desc: obtenerDetalle(detalleOferta.tipo_ofrecido, detalleOferta.categoria_ofrecida, detalleOferta.descripcion) 
+        servicio: detalleOferta.categoria_ofrecida, 
+        desc: detalleOferta.descripcion 
       };
     }
   }
@@ -198,12 +194,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     </div>
                     <div>
                       <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miReceptor.tipo?.toUpperCase() === 'AGUA' || miReceptor.tipo?.toUpperCase() === 'agua' 
+                        {miReceptor.tipo?.toUpperCase() === 'AGUA' 
                           ? `${(miReceptor.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miReceptor.cantidad || 0}h de Servicio`}
+                          : `${miReceptor.cantidad || 0}h de ${miReceptor.servicio || 'Servicio'}`}
                       </h3>
-                      <p className="text-gray-500 text-sm mt-1 leading-relaxed capitalize">
-                        {miReceptor.desc?.toLowerCase()}
+                      <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                        {miReceptor.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miReceptor.desc}
                       </p>
                     </div>
                   </div>
@@ -227,12 +223,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     </div>
                     <div>
                       <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miEntrega.tipo?.toUpperCase() === 'AGUA' || miEntrega.tipo?.toUpperCase() === 'agua' 
+                        {miEntrega.tipo?.toUpperCase() === 'AGUA' 
                           ? `${(miEntrega.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miEntrega.cantidad || 0}h de Servicio`}
+                          : `${miEntrega.cantidad || 0}h de ${miEntrega.servicio || 'Servicio'}`}
                       </h3>
                       <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-                        {miEntrega.desc}
+                        {miEntrega.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miEntrega.desc}
                       </p>
                     </div>
                   </div>
@@ -315,12 +311,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
           {/* --- BOTONES DE ACCIÓN --- */}
           <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
             
-            <button 
-              onClick={onClose}
-              className="px-6 py-4 border border-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-all cursor-pointer bg-transparent"
-            >
-              Cerrar
-            </button>
 
             {/* Solo aparece si tu rol implica entregar agua */}
             {entregoAgua && (

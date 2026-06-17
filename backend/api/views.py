@@ -224,21 +224,13 @@ class OfertaView(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        nueva_oferta = Oferta(
-            usuario=usuario_instancia,
-            tipo_ofrecido=serializer.validated_data.get('tipo_ofrecido'),
-            cantidad_ofrecida=serializer.validated_data.get('cantidad_ofrecida'),
-            categoria_ofrecida=serializer.validated_data.get('categoria_ofrecida'),
-            tipo_solicitado=serializer.validated_data.get('tipo_solicitado'),
-            cantidad_solicitada=serializer.validated_data.get('cantidad_solicitada'),
-            categoria_solicitada=serializer.validated_data.get('categoria_solicitada'),
-            descripcion=serializer.validated_data.get('descripcion')
-        )
-
-        nueva_oferta.save()
+        # ✨ LA SOLUCIÓN MAGISTRAL DE DJANGO ✨
+        # En lugar de mapear los 8 campos manualmente, le decimos al serializador 
+        # que guarde todo lo que validó, e inyectamos el usuario manualmente.
+        nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
-
+    
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
     serializer_class = TransaccionSerializer

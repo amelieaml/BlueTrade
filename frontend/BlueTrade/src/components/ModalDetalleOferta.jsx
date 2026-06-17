@@ -86,10 +86,16 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
                   {estiloOfrecido.icono}
                 </div>
                 <div>
+                  {/* LÓGICA: Si es agua, pinta los litros. Si es servicio, pinta las horas y la categoría (ej. "4h de Plomería") */}
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {esAgua ? `${cantidadOfrecida.toLocaleString()} Litros de Agua` : `${cantidadOfrecida}h de Servicio`}
+                    {oferta.tipo_ofrecido?.toUpperCase() === 'AGUA' 
+                      ? `${(oferta.cantidad_ofrecida || 0).toLocaleString()} Litros de Agua` 
+                      : `${oferta.cantidad_ofrecida || 0}h de ${oferta.categoria_ofrecida || 'Servicio'}`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed capitalize">{detalleOfrecido.toLowerCase()}</p>
+                  {/* LÓGICA: Si es agua, el subtítulo es "Agua". Si es servicio, es la descripción exacta del usuario */}
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                    {oferta.tipo_ofrecido?.toUpperCase() === 'AGUA' ? 'Agua' : oferta.descripcion}
+                  </p>
                 </div>
               </div>
             </div>
@@ -107,10 +113,16 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
                   {estiloSolicitado.icono}
                 </div>
                 <div>
+                  {/* LÓGICA: Evaluamos directamente el 'tipo_solicitado' para saber si damos agua o categoría de servicio */}
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {!esAgua ? `${cantidadSolicitada.toLocaleString()} Litros de Agua` : `${cantidadSolicitada}h de Servicio`}
+                    {oferta.tipo_solicitado?.toUpperCase() === 'AGUA' 
+                      ? `${(oferta.cantidad_solicitada || 0).toLocaleString()} Litros de Agua` 
+                      : `${oferta.cantidad_solicitada || 0}h de ${oferta.categoria_solicitada || 'Servicio'}`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">{oferta.descripcion}</p>
+                  {/* LÓGICA: Mostramos "Agua" o la descripción larga según corresponda */}
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                    {oferta.tipo_solicitado?.toUpperCase() === 'AGUA' ? 'Agua' : oferta.descripcion}
+                  </p>
                 </div>
               </div>
             </div>
