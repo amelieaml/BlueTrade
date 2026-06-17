@@ -176,3 +176,24 @@ export const getMisTransacciones = async () => {
         }
     });
 };
+
+// Actualizar transacción
+export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => {
+    const urlTransaccionEspecifica = 
+        `http://127.0.0.1:8000/item/test/transacciones/${idTransaccion}/`;
+
+    const token = localStorage.getItem('token');
+
+    return axios.patch(
+        urlTransaccionEspecifica,
+        datosTransaccion,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && {
+                    Authorization: `Bearer ${token}`
+                })
+            }
+        }
+    );
+};
