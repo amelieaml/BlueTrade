@@ -253,9 +253,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
                         Tú
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#ffb443]/10 text-[#e69b24] px-2 py-0.5 rounded-md">
-                          ({miRol})
-                        </span>
                       </span>
                       {confirmoYo ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -274,9 +271,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
                         Contraparte
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md">
-                          ({contraparteRol})
-                        </span>
                       </span>
                       {confirmoContraparte ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -309,43 +303,49 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
           )}
 
           {/* --- BOTONES DE ACCIÓN --- */}
-          <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
-            
-            {/* Determinar si el usuario actual ya confirmó */}
-            {(() => {
-              const yaConfirmeYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
+          {['PENDIENTE', 'EN_PROCESO'].includes(transaccion.estado) ? (
+            <div className={`flex flex-col sm:flex-row gap-3 ${litrosInsuficientes ? 'mt-4' : 'mt-10'}`}>
+              {(() => {
+                const yaConfirmeYo = vistaActiva === 'compras' 
+                  ? transaccion.confirmacion_comprador 
+                  : transaccion.confirmacion_vendedor;
 
-              return (
-                <>
-                  {/* Solo puedes cancelar si eres quien entrega agua Y si aún NO has confirmado */}
-                  {entregoAgua && !yaConfirmeYo && (
+                return (
+                  <>
+                    {/* Solo puedes cancelar si eres quien entrega agua Y si aún NO has confirmado */}
+                    {entregoAgua && !yaConfirmeYo && (
+                      <button 
+                        onClick={() => onCancelar(transaccion.id)}
+                        className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
+                      >
+                        Cancelar transacción
+                      </button>
+                    )}
+
+                    {/* El botón de confirmar cambia de estado si ya confirmaste */}
                     <button 
-                      onClick={() => onCancelar(transaccion.id)}
-                      className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
+                      onClick={() => onConfirmar(transaccion.id)}
+                      disabled={litrosInsuficientes || yaConfirmeYo}
+                      className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
+                        yaConfirmeYo
+                          ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
+                          : litrosInsuficientes 
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
+                      }`}
                     >
-                      Cancelar transacción
+                      {yaConfirmeYo ? 'Ya has confirmado' : 'Confirmar'}
                     </button>
-                  )}
-
-                  {/* El botón de confirmar cambia de estado si ya confirmaste */}
-                  <button 
-                    onClick={() => onConfirmar(transaccion.id)}
-                    disabled={litrosInsuficientes || yaConfirmeYo}
-                    className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
-                      yaConfirmeYo
-                        ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
-                        : litrosInsuficientes 
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
-                    }`}
-                  >
-                    {yaConfirmeYo ? 'Ya has confirmado' : 'Confirmar'}
-                  </button>
-                </>
-              );
-            })()}
-
-          </div>
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            /* Mensaje o espacio alternativo cuando la transacción ya finalizó */
+            <div className="mt-10 text-center py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-medium text-sm">
+              Esta transacción ha finalizado y se encuentra en modo de solo lectura.
+            </div>
+          )}
 
         </div>
       </div>

@@ -339,20 +339,24 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=500)
     
     def partial_update(self, request, *args, **kwargs):
-        # 1. Ejecutamos la actualización parcial normal que DRF hace por defecto
-        response = super().partial_update(request, *args, **kwargs)
-        
-        # 2. Obtenemos la instancia actualizada de la base de datos
         instance = self.get_object()
         
-        # 3. Validamos si ambas partes ya dieron su confirmación
+        # Validación de seguridad: Si ya está COMPLETADA, bloquear cualquier cambio
+        if instance.estado == 'COMPLETADA':
+            return Response(
+                {"error": "No se puede modificar una transacción que ya ha sido completada."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Ejecutamos la actualización normal (procesa el cambio a CANCELADA o el cambio de confirmaciones)
+        response = super().partial_update(request, *args, **kwargs)
+        
+        # Volvemos a consultar la instancia post-guardado para verificar si ambos confirmaron
+        instance.refresh_from_db()
         if instance.confirmacion_comprador and instance.confirmacion_vendedor:
-            # Si el estado actual es EN_PROCESO o PENDIENTE, lo movemos a COMPLETADA
             if instance.estado in ['PENDIENTE', 'EN_PROCESO']:
                 instance.estado = 'COMPLETADA'
                 instance.save()
-                
-                # Actualizamos la respuesta que se le devuelve al frontend
                 serializer = self.get_serializer(instance)
                 return Response(serializer.data, status=status.HTTP_200_OK)
                 

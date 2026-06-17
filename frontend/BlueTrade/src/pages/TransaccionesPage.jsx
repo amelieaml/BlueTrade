@@ -294,10 +294,24 @@ function TransaccionesPage() {
           }
         }}
         onCancelar={async (idTransaccion) => {
-          // Aquí va tu llamada a la API para cancelar
-          console.log("Cancelando transacción:", idTransaccion);
-          // setAlerta({ mostrar: true, mensaje: 'Has cancelado la transacción', tipo: 'warning' });
-          setTransaccionSeleccionada(null);
+          try {
+              // 1. Enviamos el PATCH al backend cambiando el estado a CANCELADA
+              await actualizarTransaccion(idTransaccion, { estado: 'CANCELADA' });
+              console.log("Transacción cancelada con éxito:", idTransaccion);
+
+              // 2. Sincronizamos el estado local de React de inmediato
+              setTransacciones(prevTransacciones => 
+                  prevTransacciones.map(t => 
+                      t.id === idTransaccion ? { ...t, estado: 'CANCELADA' } : t
+                  )
+              );
+
+          } catch (error) {
+              console.error("Error al cancelar la transacción en el servidor:", error);
+          } finally {
+              // 3. Cerramos el modal pase lo que pase
+              setTransaccionSeleccionada(null);
+          }
         }}
       />
     </div>
