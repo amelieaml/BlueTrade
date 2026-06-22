@@ -63,9 +63,11 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     setErrores({});
 
     if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
-        setErrores({ cantidadOfrecida: "No tienes suficientes litros disponibles para esta oferta." });
-        alert("Saldo insuficiente");
-        return;
+        // En lugar de alert, guardamos el error en el estado
+        setErrores({ 
+            cantidadOfrecida: "No tienes suficientes litros disponibles. Tu saldo actual es " + usuario.litros_disponibles 
+        });
+        return; // Detenemos la ejecución
     }
 
     if (formData.tipoOfrecido === 'servicio') {
@@ -150,7 +152,22 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
               {formData.tipoOfrecido === 'agua' ? (
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-[#102033] font-bold text-[13px]">Cantidad (Litros)</label>
-                  <input type="number" name="cantidadOfrecida" placeholder="Ej. 1000" value={formData.cantidadOfrecida} onChange={handleInputChange} required className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"/>
+                  <input 
+                    type="number" 
+                    name="cantidadOfrecida" 
+                    placeholder="Ej. 1000" 
+                    value={formData.cantidadOfrecida} 
+                    onChange={handleInputChange} 
+                    required 
+                    // Si hay error, cambiamos el borde a rojo
+                    className={`w-full border rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all 
+                      ${errores.cantidadOfrecida ? 'border-red-500 ring-1 ring-red-500' : 'border-[rgba(0,102,255,0.14)] focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10'}`}
+                  />
+                  {errores.cantidadOfrecida && (
+                    <span className="text-[#e11d48] text-[11px] font-bold mt-1">
+                      {errores.cantidadOfrecida}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 w-full">
