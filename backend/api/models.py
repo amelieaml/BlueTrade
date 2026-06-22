@@ -82,15 +82,6 @@ class Usuario(AbstractBaseUser):
     
     @property
     def litros_bloqueados(self):
-        # 1. Litros bloqueados cuando tú eres el VENDEDOR (creaste una oferta ofreciendo AGUA)
-        bloqueados_ventas = self.ventas.filter(
-            estado__in=['PENDIENTE', 'EN_PROCESO'],
-            oferta__tipo_ofrecido__iexact='AGUA'
-        ).aggregate(
-            total=models.Sum('oferta__cantidad_ofrecida')
-        )['total'] or 0
-
-        # 2. Litros bloqueados cuando tú eres el COMPRADOR (aceptaste una oferta que pide AGUA)
         bloqueados_compras = self.compras.filter(
             estado__in=['PENDIENTE', 'EN_PROCESO'],
             oferta__tipo_solicitado__iexact='AGUA'
@@ -98,7 +89,7 @@ class Usuario(AbstractBaseUser):
             total=models.Sum('oferta__cantidad_solicitada')
         )['total'] or 0
 
-        return float(bloqueados_ventas) + float(bloqueados_compras)
+        return float(bloqueados_compras)
 
     @property
     def litros_disponibles(self):
@@ -113,7 +104,7 @@ class Servicio(models.Model):
     api_origen = models.URLField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        prefix = "[Externo] " if self.es_externo else "[Interno] " #identifica que servicios son externos o internos
+        prefix = "[Externo] " if self.es_externo else "[Interno] " 
         return f"{prefix}{self.nombre}"
     
 class DirectorioServicio(models.Model):
@@ -188,19 +179,27 @@ class Transaccion(models.Model):
     fecha_finalizacion = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != EstadoTransaccion.COMPLETADA:
-            self.estado = EstadoTransaccion.COMPLETADA
-            self.fecha_finalizacion = timezone.now()
+        if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != 'COMPLETADA':
             
+            if self.oferta.tipo_ofrecido == 'AGUA':
+                self.comprador.litros_agua += self.oferta.cantidad_ofrecida
+                self.comprador.save()
+                
+            elif self.oferta.tipo_solicitado == 'AGUA':
+                if self.comprador.litros_agua >= self.oferta.cantidad_solicitada:
+                    self.comprador.litros_agua -= self.oferta.cantidad_solicitada
+                    self.oferta.usuario.litros_agua += self.oferta.cantidad_solicitada
+                    
+                    self.comprador.save()
+                    self.oferta.usuario.save()
+                else:
+                    raise ValueError("Saldo insuficiente del comprador.")
+
+            self.estado = 'COMPLETADA'
+            self.fecha_finalizacion = timezone.now()
             self.oferta.estado = 'COMPLETADO'
             self.oferta.save()
-            
-            # Deducción de recursos (Lógica de Agua)
-            if self.oferta.tipo_ofrecido.upper() == 'AGUA':
-                vendedor = self.oferta.usuario
-                vendedor.litros_agua -= self.oferta.cantidad_ofrecida
-                vendedor.save()
-                
+
         super().save(*args, **kwargs)
 
     @property

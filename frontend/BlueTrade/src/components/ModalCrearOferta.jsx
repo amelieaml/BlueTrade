@@ -62,18 +62,22 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     e.preventDefault();
     setErrores({});
 
+    if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
+        setErrores({ cantidadOfrecida: "No tienes suficientes litros disponibles para esta oferta." });
+        alert("Saldo insuficiente");
+        return;
+    }
+
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      // Asumimos que usuario.certificado es el objeto o booleano que valida el permiso
       if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
         setErrores({ certificado: "Este servicio requiere una certificación técnica." });
         return;
       }
     }
 
-    // 2. Construcción del payload (ESTRICTO para el backend)
     const payload = {
-      usuario_id: usuario?.id, // Este es el ID que tu controlador (views.py) espera
+      usuario_id: usuario?.id, 
       tipo_ofrecido: formData.tipoOfrecido.toUpperCase(),
       descripcion: formData.descripcion,
       cantidad_ofrecida: parseFloat(formData.cantidadOfrecida),
@@ -83,7 +87,6 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
     };
 
-    // 3. Envío al controlador
     try {
       const respuesta = await crearOferta(payload);
       if (respuesta.status === 201) {

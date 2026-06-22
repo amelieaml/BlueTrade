@@ -211,8 +211,8 @@ class OfertaView(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         
         data = request.data.copy()
-        
         usuario_id = data.get('usuario_id')
+
         if not usuario_id:
             return Response({"error": "El campo 'usuario_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -221,15 +221,46 @@ class OfertaView(viewsets.ModelViewSet):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
+        tipo_ofrecido = data.get('tipo_ofrecido')
+        cantidad_ofrecida = float(data.get('cantidad_ofrecida', 0))
+
+        if tipo_ofrecido == 'AGUA' and usuario_instancia.litros_agua < cantidad_ofrecida:
+            return Response({"error": "Saldo insuficiente para cubrir esta oferta."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if tipo_ofrecido == 'AGUA':
+            usuario_instancia.litros_agua -= cantidad_ofrecida
+            usuario_instancia.save()
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        # ✨ LA SOLUCIÓN MAGISTRAL DE DJANGO ✨
-        # En lugar de mapear los 8 campos manualmente, le decimos al serializador 
-        # que guarde todo lo que validó, e inyectamos el usuario manualmente.
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
+    
+    # En views.py, dentro de OfertaView
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        nuevo_estado = request.data.get('estado')
+        
+        # Lógica solo si es oferta de AGUA
+        if instance.tipo_ofrecido == 'AGUA' and nuevo_estado != instance.estado:
+            usuario = instance.usuario
+            cantidad = instance.cantidad_ofrecida
+
+            # Si pasa de ACTIVO a PAUSADO o CANCELADO -> Liberar saldo
+            if instance.estado == 'ACTIVO' and nuevo_estado in ['PAUSADO', 'CANCELADO']:
+                usuario.litros_agua += cantidad
+                usuario.save()
+            
+            # Si pasa de PAUSADO a ACTIVO -> Bloquear saldo
+            elif instance.estado == 'PAUSADO' and nuevo_estado == 'ACTIVO':
+                if usuario.litros_disponibles < cantidad:
+                    return Response({"detail": "Saldo insuficiente para reactivar la oferta."}, status=status.HTTP_400_BAD_REQUEST)
+                usuario.litros_agua -= cantidad
+                usuario.save()
+
+        return super().partial_update(request, *args, **kwargs)
     
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
@@ -268,17 +299,14 @@ class TransaccionViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Validación de seguridad: Si ya está COMPLETADA, bloquear cualquier cambio
         if instance.estado == 'COMPLETADA':
             return Response(
                 {"error": "No se puede modificar una transacción que ya ha sido completada."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        # Ejecutamos la actualización normal (procesa el cambio a CANCELADA o el cambio de confirmaciones)
         response = super().partial_update(request, *args, **kwargs)
         
-        # Volvemos a consultar la instancia post-guardado para verificar si ambos confirmaron
         instance.refresh_from_db()
         if instance.confirmacion_comprador and instance.confirmacion_vendedor:
             if instance.estado in ['PENDIENTE', 'EN_PROCESO']:
