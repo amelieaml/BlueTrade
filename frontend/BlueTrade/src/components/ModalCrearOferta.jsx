@@ -106,31 +106,19 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     e.preventDefault();
     setErrores({});
 
-    // Validación de litros disponibles
     if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
-        setErrores({ 
-            cantidadOfrecida: "No tienes suficientes litros disponibles. Tu saldo actual es " + usuario.litros_disponibles 
-        });
-        return; 
+        setErrores({ cantidadOfrecida: "No tienes suficientes litros disponibles para esta oferta." });
+        alert("Saldo insuficiente");
+        return;
     }
 
-    // Validación de certificado para servicios ofrecidos
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      
-      if (servicioSeleccionado?.necesita_certificado) {
-        // AHORA: Comparamos el tipo_servicio_id del certificado con el id del servicio seleccionado
-        const tieneCertificado = certificadosUsuario.some(
-          cert => cert.tipo_servicio === servicioSeleccionado.id
-        );
-
-        if (!tieneCertificado) {
-          setErrores({ certificado: `No posees la certificación técnica requerida para ofrecer "${servicioSeleccionado.nombre}".` });
-          return;
-        }
+      if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
+        setErrores({ certificado: "Este servicio requiere una certificación técnica." });
+        return;
       }
     }
-
 
     const payload = {
       usuario_id: usuario?.id, 

@@ -89,14 +89,7 @@ class Usuario(AbstractBaseUser):
             total=models.Sum('oferta__cantidad_solicitada')
         )['total'] or 0
 
-        bloqueados_ofertas = self.ofertas.filter(
-            estado__in=['ACTIVO', 'EN_PROCESO'],
-            tipo_ofrecido__iexact='AGUA'
-        ).aggregate(
-            total=models.Sum('cantidad_ofrecida')
-        )['total'] or 0
-
-        return float(bloqueados_compras) + float(bloqueados_ofertas)
+        return float(bloqueados_compras)
 
     @property
     def litros_disponibles(self):
