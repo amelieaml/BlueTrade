@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { crearOferta } from '../api/item.api';
+import React, { useState, useEffect, useContext } from 'react';
+import { crearOferta, obtenerCertificadosUsuario } from '../api/item.api'; 
 import { AuthContext } from '../context/AuthContext'; 
 
 const IconoAgua = ({ className = "w-5 h-5" }) => (
@@ -23,6 +23,8 @@ const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
 
 function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) {
   const [errores, setErrores] = useState({});
+  const [certificadosUsuario, setCertificadosUsuario] = useState([]); // Nuevo estado para los certificados
+  
   const [formData, setFormData] = useState({
     tipoOfrecido: 'agua',
     cantidadOfrecida: '',
@@ -31,6 +33,43 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     categoriaSolicitadaServicio: serviciosDB[0]?.nombre || '',
     descripcion: ''
   });
+
+  // Efecto para buscar los certificados del usuario al abrir el modal
+  useEffect(() => {
+    if (isOpen && usuario?.id) {
+      const fetchCertificados = async () => {
+        try {
+          const respuesta = await obtenerCertificadosUsuario(usuario.id);
+          // Asumimos que respuesta.data contiene el arreglo de certificados
+          console.log("Certificados obtenidos de Supabase:", respuesta.data);
+          setCertificadosUsuario(respuesta.data || []); 
+        } catch (error) {
+          console.error("Error al obtener los certificados del usuario:", error);
+          setCertificadosUsuario([]);
+        }
+      };
+
+      fetchCertificados();
+    } else {
+      setCertificadosUsuario([]); // Limpiamos al cerrar
+      setErrores({}); // Limpiamos errores al cerrar
+    }
+  }, [isOpen, usuario]);
+
+  useEffect(() => {
+    if (serviciosDB && serviciosDB.length > 0) {
+      const primerServicioOfrecidoValido = serviciosDB.find(s => {
+        const tieneCert = certificadosUsuario.some(cert => cert.tipo_servicio === s.id);
+        return !s.necesita_certificado || tieneCert;
+      }) || serviciosDB[0];
+
+      setFormData(prev => ({
+        ...prev,
+        categoriaOfrecidaServicio: prev.categoriaOfrecidaServicio || primerServicioOfrecidoValido.nombre,
+        categoriaSolicitadaServicio: prev.categoriaSolicitadaServicio || serviciosDB[0].nombre
+      }));
+    }
+  }, [serviciosDB, certificadosUsuario]);
 
   if (!isOpen) return null;
 
@@ -56,27 +95,42 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+    // Limpiamos el error del campo que el usuario está modificando
+    if (errores[name]) {
+      setErrores(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const handleSubmit = async (e) => {
+    console.log(formData)
     e.preventDefault();
     setErrores({});
 
+    // Validación de litros disponibles
     if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
-        // En lugar de alert, guardamos el error en el estado
         setErrores({ 
             cantidadOfrecida: "No tienes suficientes litros disponibles. Tu saldo actual es " + usuario.litros_disponibles 
         });
-        return; // Detenemos la ejecución
+        return; 
     }
 
+    // Validación de certificado para servicios ofrecidos
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
-        setErrores({ certificado: "Este servicio requiere una certificación técnica." });
-        return;
+      
+      if (servicioSeleccionado?.necesita_certificado) {
+        // AHORA: Comparamos el tipo_servicio_id del certificado con el id del servicio seleccionado
+        const tieneCertificado = certificadosUsuario.some(
+          cert => cert.tipo_servicio === servicioSeleccionado.id
+        );
+
+        if (!tieneCertificado) {
+          setErrores({ certificado: `No posees la certificación técnica requerida para ofrecer "${servicioSeleccionado.nombre}".` });
+          return;
+        }
       }
     }
+
 
     const payload = {
       usuario_id: usuario?.id, 
@@ -159,7 +213,6 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
                     value={formData.cantidadOfrecida} 
                     onChange={handleInputChange} 
                     required 
-                    // Si hay error, cambiamos el borde a rojo
                     className={`w-full border rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all 
                       ${errores.cantidadOfrecida ? 'border-red-500 ring-1 ring-red-500' : 'border-[rgba(0,102,255,0.14)] focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10'}`}
                   />
@@ -172,8 +225,27 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
               ) : (
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-[#102033] font-bold text-[13px]">Categoría (Desde BD)</label>
-                  <select name="categoriaOfrecidaServicio" value={formData.categoriaOfrecidaServicio} onChange={handleInputChange} className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10">
-                    {serviciosDB.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                  <select 
+                    name="categoriaOfrecidaServicio" 
+                    value={formData.categoriaOfrecidaServicio} 
+                    onChange={handleInputChange} 
+                    className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
+                  >
+                    {serviciosDB.map(s => {
+                      // AHORA: Comparamos por ID para saber si habilitar o deshabilitar la opción
+                      const tieneCertificado = certificadosUsuario.some(cert => cert.tipo_servicio === s.id);
+                      const opcionBloqueada = s.necesita_certificado && !tieneCertificado;
+
+                      return (
+                        <option 
+                          key={s.id} 
+                          value={s.nombre}
+                          disabled={opcionBloqueada}
+                        >
+                          {s.nombre} {opcionBloqueada ? '(Requiere certificado)' : ''}
+                        </option>
+                      )
+                    })}
                   </select>
                   {errores.certificado && (
                     <div className="mt-2 text-[#e11d48] text-[11px] font-bold flex items-center gap-1">{errores.certificado}</div>

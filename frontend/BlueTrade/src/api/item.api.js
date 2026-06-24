@@ -203,3 +203,8 @@ export const crearResena = async (datosResena) => {
 export const getResenasUsuario = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/resenas_recibidas/`);
 };
+
+export const obtenerCertificadosUsuario = async (usuarioId) => {
+  // Ajusta la URL a la ruta real de tu backend
+  return await axios.get(`${API_BASE_URL}${usuarioId}/certificados/`);
+}

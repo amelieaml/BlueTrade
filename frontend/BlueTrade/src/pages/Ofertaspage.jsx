@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useContext } from 'react'; 
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas, getServicios, iniciarTransaccion, actualizarOferta } from '../api/item.api'; 
+import { getOfertas, getServicios, iniciarTransaccion, actualizarOferta, obtenerCertificadosUsuario } from '../api/item.api'; 
 
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
@@ -18,6 +18,7 @@ function OfertasPage() {
   const [ofertas, setOfertas] = useState([]);
   const [serviciosDB, setServiciosDB] = useState([]);
   const [serviciosInternos, setServiciosInternos] = useState([]);
+  const [certificadosUsuario, setCertificadosUsuario] = useState([]);
   
   // Estados de UI y Filtros
   const [filtros, setFiltros] = useState({ tipoBuscado: '', cantidadMinima: 0 });
@@ -27,7 +28,20 @@ function OfertasPage() {
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
   
-  
+  useEffect(() => {
+    if (usuario?.id) {
+      const fetchCertificados = async () => {
+        try {
+          const res = await obtenerCertificadosUsuario(usuario.id);
+          setCertificadosUsuario(res.data || []);
+        } catch (error) {
+          console.error("Error al cargar los certificados del usuario:", error);
+        }
+      };
+      fetchCertificados();
+    }
+  }, [usuario?.id]);
+
   const cargarDatos = async () => {
     try {
       const [resOfertas, resServicios] = await Promise.all([
@@ -65,8 +79,6 @@ function OfertasPage() {
 
     try {
         // 2. Llamada a la API
-        // IMPORTANTE: Los nombres de los campos deben ser 'oferta' y 'comprador'
-        // para coincidir con el data.get() de tu views.py
         await iniciarTransaccion(ofertaSeleccionada.id, usuario.id);
         console.log("Transacción creada correctamente");
 
@@ -105,6 +117,7 @@ function OfertasPage() {
   const handleFiltroChange = (campo, valor) => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
+  
   const manejarRedireccionExterna = (url, nombreServicio) => {
     setAlerta({
       mostrar: true,
@@ -117,12 +130,14 @@ function OfertasPage() {
       }, 1200);
     }
   };
+  
   // Memoización de categorías basadas en la BD
   const categoriesDisponibles = useMemo(() => {
     console.log("Calculando categorías disponibles a partir de serviciosDB:", serviciosDB);
     return serviciosDB.map((s) => s.nombre);
 
   }, [serviciosDB]);
+  
   const serviciosExternosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase();
     return serviciosDB.filter((s) => {
@@ -169,7 +184,8 @@ function OfertasPage() {
       return true;
     });
   }, [ofertas, filtros, busqueda, tagActivo, usuario]);
-   const listaResultadosCombinados = useMemo(() => {
+  
+  const listaResultadosCombinados = useMemo(() => {
     // Mapeamos los elementos añadiendo un atributo 'tipoComponente' para diferenciarlos en el ciclo render
     const ofertasMapeadas = ofertasFiltradas.map(o => ({ ...o, tipoComponente: 'OFERTA' }));
     const serviciosMapeados = serviciosExternosFiltrados.map(s => ({ ...s, tipoComponente: 'SERVICIO_EXTERNO' }));
@@ -179,9 +195,9 @@ function OfertasPage() {
   }, [ofertasFiltradas, serviciosExternosFiltrados]);
   
   useEffect(() => {
-    
     cargarDatos();
   }, []);
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
@@ -206,6 +222,9 @@ function OfertasPage() {
           handleCerrarModal();
           setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
         }}
+        serviciosDB={serviciosDB} 
+        usuario={usuario}
+        certificadosUsuario={certificadosUsuario}
       />
       
       {alerta.mostrar && (
@@ -280,7 +299,6 @@ function OfertasPage() {
               {listaResultadosCombinados.length === 0 ? (
                 <div className="text-center py-20 text-[#637489]">No se encontraron resultados para la búsqueda.</div>
               ) : (
-                /* Mismo grid de dos columnas donde coexistirán ambos componentes */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {listaResultadosCombinados.map((item) => {
                     if (item.tipoComponente === 'OFERTA') {
