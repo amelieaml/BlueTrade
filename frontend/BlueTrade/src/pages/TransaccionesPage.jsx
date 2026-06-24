@@ -25,6 +25,7 @@ function TransaccionesPage() {
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); 
   const [transaccionSeleccionada, setTransaccionSeleccionada] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const cargarTransacciones = async () => {

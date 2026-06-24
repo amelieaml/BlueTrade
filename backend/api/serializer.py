@@ -105,6 +105,9 @@ class TransaccionSerializer(serializers.ModelSerializer):
     # 2. Creamos el campo para el texto descriptivo
     oferta_resumen = serializers.SerializerMethodField()
 
+    ya_calificada = serializers.SerializerMethodField()
+    usuario_agua_id = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaccion
         fields = '__all__' # Esto incluirá automáticamente los campos nuevos que definimos arriba
@@ -132,3 +135,28 @@ class TransaccionSerializer(serializers.ModelSerializer):
             return f"{texto_ofrecido} ⇄ {texto_solicitado}"
         except Exception:
             return f"Oferta #{obj.oferta.id}"
+
+    def get_ya_calificada(self, obj):
+        # Retorna True si ya existe una reseña vinculada (OneToOneField)
+        return hasattr(obj, 'resena')
+
+    def get_usuario_agua_id(self, obj):
+        if not obj.oferta:
+            return None
+        # Si la oferta ofrecía AGUA, el vendedor puso el agua
+        if obj.oferta.tipo_ofrecido == 'AGUA':
+            return obj.vendedor.id
+        # Si la oferta pedía AGUA, el comprador pagó con agua
+        elif obj.oferta.tipo_solicitado == 'AGUA':
+            return obj.comprador.id
+        return None
+
+class ResenaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Resena
+        fields = '__all__'
+        # Añade esto para que el frontend no sea obligado a mandarlos:
+        extra_kwargs = {
+            'evaluador': {'required': False},
+            'evaluado': {'required': False}
+        }

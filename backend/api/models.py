@@ -221,6 +221,7 @@ class Transaccion(models.Model):
     def __str__(self):
         return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
 
+# models.py
 class Resena(models.Model):
     transaccion = models.OneToOneField('Transaccion', on_delete=models.CASCADE, related_name='resena')
     evaluador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_realizadas')

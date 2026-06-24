@@ -52,8 +52,6 @@ function AppRouter() {
 
         <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
 
-        
-
       </Routes>
     </BrowserRouter>
   );
