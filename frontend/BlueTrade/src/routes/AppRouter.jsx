@@ -31,6 +31,8 @@ function AppRouter() {
         <Route path="/solicitudes" element={<SolicitudesPage />} />
 
         <Route path="/perfil" element={<PerfilUsuario />} />
+        <Route path="/perfil/:id" element={<PerfilUsuario />} />
+        
         <Route path="/historial" element={<MisOfertasPage />} />
         <Route path="/transacciones" element={<TransaccionesPage />} />
 

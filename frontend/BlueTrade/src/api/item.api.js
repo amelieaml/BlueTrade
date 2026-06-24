@@ -16,7 +16,6 @@ export const getUsuario = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/`);
 };
 
-// Compatibilidad con el otro archivo
 export const getUsuarioPorId = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/`);
 };
@@ -81,7 +80,6 @@ export const guardarCertificado = async (
     });
 };
 
-// Iniciar sesión
 export const loginUsuario = async (credenciales) => {
     return axios.post(`${API_BASE_URL}login/`, credenciales);
 };
@@ -129,7 +127,6 @@ export const getOfertas = async () => {
     });
 };
 
-// Actualizar oferta
 export const actualizarOferta = async (
     idOferta,
     datosOferta
@@ -155,19 +152,14 @@ export const actualizarOferta = async (
 
 const URL_TRANSACCIONES = 'http://127.0.0.1:8000/item/test/transacciones/';
 
-// item.api.js
-
-// item.api.js
 
 export const iniciarTransaccion = async (ofertaId, compradorId) => {
     return axios.post('http://127.0.0.1:8000/item/test/transacciones/', {
-        oferta: ofertaId,      // <--- Backend espera 'oferta'
-        comprador: compradorId // <--- Backend espera 'comprador'
+        oferta: ofertaId,     
+        comprador: compradorId 
     });
 };
 
-// 2. Obtener todas las transacciones del usuario logueado
- /*revisar como funciona esta tipo q es lo de headers--- */
 export const getMisTransacciones = async () => {
     const token = localStorage.getItem('token');
     return axios.get(URL_TRANSACCIONES, {
@@ -177,7 +169,6 @@ export const getMisTransacciones = async () => {
     });
 };
 
-// Actualizar transacción
 export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => {
     const urlTransaccionEspecifica = 
         `http://127.0.0.1:8000/item/test/transacciones/${idTransaccion}/`;
@@ -207,4 +198,8 @@ export const crearResena = async (datosResena) => {
             ...(token && { Authorization: `Bearer ${token}` })
         }
     });
+};
+
+export const getResenasUsuario = async (idUsuario) => {
+    return axios.get(`${API_BASE_URL}${idUsuario}/resenas_recibidas/`);
 };

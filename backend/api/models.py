@@ -89,11 +89,27 @@ class Usuario(AbstractBaseUser):
             total=models.Sum('oferta__cantidad_solicitada')
         )['total'] or 0
 
-        return float(bloqueados_compras)
+        bloqueados_ofertas = self.ofertas.filter(
+            estado__in=['ACTIVO', 'EN_PROCESO'],
+            tipo_ofrecido__iexact='AGUA'
+        ).aggregate(
+            total=models.Sum('cantidad_ofrecida')
+        )['total'] or 0
+
+        return float(bloqueados_compras) + float(bloqueados_ofertas)
 
     @property
     def litros_disponibles(self):
         return float(self.litros_agua) - self.litros_bloqueados
+
+    @property
+    def promedio_calificacion(self):
+        from .models import Resena
+        promedio = Resena.objects.filter(evaluado=self).aggregate(
+            promed=models.Avg('calificacion')
+        )['promed']
+        
+        return round(float(promedio), 1) if promedio is not None else 0.0
 
 class Servicio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -212,7 +228,6 @@ class Transaccion(models.Model):
     def __str__(self):
         return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
 
-# models.py
 class Resena(models.Model):
     transaccion = models.OneToOneField('Transaccion', on_delete=models.CASCADE, related_name='resena')
     evaluador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_realizadas')

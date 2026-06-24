@@ -28,7 +28,6 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='listar-admin')
     def listar_admin(self, request):
         usuarios = Usuario.objects.all().order_by('id')
-        # Es vital pasar el contexto para que las URLs del certificado funcionen
         serializer = UsuarioAdminSerializer(
             usuarios, 
             many=True, 
@@ -39,7 +38,6 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
     def registro_completo(self, request):
-        # 1. Validación: El serializador solo verifica que los datos están bien
         usuario_serializer = UsuarioSerializer(data=request.data)
         
         if usuario_serializer.is_valid(): 
@@ -50,13 +48,10 @@ class UsuarioView(viewsets.ModelViewSet):
                 codigo_casa=usuario_serializer.validated_data['codigo_casa']
             )
             
-            # 3. Configuración POO: Asignamos lógica de negocio (setter)
             nuevo_usuario.set_password(request.data.get('password'))
             
-            # 4. Persistencia manual: Tú decides cuándo se guarda
             nuevo_usuario.save()
             
-            # 5. Lógica de negocio adicional: controlando el estado del otro objeto
             residencia = nuevo_usuario.codigo_casa
             residencia.ocupada = True
             residencia.save()
@@ -125,6 +120,13 @@ class UsuarioView(viewsets.ModelViewSet):
             "message": "Inicio de sesión exitoso",
             "user": serializer.data
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'], url_path='resenas_recibidas')
+    def resenas_recibidas(self, request, pk=None):
+        usuario = self.get_object()
+        resenas = Resena.objects.filter(evaluado=usuario).order_by('-id')
+        serializer = ResenaSerializer(resenas, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
@@ -240,22 +242,18 @@ class OfertaView(viewsets.ModelViewSet):
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
     
-    # En views.py, dentro de OfertaView
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         nuevo_estado = request.data.get('estado')
         
-        # Lógica solo si es oferta de AGUA
         if instance.tipo_ofrecido == 'AGUA' and nuevo_estado != instance.estado:
             usuario = instance.usuario
             cantidad = instance.cantidad_ofrecida
 
-            # Si pasa de ACTIVO a PAUSADO o CANCELADO -> Liberar saldo
             if instance.estado == 'ACTIVO' and nuevo_estado in ['PAUSADO', 'CANCELADO']:
                 usuario.litros_agua += cantidad
                 usuario.save()
             
-            # Si pasa de PAUSADO a ACTIVO -> Bloquear saldo
             elif instance.estado == 'PAUSADO' and nuevo_estado == 'ACTIVO':
                 if usuario.litros_disponibles < cantidad:
                     return Response({"detail": "Saldo insuficiente para reactivar la oferta."}, status=status.HTTP_400_BAD_REQUEST)
@@ -328,7 +326,6 @@ class ResenaViewSet(viewsets.ModelViewSet):
         from .models import Transaccion
         transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
         
-        # 1. Identificar estrictamente quién aportó el agua en la oferta
         oferta = transaccion_instancia.oferta
         usuario_que_ofrecio_agua = None
 
@@ -337,24 +334,19 @@ class ResenaViewSet(viewsets.ModelViewSet):
         elif oferta.tipo_solicitado == 'AGUA':
             usuario_que_ofrecio_agua = transaccion_instancia.comprador
 
-        # 2. Determinar el evaluador de forma segura
         evaluador = self.request.user 
         
         if evaluador.is_anonymous:
-            # Si es anónimo, confiamos en la regla de negocio: el evaluador TIENE que ser el que dio el agua
             evaluador = usuario_que_ofrecio_agua
         else:
-            # Si hay sesión, validamos que el usuario logueado coincida con el que aportó el agua
             if evaluador != usuario_que_ofrecio_agua:
                 raise ValidationError(
                     {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
                 )
 
-        # 3. Definir al evaluado automáticamente (la contraparte de la transacción)
         if evaluador == transaccion_instancia.comprador:
             evaluado = transaccion_instancia.vendedor
         else:
             evaluado = transaccion_instancia.comprador
 
-        # 4. Guardar pasando ambos parámetros obligatorios
         serializer.save(evaluador=evaluador, evaluado=evaluado)
