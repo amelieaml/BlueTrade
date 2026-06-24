@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getMisTransacciones } from '../api/item.api';
 import { actualizarTransaccion } from '../api/item.api';
@@ -24,6 +25,7 @@ function TransaccionesPage() {
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); 
   const [transaccionSeleccionada, setTransaccionSeleccionada] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const cargarTransacciones = async () => {
@@ -191,6 +193,41 @@ function TransaccionesPage() {
                           <EstadoConfirmacion label="Contraparte" confirmado={confirmoContraparte} />
                         </div>
                       </div>
+
+                      {(() => {
+                        // CORRECCIÓN AQUÍ: Se cambiaron las referencias de 'transaccion' a 'tx'
+                        if (tx.estado !== 'COMPLETADA') return null;
+
+                        if (usuario?.id !== tx.usuario_agua_id) {
+                          return null; 
+                        }
+
+                        if (tx.ya_calificada) {
+                          return (
+                            <button 
+                              disabled
+                              className="px-6 py-3 font-bold rounded-2xl bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed text-sm flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Ya Calificado
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); // Evita abrir el modal al hacer clic en el botón
+                              navigate(`/resena/${tx.id}`);
+                            }}
+                            className="px-6 py-3 font-bold rounded-2xl text-white bg-gradient-to-r from-[#0066ff] to-[#00b8ff] shadow-[0_8px_20px_rgba(0,102,255,0.2)] hover:shadow-[0_12px_28px_rgba(0,102,255,0.3)] hover:-translate-y-0.5 transition-all text-sm cursor-pointer"
+                          >
+                            Calificar
+                          </button>
+                        );
+                      })()}
 
                       {renderBadgeEstado(tx.estado)}
                     </div>

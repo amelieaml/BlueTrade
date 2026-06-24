@@ -10,6 +10,7 @@ import SolicitudesPage from "../pages/Solicitudes.jsx";
 import PerfilUsuario from "../pages/PerfilUsuario.jsx";
 import MisOfertasPage from "../pages/MisOfertasPage.jsx";
 import TransaccionesPage from "../pages/TransaccionesPage.jsx";
+import PaginaResena from "../pages/PaginaResena.jsx";
 
 import AdminDashboardPage from "../pages/AdminDashboardPage.jsx";
 import SolicitudesRegistroPage from "../pages/SolicitudesRegistroPage.jsx";
@@ -44,6 +45,9 @@ function AppRouter() {
           path="/admin/solicitudes/:id"
           element={<DetalleSolicitudPage />}
         />
+
+        <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
+
       </Routes>
     </BrowserRouter>
   );

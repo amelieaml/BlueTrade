@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 
+from rest_framework.exceptions import ValidationError
 
 from .serializer import (
     UsuarioSerializer, 
@@ -15,9 +16,10 @@ from .serializer import (
     OfertaSerializer, 
     UsuarioAdminSerializer,
     TransaccionSerializer,
-    DirectorioServicioSerializer
+    DirectorioServicioSerializer,
+    ResenaSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -316,5 +318,39 @@ class TransaccionViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
                 
         return response
-    
-    
+
+class ResenaViewSet(viewsets.ModelViewSet):
+    queryset = Resena.objects.all()
+    serializer_class = ResenaSerializer
+
+    def perform_create(self, serializer):
+        transaccion_id = self.request.data.get('transaccion')
+        from .models import Transaccion
+        transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
+        
+        evaluador = self.request.user 
+        if evaluador.is_anonymous:
+            evaluador = transaccion_instancia.comprador
+
+        # Buscamos quién aportó el agua en la oferta
+        oferta = transaccion_instancia.oferta
+        usuario_que_ofrecio_agua = None
+
+        if oferta.tipo_ofrecido == 'AGUA':
+            usuario_que_ofrecio_agua = transaccion_instancia.vendedor
+        elif oferta.tipo_solicitado == 'AGUA':
+            usuario_que_ofrecio_agua = transaccion_instancia.comprador
+
+        # Si el usuario actual no es el dueño del agua, lanzamos error 400 Bad Request
+        if evaluador != usuario_que_ofrecio_agua:
+            raise ValidationError(
+                {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
+            )
+
+        # Definimos al evaluado automáticamente (el contrario del evaluador)
+        if evaluador == transaccion_instancia.comprador:
+            evaluado = transaccion_instancia.vendedor
+        else:
+            evaluado = transaccion_instancia.comprador
+
+        serializer.save(evaluador=evaluador, evaluado=evaluado)

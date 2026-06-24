@@ -211,3 +211,12 @@ class Transaccion(models.Model):
 
     def __str__(self):
         return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
+
+# models.py
+class Resena(models.Model):
+    transaccion = models.OneToOneField('Transaccion', on_delete=models.CASCADE, related_name='resena')
+    evaluador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_realizadas')
+    evaluado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_recibidas')
+    calificacion = models.IntegerField(choices=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)])
+    comentario = models.TextField(max_length=500)
+    fecha = models.DateTimeField(auto_now_add=True)

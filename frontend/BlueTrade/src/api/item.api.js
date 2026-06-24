@@ -197,3 +197,14 @@ export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => 
         }
     );
 };
+
+export const crearResena = async (datosResena) => {
+    const token = localStorage.getItem('token');
+    
+    return axios.post('http://127.0.0.1:8000/item/test/resenas/', datosResena, {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};
