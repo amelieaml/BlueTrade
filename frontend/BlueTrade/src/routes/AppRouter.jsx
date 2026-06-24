@@ -32,6 +32,7 @@ function AppRouter() {
         <Route path="/solicitudes" element={<SolicitudesPage />} />
 
         <Route path="/perfil" element={<PerfilUsuario />} />
+        <Route path="/comunidad" element={<ComunidadPage />} />
         <Route path="/perfil/:id" element={<PerfilUsuario />} />
         
         <Route path="/historial" element={<MisOfertasPage />} />
@@ -50,6 +51,8 @@ function AppRouter() {
         />
 
         <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
+
+        
 
       </Routes>
     </BrowserRouter>

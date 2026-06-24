@@ -7,7 +7,6 @@ import axios from 'axios';
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroComunidad from '../components/FiltroComunidad';
 import Alerta from '../components/alerta';
-import { getServicios } from '../api/item.api';
 
 function ComunidadPage() {
   const { usuario } = useContext(AuthContext);
@@ -24,14 +23,12 @@ function ComunidadPage() {
     ordenar: 'alfabetico'
   });
 
-  const [tagActivo, setTagActivo] = useState('');
-
   const obtenerDirectorio = async () => {
     setCargando(true);
     try {
       const params = new URLSearchParams({
         nombre: filtros.nombre || '',
-        servicio: tagActivo || '',
+        servicio: filtros.servicio || '',
         reputacion: filtros.reputacion || 0,
         ordenar: filtros.ordenar || 'alfabetico'
       });
@@ -69,18 +66,22 @@ function ComunidadPage() {
 
   useEffect(() => {
     obtenerDirectorio();
-  }, [filtros, tagActivo]);
+  }, [filtros]);
 
   const handleFiltroChange = (campo, valor) => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const [serviciosDB, setServiciosDB] = useState([]);
-  useEffect(() => {
-      getServicios().then(res => setServiciosDB(res.data));
-  }, []);
+  const serviciosDisponibles = useMemo(() => {
+    if (!Array.isArray(vecinos)) return [];
 
-  const categoriasDisponibles = useMemo(() => serviciosDB.map(s => s.nombre), [serviciosDB]);
+    const serviciosUnicos = new Set(
+      vecinos
+        .map(v => v.tipo_servicio_principal)
+        .filter(s => s && s !== "Consumidor de Agua")
+    );
+    return Array.from(serviciosUnicos);
+  }, [vecinos]);
 
   const getIniciales = (nombre) => {
     if (!nombre) return "??";
@@ -123,11 +124,9 @@ function ComunidadPage() {
             <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-6 lg:sticky lg:top-24">
               <h3 className="text-xl font-extrabold text-[#102033] mb-6">Filtros Avanzados</h3>
               <FiltroComunidad 
-                filtros={filtros} 
-                onFiltroChange={handleFiltroChange} 
-                tagActivo={tagActivo} 
-                onTagChange={setTagActivo} 
-                tagsDisponibles={serviciosDB.map(s => s.nombre)} // <--- Esto envía solo los nombres
+                filtros={filtros}
+                onFiltroChange={handleFiltroChange}
+                serviciosDisponibles={serviciosDisponibles}
               />
             </div>
           </aside>

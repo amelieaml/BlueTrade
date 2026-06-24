@@ -15,3 +15,7 @@ router.register(r'resenas', ResenaViewSet, 'resena')
 urlpatterns = [
     path('test/', include(router.urls))
 ]
+
+urlpatterns = [
+    path('test/', include(router.urls))
+]
