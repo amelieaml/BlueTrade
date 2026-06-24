@@ -1,6 +1,7 @@
 import React from 'react';
+import FiltroTags from './FiltroTags';
 
-function FiltroComunidad({ filtros, onFiltroChange, serviciosDisponibles }) {
+function FiltroComunidad({ filtros, onFiltroChange, tagActivo, onTagChange, tagsDisponibles }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Filtro por Nombre */}
@@ -19,27 +20,16 @@ function FiltroComunidad({ filtros, onFiltroChange, serviciosDisponibles }) {
 
       <hr className="border-[#0066ff]/10 my-1" />
 
-      {/* Filtro por Especialidad/Servicio */}
+      {/* Filtro por Servicio */}
       <div className="flex flex-col gap-2">
-        <label className="text-[12px] font-bold text-[#6a7b8f] uppercase tracking-wider mb-1">
+        <label className="text-[12px] font-bold text-[#6a7b8f] uppercase tracking-wider mb-2">
           Especialidad de Servicio
         </label>
-        <select
-          value={filtros.servicio}
-          onChange={(e) => onFiltroChange('servicio', e.target.value)}
-          className="w-full bg-[#f3f8ff] border border-transparent rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#0066ff]/20 focus:border-[#0066ff] transition-all font-bold text-[#102033] appearance-none cursor-pointer"
-          style={{ 
-            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23637489\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', 
-            backgroundRepeat: 'no-repeat', 
-            backgroundPosition: 'right 12px center', 
-            backgroundSize: '14px' 
-          }}
-        >
-          <option value="">Cualquier servicio</option>
-          {serviciosDisponibles.map((serv, index) => (
-            <option key={index} value={serv}>{serv}</option>
-          ))}
-        </select>
+        <FiltroTags 
+            tagActivo={tagActivo} 
+            onTagChange={onTagChange} 
+            tagsDisponibles={tagsDisponibles} 
+        />
       </div>
 
       <hr className="border-[#0066ff]/10 my-1" />
@@ -79,7 +69,6 @@ function FiltroComunidad({ filtros, onFiltroChange, serviciosDisponibles }) {
           {[
             { id: 'alfabetico', label: 'Orden Alfabético (A-Z)' },
             { id: 'reputacion', label: 'Mayor Reputación primero' },
-            { id: 'relevancia', label: 'Relevancia de Servicios' }
           ].map((opcion) => (
             <button
               key={opcion.id}
