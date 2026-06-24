@@ -328,11 +328,7 @@ class ResenaViewSet(viewsets.ModelViewSet):
         from .models import Transaccion
         transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
         
-        evaluador = self.request.user 
-        if evaluador.is_anonymous:
-            evaluador = transaccion_instancia.comprador
-
-        # Buscamos quién aportó el agua en la oferta
+        # 1. Identificar estrictamente quién aportó el agua en la oferta
         oferta = transaccion_instancia.oferta
         usuario_que_ofrecio_agua = None
 
@@ -341,16 +337,24 @@ class ResenaViewSet(viewsets.ModelViewSet):
         elif oferta.tipo_solicitado == 'AGUA':
             usuario_que_ofrecio_agua = transaccion_instancia.comprador
 
-        # Si el usuario actual no es el dueño del agua, lanzamos error 400 Bad Request
-        if evaluador != usuario_que_ofrecio_agua:
-            raise ValidationError(
-                {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
-            )
+        # 2. Determinar el evaluador de forma segura
+        evaluador = self.request.user 
+        
+        if evaluador.is_anonymous:
+            # Si es anónimo, confiamos en la regla de negocio: el evaluador TIENE que ser el que dio el agua
+            evaluador = usuario_que_ofrecio_agua
+        else:
+            # Si hay sesión, validamos que el usuario logueado coincida con el que aportó el agua
+            if evaluador != usuario_que_ofrecio_agua:
+                raise ValidationError(
+                    {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
+                )
 
-        # Definimos al evaluado automáticamente (el contrario del evaluador)
+        # 3. Definir al evaluado automáticamente (la contraparte de la transacción)
         if evaluador == transaccion_instancia.comprador:
             evaluado = transaccion_instancia.vendedor
         else:
             evaluado = transaccion_instancia.comprador
 
+        # 4. Guardar pasando ambos parámetros obligatorios
         serializer.save(evaluador=evaluador, evaluado=evaluado)
