@@ -113,7 +113,7 @@ function TransaccionesPage() {
               Mis <span className="bg-gradient-to-r from-[#0066ff] to-[#00b8ff] bg-clip-text text-transparent">intercambios</span>
             </h1>
             <p className="text-[#5d6f82] mt-4 text-lg leading-relaxed max-w-2xl m-0">
-              Monitorea y gestiona el flujo de tus transacciones activas e históricas.
+              Monitorea y gestiona el flujo de todas tus transacciones.
             </p>
           </div>
 

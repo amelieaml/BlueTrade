@@ -119,7 +119,7 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
         <div className="p-6 md:p-7 border-b border-gray-50 relative text-left shrink-0">
           <h2 className="text-xl font-bold text-[#102033] tracking-tight m-0">Crear nueva oferta</h2>
           <p className="text-xs text-[#637489] m-0 mt-1 leading-relaxed">
-            Define los recursos para publicarlos en la cartelera comunitaria de intercambio.
+            Especifica que deseas ofrecer y obtener a cambio
           </p>
           <button 
             onClick={onClose}
