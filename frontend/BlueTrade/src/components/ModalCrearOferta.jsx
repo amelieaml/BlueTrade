@@ -106,21 +106,31 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     e.preventDefault();
     setErrores({});
 
+    // Validación de litros disponibles
     if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
-        // En lugar de alert, guardamos el error en el estado
         setErrores({ 
             cantidadOfrecida: "No tienes suficientes litros disponibles. Tu saldo actual es " + usuario.litros_disponibles 
         });
-        return; // Detenemos la ejecución
+        return; 
     }
 
+    // Validación de certificado para servicios ofrecidos
     if (formData.tipoOfrecido === 'servicio') {
       const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      if (servicioSeleccionado?.necesita_certificado && !usuario?.certificado) {
-        setErrores({ certificado: "Este servicio requiere una certificación técnica." });
-        return;
+      
+      if (servicioSeleccionado?.necesita_certificado) {
+        // AHORA: Comparamos el tipo_servicio_id del certificado con el id del servicio seleccionado
+        const tieneCertificado = certificadosUsuario.some(
+          cert => cert.tipo_servicio === servicioSeleccionado.id
+        );
+
+        if (!tieneCertificado) {
+          setErrores({ certificado: `No posees la certificación técnica requerida para ofrecer "${servicioSeleccionado.nombre}".` });
+          return;
+        }
       }
     }
+
 
     const payload = {
       usuario_id: usuario?.id, 
@@ -203,7 +213,6 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
                     value={formData.cantidadOfrecida} 
                     onChange={handleInputChange} 
                     required 
-                    // Si hay error, cambiamos el borde a rojo
                     className={`w-full border rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all 
                       ${errores.cantidadOfrecida ? 'border-red-500 ring-1 ring-red-500' : 'border-[rgba(0,102,255,0.14)] focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10'}`}
                   />

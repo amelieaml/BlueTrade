@@ -166,6 +166,26 @@ class UsuarioView(viewsets.ModelViewSet):
             })
 
         return Response(data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def certificados(self, request, pk=None):
+        """
+        Devuelve la lista de certificados asociados a un usuario específico.
+        """
+        # Obtenemos la instancia del usuario según el ID (pk) de la URL
+        usuario_instancia = self.get_object() 
+        
+        # Filtramos los certificados que le pertenecen a este usuario
+        certificados = Certificado.objects.filter(usuario=usuario_instancia)
+        
+        # Utilizamos el serializador que ya tienes creado
+        serializer = CertificadoSerializer(
+            certificados, 
+            many=True, 
+            context={'request': request} # Importante para construir las URLs absolutas de los archivos
+        )
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
