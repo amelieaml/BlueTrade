@@ -107,6 +107,20 @@ function NavbarDashboard({
           </a>
         )}
 
+        {usuarioActivo && (
+          <a 
+            href="/comunidad" 
+            className={paginaActiva === 'comunidad' ? 'active' : ''}
+            style={
+              paginaActiva === 'comunidad'
+                ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' }
+                : {}
+            }
+          >
+            Comunidad
+          </a>
+        )}
+        
         <a 
           href="/perfil" 
           className={paginaActiva === 'perfil' ? 'active' : ''}

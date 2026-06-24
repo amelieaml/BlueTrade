@@ -15,6 +15,7 @@ import PaginaResena from "../pages/PaginaResena.jsx";
 import AdminDashboardPage from "../pages/AdminDashboardPage.jsx";
 import SolicitudesRegistroPage from "../pages/SolicitudesRegistroPage.jsx";
 import DetalleSolicitudPage from "../pages/DetalleSolicitudPage.jsx";
+import ComunidadPage from "../pages/ComunidadPage.jsx";
 
 function AppRouter() {
   return (
@@ -31,6 +32,7 @@ function AppRouter() {
         <Route path="/solicitudes" element={<SolicitudesPage />} />
 
         <Route path="/perfil" element={<PerfilUsuario />} />
+        <Route path="/comunidad" element={<ComunidadPage />} />
         <Route path="/perfil/:id" element={<PerfilUsuario />} />
         
         <Route path="/historial" element={<MisOfertasPage />} />
@@ -49,6 +51,8 @@ function AppRouter() {
         />
 
         <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
+
+        
 
       </Routes>
     </BrowserRouter>

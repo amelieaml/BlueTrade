@@ -45,6 +45,7 @@ class UsuarioView(viewsets.ModelViewSet):
                 nombre=usuario_serializer.validated_data['nombre'],
                 ci=usuario_serializer.validated_data['ci'],
                 email=usuario_serializer.validated_data['email'],
+                telefono=usuario_serializer.validated_data['telefono'],
                 codigo_casa=usuario_serializer.validated_data['codigo_casa']
             )
             
@@ -127,6 +128,44 @@ class UsuarioView(viewsets.ModelViewSet):
         resenas = Resena.objects.filter(evaluado=usuario).order_by('-id')
         serializer = ResenaSerializer(resenas, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='comunidad')
+    def comunidad(self, request):
+    
+        queryset = Usuario.objects.filter(estado='ACTIVO')
+
+        nombre = request.query_params.get('nombre', None)
+        servicio = request.query_params.get('servicio', None)
+        reputacion = request.query_params.get('reputacion', None)
+        ordenar = request.query_params.get('ordenar', 'alfabetico')
+
+        if nombre:
+            queryset = queryset.filter(nombre__icontains=nombre)
+            
+        if servicio:
+            queryset = queryset.filter(tipo_servicio_intencion__icontains=servicio)
+
+        if ordenar == 'reputacion':
+            
+            usuarios_ordenados = sorted(queryset, key=lambda u: u.promedio_calificacion, reverse=True)
+        else:
+            usuarios_ordenados = queryset.order_by('nombre')
+
+        if reputacion and float(reputacion) > 0:
+            usuarios_ordenados = [u for u in usuarios_ordenados if u.promedio_calificacion >= float(reputacion)]
+
+        data = []
+        for u in usuarios_ordenados:
+            data.append({
+                "id": u.id,
+                "nombre": u.nombre,
+                "codigo_casa": u.codigo_casa.codigo if u.codigo_casa else "S/N",
+                "tipo_servicio_principal": u.tipo_servicio_intencion or "Consumidor de Agua",
+                "certificado_verificado": u.certificado,
+                "reputacion": str(u.promedio_calificacion)
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
