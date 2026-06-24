@@ -72,13 +72,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
     obtenerDetallesOferta();
 
-    // Limpiar el estado cuando el modal se cierra
     if (!isOpen) setDetalleOferta(null);
   }, [isOpen, transaccion]);
 
   if (!isOpen || !transaccion) return null;
 
-  // 3. Lógica de confirmaciones y roles
+  // 3. Lógica de  y roles
   const confirmoYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
   const confirmoContraparte = vistaActiva === 'compras' ? transaccion.confirmacion_vendedor : transaccion.confirmacion_comprador;
   const miRol = vistaActiva === 'compras' ? 'Comprador' : 'Vendedor';

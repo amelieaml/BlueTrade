@@ -169,7 +169,6 @@ export const getMisTransacciones = async () => {
     });
 };
 
-// Actualizar transacción
 export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => {
     const urlTransaccionEspecifica = 
         `http://127.0.0.1:8000/item/test/transacciones/${idTransaccion}/`;
@@ -199,4 +198,8 @@ export const crearResena = async (datosResena) => {
             ...(token && { Authorization: `Bearer ${token}` })
         }
     });
+};
+
+export const getResenasUsuario = async (idUsuario) => {
+    return axios.get(`${API_BASE_URL}${idUsuario}/resenas_recibidas/`);
 };

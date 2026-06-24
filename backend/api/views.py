@@ -128,64 +128,6 @@ class UsuarioView(viewsets.ModelViewSet):
         resenas = Resena.objects.filter(evaluado=usuario).order_by('-id')
         serializer = ResenaSerializer(resenas, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=['get'], url_path='comunidad')
-    def comunidad(self, request):
-    
-        queryset = Usuario.objects.filter(estado='ACTIVO')
-
-        nombre = request.query_params.get('nombre', None)
-        servicio = request.query_params.get('servicio', None)
-        reputacion = request.query_params.get('reputacion', None)
-        ordenar = request.query_params.get('ordenar', 'alfabetico')
-
-        if nombre:
-            queryset = queryset.filter(nombre__icontains=nombre)
-            
-        if servicio:
-            queryset = queryset.filter(tipo_servicio_intencion__icontains=servicio)
-
-        if ordenar == 'reputacion':
-            
-            usuarios_ordenados = sorted(queryset, key=lambda u: u.promedio_calificacion, reverse=True)
-        else:
-            usuarios_ordenados = queryset.order_by('nombre')
-
-        if reputacion and float(reputacion) > 0:
-            usuarios_ordenados = [u for u in usuarios_ordenados if u.promedio_calificacion >= float(reputacion)]
-
-        data = []
-        for u in usuarios_ordenados:
-            data.append({
-                "id": u.id,
-                "nombre": u.nombre,
-                "codigo_casa": u.codigo_casa.codigo if u.codigo_casa else "S/N",
-                "tipo_servicio_principal": u.tipo_servicio_intencion or "Consumidor de Agua",
-                "certificado_verificado": u.certificado,
-                "reputacion": str(u.promedio_calificacion)
-            })
-
-        return Response(data, status=status.HTTP_200_OK)
-    
-    @action(detail=True, methods=['get'])
-    def certificados(self, request, pk=None):
-        """
-        Devuelve la lista de certificados asociados a un usuario específico.
-        """
-        # Obtenemos la instancia del usuario según el ID (pk) de la URL
-        usuario_instancia = self.get_object() 
-        
-        # Filtramos los certificados que le pertenecen a este usuario
-        certificados = Certificado.objects.filter(usuario=usuario_instancia)
-        
-        # Utilizamos el serializador que ya tienes creado
-        serializer = CertificadoSerializer(
-            certificados, 
-            many=True, 
-            context={'request': request} # Importante para construir las URLs absolutas de los archivos
-        )
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
@@ -301,22 +243,18 @@ class OfertaView(viewsets.ModelViewSet):
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
     
-    # En views.py, dentro de OfertaView
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         nuevo_estado = request.data.get('estado')
         
-        # Lógica solo si es oferta de AGUA
         if instance.tipo_ofrecido == 'AGUA' and nuevo_estado != instance.estado:
             usuario = instance.usuario
             cantidad = instance.cantidad_ofrecida
 
-            # Si pasa de ACTIVO a PAUSADO o CANCELADO -> Liberar saldo
             if instance.estado == 'ACTIVO' and nuevo_estado in ['PAUSADO', 'CANCELADO']:
                 usuario.litros_agua += cantidad
                 usuario.save()
             
-            # Si pasa de PAUSADO a ACTIVO -> Bloquear saldo
             elif instance.estado == 'PAUSADO' and nuevo_estado == 'ACTIVO':
                 if usuario.litros_disponibles < cantidad:
                     return Response({"detail": "Saldo insuficiente para reactivar la oferta."}, status=status.HTTP_400_BAD_REQUEST)
@@ -389,7 +327,6 @@ class ResenaViewSet(viewsets.ModelViewSet):
         from .models import Transaccion
         transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
         
-        # 1. Identificar estrictamente quién aportó el agua en la oferta
         oferta = transaccion_instancia.oferta
         usuario_que_ofrecio_agua = None
 
@@ -398,24 +335,19 @@ class ResenaViewSet(viewsets.ModelViewSet):
         elif oferta.tipo_solicitado == 'AGUA':
             usuario_que_ofrecio_agua = transaccion_instancia.comprador
 
-        # 2. Determinar el evaluador de forma segura
         evaluador = self.request.user 
         
         if evaluador.is_anonymous:
-            # Si es anónimo, confiamos en la regla de negocio: el evaluador TIENE que ser el que dio el agua
             evaluador = usuario_que_ofrecio_agua
         else:
-            # Si hay sesión, validamos que el usuario logueado coincida con el que aportó el agua
             if evaluador != usuario_que_ofrecio_agua:
                 raise ValidationError(
                     {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
                 )
 
-        # 3. Definir al evaluado automáticamente (la contraparte de la transacción)
         if evaluador == transaccion_instancia.comprador:
             evaluado = transaccion_instancia.vendedor
         else:
             evaluado = transaccion_instancia.comprador
 
-        # 4. Guardar pasando ambos parámetros obligatorios
         serializer.save(evaluador=evaluador, evaluado=evaluado)
