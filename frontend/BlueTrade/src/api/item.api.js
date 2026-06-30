@@ -197,3 +197,24 @@ export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => 
         }
     );
 };
+
+const URL_NOTIFICACIONES = 'http://127.0.0.1:8000/item/test/notificaciones/';
+
+export const getNotificaciones = async (usuarioId) => {
+    const token = localStorage.getItem('token');
+    return axios.get(`${URL_NOTIFICACIONES}?usuario_id=${usuarioId}`, {
+        headers: {
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};
+
+// 2. Marcar una notificación como leída
+export const marcarNotificacionLeida = async (idNotificacion) => {
+    const token = localStorage.getItem('token');
+    return axios.patch(`${URL_NOTIFICACIONES}${idNotificacion}/marcar_leida/`, {}, {
+        headers: {
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};

@@ -15,9 +15,10 @@ from .serializer import (
     OfertaSerializer, 
     UsuarioAdminSerializer,
     TransaccionSerializer,
-    DirectorioServicioSerializer
+    DirectorioServicioSerializer,
+    NotificacionSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Notificacion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -230,7 +231,8 @@ class OfertaView(viewsets.ModelViewSet):
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
-    
+
+
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
     serializer_class = TransaccionSerializer
@@ -288,5 +290,37 @@ class TransaccionViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
                 
         return response
-    
+
+class NotificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificacionSerializer
+    permission_classes = [AllowAny] # Mantenemos AllowAny para que no dependa de la sesión
+
+    def get_queryset(self):
+        # Intentamos obtener el ID del usuario desde los parámetros de la URL
+        usuario_id = self.request.query_params.get('usuario_id')
+        
+        if usuario_id:
+            # Filtramos específicamente por el ID recibido
+            return Notificacion.objects.filter(usuario_id=usuario_id).order_by('-creado_el')
+        
+        # Si no se envía el ID, devolvemos nada (o podrías retornar Notificacion.objects.all() si quieres que sea público)
+        return Notificacion.objects.none()
+
+    @action(detail=True, methods=['patch'])
+    def marcar_leida(self, request, pk=None):
+        try:
+            # Forzamos la búsqueda de la notificación por el ID (pk)
+            notificacion = Notificacion.objects.get(pk=pk)
+            
+            # Opcional: Validar que la notificación pertenece al usuario_id que envías
+            usuario_id = request.query_params.get('usuario_id')
+            if usuario_id and int(notificacion.usuario_id) != int(usuario_id):
+                return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
+            
+            notificacion.leido = True
+            notificacion.save()
+            return Response({'status': 'notificación leída'}, status=status.HTTP_200_OK)
+            
+        except Notificacion.DoesNotExist:
+            return Response({'error': f'No existe notificación con ID {pk}'}, status=status.HTTP_404_NOT_FOUND)
     
