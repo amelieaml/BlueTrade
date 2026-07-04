@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import Certificado, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Resena
+from .models import Certificado, CobroComunal, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Resena
+from django.db import transaction
+from django.db.models import F
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
@@ -153,3 +158,49 @@ class ResenaSerializer(serializers.ModelSerializer):
             'evaluador': {'required': False},
             'evaluado': {'required': False}
         }
+
+class CobroSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CobroComunal
+        fields = '__all__'
+        # Bloqueamos estos campos para que el frontend no pueda alterarlos
+        read_only_fields = ('administrador', 'alicuota', 'fecha_creacion')
+
+    def validate(self, data):
+        # Validación: Evitamos la división por cero en el cálculo matemático
+        if data.get('usuarios_involucrados', 0) <= 0:
+            raise serializers.ValidationError({
+                "usuarios_involucrados": "Debe haber al menos 1 usuario involucrado para generar el cobro."
+            })
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        monto_total = validated_data['monto_total']
+
+        # Paso 1: Filtramos ESTRICTAMENTE a los usuarios con estado ACTIVO
+        usuarios_activos = User.objects.filter(estado='ACTIVO')
+        
+        # Contamos cuántos usuarios activos hay realmente en la base de datos
+        cantidad_usuarios_reales = usuarios_activos.count()
+
+        # Validación de seguridad: Si no hay usuarios activos, abortamos la operación
+        if cantidad_usuarios_reales == 0:
+            raise serializers.ValidationError({
+                "error": "No hay usuarios en estado ACTIVO para aplicar este cobro."
+            })
+
+        # Forzamos que el registro guarde la cantidad real, ignorando si el frontend mandó otro número
+        validated_data['usuarios_involucrados'] = cantidad_usuarios_reales
+
+        # Paso 2 matemático: Cálculo de la porción por persona
+        alicuota_calculada = monto_total / cantidad_usuarios_reales
+        validated_data['alicuota'] = alicuota_calculada
+
+        # Creamos el registro del cobro comunal
+        cobro_maestro = super().create(validated_data)
+
+        # Paso 3 matemático: Descontamos directamente solo al grupo de usuarios activos
+        usuarios_activos.update(litros_agua=F('litros_agua') - alicuota_calculada)
+
+        return cobro_maestro

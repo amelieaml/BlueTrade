@@ -235,3 +235,11 @@ class Resena(models.Model):
     calificacion = models.IntegerField(choices=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)])
     comentario = models.TextField(max_length=500)
     fecha = models.DateTimeField(auto_now_add=True)
+
+class CobroComunal(models.Model):
+    administrador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cobros_comunales')
+    descripcion = models.TextField(max_length=255)
+    monto_total = models.FloatField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    usuarios_involucrados = models.IntegerField()
+    alicuota = models.FloatField()

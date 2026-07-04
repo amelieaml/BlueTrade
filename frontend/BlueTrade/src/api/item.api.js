@@ -208,3 +208,11 @@ export const obtenerCertificadosUsuario = async (usuarioId) => {
   // Ajusta la URL a la ruta real de tu backend
   return await axios.get(`${API_BASE_URL}${usuarioId}/certificados/`);
 }
+
+export const crearCobroComunal = async (datosCobro) => {
+    return axios.post('http://127.0.0.1:8000/item/test/cobros/', datosCobro);
+};
+
+export const obtenerCobrosComunales = async () => {
+    return axios.get('http://127.0.0.1:8000/item/test/cobros/');
+};

@@ -17,9 +17,10 @@ from .serializer import (
     UsuarioAdminSerializer,
     TransaccionSerializer,
     DirectorioServicioSerializer,
-    ResenaSerializer
+    ResenaSerializer,
+    CobroSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena, CobroComunal
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -409,3 +410,18 @@ class ResenaViewSet(viewsets.ModelViewSet):
             evaluado = transaccion_instancia.comprador
 
         serializer.save(evaluador=evaluador, evaluado=evaluado)
+
+
+class CobroComunalViewSet(viewsets.ModelViewSet):
+    queryset = CobroComunal.objects.all()
+    serializer_class = CobroSerializer
+    
+    # 1. ELIMINAMOS o comentamos la línea de permisos
+    # permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # 2. Como ya no hay token, buscamos al primer usuario que sea admin en tu base de datos
+        admin_por_defecto = User.objects.filter(es_admin=True).first()
+        
+        # Guardamos el cobro asociándolo a ese admin por defecto
+        serializer.save(administrador=admin_por_defecto)
