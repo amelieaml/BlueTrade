@@ -109,20 +109,6 @@ function NavbarDashboard({
 
         {usuarioActivo && (
           <a 
-            href="/cobroscomunales" 
-            className={paginaActiva === 'cobroscomunales' ? 'active' : ''}
-            style={
-              paginaActiva === 'cobroscomunales'
-                ? { fontWeight: 'bold', color: 'var(--color-primary, #0066ff)' }
-                : {}
-            }
-          >
-            Cobros Comunales
-          </a>
-        )}
-
-        {usuarioActivo && (
-          <a 
             href="/comunidad" 
             className={paginaActiva === 'comunidad' ? 'active' : ''}
             style={

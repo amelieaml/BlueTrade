@@ -1,7 +1,8 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
-import { guardarCertificado, getServicios, getResenasUsuario, getUsuario } from '../api/item.api'; 
+// 1. IMPORTANTE: Agregamos obtenerCobrosComunales aquí
+import { guardarCertificado, getServicios, getResenasUsuario, getUsuario, obtenerCobrosComunales } from '../api/item.api'; 
 import { useParams } from 'react-router-dom'; 
 import '../styles/PerfilUsuario.css'; 
 
@@ -16,6 +17,8 @@ function PerfilUsuario() {
   const [cargando, setCargando] = useState(false);
   const [resenas, setResenas] = useState([]);
   
+  // 2. Estado para almacenar los cobros comunales
+  const [cobros, setCobros] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
 
   useEffect(() => {
@@ -39,8 +42,22 @@ function PerfilUsuario() {
             setUsuario(responsePublico.data);
           }
 
+          // Cargamos las reseñas
           const responseResenas = await getResenasUsuario(usuarioIdAConsultar);
           setResenas(responseResenas.data);
+          
+          // 3. Cargamos los cobros comunales
+          try {
+            const responseCobros = await obtenerCobrosComunales();
+            // Validamos si es array (por si Django usa paginación o manda un objeto)
+            const cobrosData = Array.isArray(responseCobros.data) ? responseCobros.data : (responseCobros.data.results || []);
+            // Los ordenamos por fecha (del más reciente al más antiguo)
+            setCobros(cobrosData.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)));
+          } catch (errorCobros) {
+            console.error("Error al cargar cobros:", errorCobros);
+            setCobros([]);
+          }
+
         } else {
           setUsuario(null);
         }
@@ -431,6 +448,54 @@ function PerfilUsuario() {
               ) : (
                 <p className="text-[11px] font-medium text-[#637489] italic pt-2">
                   Aún no has recibido calificaciones en la plataforma.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* 4. NUEVA SECCIÓN: HISTORIAL DE COBROS COMUNALES */}
+          <div className="cobros-seccion-container" style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0, 102, 255, 0.1)' }}>
+            <div>
+              <h3 className="seccion-titulo">Historial de Cobros Comunales</h3>
+              <p className="seccion-descripcion">Descuentos automáticos aplicados al saldo de litros.</p>
+            </div>
+
+            <div className="cobros-lista" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+              {cobros.length > 0 ? (
+                cobros.map((cobro) => (
+                  <div
+                    key={cobro.id}
+                    style={{
+                      background: '#f3f8ff',
+                      border: '1px solid #dbe4ea',
+                      padding: '16px',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#0f1f33' }}>
+                        {cobro.descripcion}
+                      </h4>
+                      <span style={{ fontSize: '11px', color: '#637489', fontWeight: '500' }}>
+                        {new Date(cobro.fecha_creacion).toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ display: 'block', fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>
+                        - {Number(cobro.alicuota).toFixed(2)} L
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#91a0b2', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        Alícuota
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] font-medium text-[#637489] italic pt-2">
+                  No se han registrado cobros comunales en la plataforma.
                 </p>
               )}
             </div>

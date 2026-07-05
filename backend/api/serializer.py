@@ -164,15 +164,8 @@ class CobroSerializer(serializers.ModelSerializer):
         model = CobroComunal
         fields = '__all__'
         # Bloqueamos estos campos para que el frontend no pueda alterarlos
-        read_only_fields = ('administrador', 'alicuota', 'fecha_creacion')
+        read_only_fields = ('alicuota', 'fecha_creacion', 'usuarios_involucrados')
 
-    def validate(self, data):
-        # Validación: Evitamos la división por cero en el cálculo matemático
-        if data.get('usuarios_involucrados', 0) <= 0:
-            raise serializers.ValidationError({
-                "usuarios_involucrados": "Debe haber al menos 1 usuario involucrado para generar el cobro."
-            })
-        return data
 
     @transaction.atomic
     def create(self, validated_data):

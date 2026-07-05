@@ -6,6 +6,8 @@ import { AuthContext } from '../context/AuthContext';
 import { obtenerCobrosComunales } from '../api/item.api'; 
 
 import NavbarDashboard from '../components/NavbarDashboard';
+import ModalCobroComunal from '../components/ModalCobroComunal';
+import DetalleCobroComunal from '../components/DetalleCobroComunal';
 import Alerta from '../components/alerta';
 // Si tienes un componente Modal para crear el cobro, impórtalo aquí
 // import ModalCobroComunal from '../components/ModalCobroComunal';
@@ -20,6 +22,7 @@ function CobrosComunalesPage() {
   
   // Estado para controlar la apertura del modal de creación
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [cobroSeleccionadoId, setCobroSeleccionadoId] = useState(null);
 
   const cargarHistorialCobros = async () => {
     setCargando(true);
@@ -124,6 +127,7 @@ function CobrosComunalesPage() {
                   {cobros.map((cobro) => (
                     <div
                       key={cobro.id}
+                      onClick={() => setCobroSeleccionadoId(cobro.id)}
                       className="bg-white border border-[#dbe4ea] rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-[0_20px_40px_rgba(20,70,140,0.1)] transition-all duration-300"
                     >
                       {/* Cabecera Tarjeta: Descripción y Fecha */}
@@ -139,11 +143,7 @@ function CobrosComunalesPage() {
                             {formatearFecha(cobro.fecha_creacion)}
                           </span>
                         </div>
-                        <div className="w-12 h-12 shrink-0 rounded-xl bg-[#0066ff]/10 flex items-center justify-center text-[#0066ff] shadow-sm">
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                          </svg>
-                        </div>
+                        
                       </div>
 
                       {/* Cuerpo: Métricas Financieras / Litros */}
@@ -156,7 +156,7 @@ function CobrosComunalesPage() {
                           <span className="text-[10px] font-bold text-[#91a0b2] uppercase tracking-wider block mb-1">Alícuota (Por vecino)</span>
                           <span className="text-lg font-black text-[#0066ff]">
                             {/* Mostramos el cálculo matemático que hace tu backend */}
-                            - {Number(cobro.alicuota).toFixed(2)} L
+                            {Number(cobro.alicuota).toFixed(2)} L
                           </span>
                         </div>
                       </div>
@@ -180,17 +180,23 @@ function CobrosComunalesPage() {
         </div>
       </div>
       
-      {/* Aquí renderizarías tu modal cuando lo crees. Ejemplo:
-        {modalAbierto && (
-          <ModalCobroComunal 
-            onClose={() => setModalAbierto(false)} 
-            onCobroCreado={() => {
-              setModalAbierto(false);
-              cargarHistorialCobros(); // Recarga la lista automáticamente
-            }} 
-          />
-        )}
-      */}
+      {/* Aquí renderizarías tu modal cuando lo crees. Ejemplo: */}
+      {modalAbierto && (
+        <ModalCobroComunal 
+          onClose={() => setModalAbierto(false)} 
+          onCobroCreado={() => {
+            setModalAbierto(false);
+            cargarHistorialCobros(); // Recarga la lista automáticamente
+          }} 
+        />
+      )}
+      {/* Renderizamos el modal de detalle solo si hay un cobro seleccionado */}
+      {cobroSeleccionadoId && (
+        <DetalleCobroComunal 
+          id={cobroSeleccionadoId} 
+          onClose={() => setCobroSeleccionadoId(null)} 
+        />
+      )}
     </div>
   );
 }

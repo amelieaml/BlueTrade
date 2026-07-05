@@ -216,3 +216,8 @@ export const crearCobroComunal = async (datosCobro) => {
 export const obtenerCobrosComunales = async () => {
     return axios.get('http://127.0.0.1:8000/item/test/cobros/');
 };
+
+// Obtener un solo cobro por su ID
+export const obtenerCobroComunal = async (id) => {
+    return axios.get(`http://127.0.0.1:8000/item/test/cobros/${id}/`);
+};

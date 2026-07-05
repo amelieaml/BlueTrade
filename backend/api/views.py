@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
+from django.contrib.auth import get_user_model
 
 from rest_framework.exceptions import ValidationError
 
@@ -416,12 +417,3 @@ class CobroComunalViewSet(viewsets.ModelViewSet):
     queryset = CobroComunal.objects.all()
     serializer_class = CobroSerializer
     
-    # 1. ELIMINAMOS o comentamos la línea de permisos
-    # permission_classes = [permissions.IsAuthenticated]
-
-    def perform_create(self, serializer):
-        # 2. Como ya no hay token, buscamos al primer usuario que sea admin en tu base de datos
-        admin_por_defecto = User.objects.filter(es_admin=True).first()
-        
-        # Guardamos el cobro asociándolo a ese admin por defecto
-        serializer.save(administrador=admin_por_defecto)
