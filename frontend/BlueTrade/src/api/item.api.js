@@ -218,3 +218,13 @@ export const marcarNotificacionLeida = async (idNotificacion) => {
         }
     });
 };
+
+export const buscarMatch = async (datosMatching) => {
+    const token = localStorage.getItem('token');
+    return axios.post('http://127.0.0.1:8000/item/test/ofertas/matching/', datosMatching, {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};

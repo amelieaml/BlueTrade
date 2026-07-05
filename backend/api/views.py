@@ -1,6 +1,7 @@
 from django.db import transaction
 import requests
 from django.utils import timezone
+from .services import MatchingEngine
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -231,7 +232,31 @@ class OfertaView(viewsets.ModelViewSet):
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
-
+    @action(detail=False, methods=['post'], url_path='matching')
+    def realizar_matching(self, request):
+        data = request.data
+        
+        # Diccionario normalizado
+        params = {
+            'tipo_que_busco': data.get('tipo_solicitado'),
+            'cat_que_busco': data.get('categoria_solicitada'),
+            'tipo_que_ofrecido': data.get('tipo_ofrecido'),
+            'cat_que_ofrecido': data.get('categoria_ofrecida')
+        }
+        
+        # Filtro de seguridad: aseguramos que el usuario esté autenticado
+        user = request.user if request.user.is_authenticated else None
+        ofertas_disponibles = Oferta.objects.filter(estado='ACTIVO')
+        
+        if user:
+            ofertas_disponibles = ofertas_disponibles.exclude(usuario=user)
+        
+        mejor_match = MatchingEngine.encontrar_mejor_match(params, ofertas_disponibles)
+        
+        if mejor_match:
+            return Response(OfertaSerializer(mejor_match).data, status=status.HTTP_200_OK)
+        
+        return Response({"message": "No hay coincidencias."}, status=status.HTTP_404_NOT_FOUND)
 
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
