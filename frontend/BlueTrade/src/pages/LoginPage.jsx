@@ -105,7 +105,7 @@ function LoginPage() {
       <main className="login-main">
         <section className="login-info">
           <span className="login-badge">
-            Acceso a la plataforma hídrica
+            Cuidamos el agua, valoramos tu servicio
           </span>
 
           <h1>
@@ -186,9 +186,6 @@ function LoginPage() {
             
             {errorMsg && <p className="login-error-message" style={{color: 'red', fontSize: '0.85rem', marginTop: '10px'}}>{errorMsg}</p>}
             
-            <div className="login-options">
-              <a href="/recuperar-password">¿Olvidaste tu contraseña?</a>
-            </div>
 
             <button type="submit" className="login-submit-btn" disabled={loading}
             >

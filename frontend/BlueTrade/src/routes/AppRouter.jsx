@@ -10,10 +10,13 @@ import SolicitudesPage from "../pages/Solicitudes.jsx";
 import PerfilUsuario from "../pages/PerfilUsuario.jsx";
 import MisOfertasPage from "../pages/MisOfertasPage.jsx";
 import TransaccionesPage from "../pages/TransaccionesPage.jsx";
+import PaginaResena from "../pages/PaginaResena.jsx";
 
 import AdminDashboardPage from "../pages/AdminDashboardPage.jsx";
 import SolicitudesRegistroPage from "../pages/SolicitudesRegistroPage.jsx";
 import DetalleSolicitudPage from "../pages/DetalleSolicitudPage.jsx";
+import ComunidadPage from "../pages/ComunidadPage.jsx";
+import CobrosComunalesPage from "../pages/CobrosComunalesPage.jsx";
 
 function AppRouter() {
   return (
@@ -30,6 +33,9 @@ function AppRouter() {
         <Route path="/solicitudes" element={<SolicitudesPage />} />
 
         <Route path="/perfil" element={<PerfilUsuario />} />
+        <Route path="/comunidad" element={<ComunidadPage />} />
+        <Route path="/perfil/:id" element={<PerfilUsuario />} />
+        
         <Route path="/historial" element={<MisOfertasPage />} />
         <Route path="/transacciones" element={<TransaccionesPage />} />
 
@@ -44,6 +50,12 @@ function AppRouter() {
           path="/admin/solicitudes/:id"
           element={<DetalleSolicitudPage />}
         />
+
+        <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
+        <Route path="/cobroscomunales" element={<CobrosComunalesPage />} />
+
+        
+
       </Routes>
     </BrowserRouter>
   );

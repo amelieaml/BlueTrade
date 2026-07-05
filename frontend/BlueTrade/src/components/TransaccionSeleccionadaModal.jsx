@@ -72,13 +72,12 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
     obtenerDetallesOferta();
 
-    // Limpiar el estado cuando el modal se cierra
     if (!isOpen) setDetalleOferta(null);
   }, [isOpen, transaccion]);
 
   if (!isOpen || !transaccion) return null;
 
-  // 3. Lógica de confirmaciones y roles
+  // 3. Lógica de  y roles
   const confirmoYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
   const confirmoContraparte = vistaActiva === 'compras' ? transaccion.confirmacion_vendedor : transaccion.confirmacion_comprador;
   const miRol = vistaActiva === 'compras' ? 'Comprador' : 'Vendedor';
@@ -289,18 +288,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
               </div>
             </div>
           </div>
-
-          {/* --- ALERTA VISUAL DE LITROS INSUFICIENTES --- */}
-          {litrosInsuficientes && (
-            <div className="mt-8 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3">
-              <svg className="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>
-                No tienes suficientes litros ({usuario?.litros_disponibles || 0}L) para realizar esta entrega. Debes cancelar la transacción.
-              </span>
-            </div>
-          )}
 
           {/* --- BOTONES DE ACCIÓN --- */}
           {['PENDIENTE', 'EN_PROCESO'].includes(transaccion.estado) ? (

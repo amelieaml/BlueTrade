@@ -18,6 +18,7 @@ const IconoNotificaciones = ({ className = "w-5 h-5" }) => (
     />
   </svg>
 );
+
 function NavbarDashboard({ 
   paginaActiva = 'dashboard',
   nombreApp = "BlueTrade",
@@ -39,9 +40,9 @@ function NavbarDashboard({
   useEffect(() => {
     setUsuarioActivo(estadoUsuario === "activo" || esAdmin);
   }, [estadoUsuario, esAdmin]);
- useEffect(() => {
-    const cargarNotificaciones = async () => {
 
+  useEffect(() => {
+    const cargarNotificaciones = async () => {
         try {
             const res = await getNotificaciones(usuario.id);
             setNotificaciones(res.data);
@@ -52,24 +53,22 @@ function NavbarDashboard({
         }
     };
     
-    // Solo llamamos si usuarioActivo es true Y tenemos un token
     if (usuario?.id) {
         cargarNotificaciones();
     }
-}, [usuario]);
-const handleMarcarLeida = async (id) => {
-    try {
-        await marcarNotificacionLeida(id);
-        // Actualizamos el estado local para reflejar el cambio al instante
-        setNotificaciones(prev => 
-            prev.map(n => n.id === id ? { ...n, leido: true } : n)
-        );
-        // Restamos uno al contador
-        setNotificacionesSinLeer(prev => Math.max(0, prev - 1));
-    } catch (error) {
-        console.error("Error al marcar como leída:", error);
-    }
-};
+  }, [usuario]);
+
+  const handleMarcarLeida = async (id) => {
+      try {
+          await marcarNotificacionLeida(id);
+          setNotificaciones(prev => 
+              prev.map(n => n.id === id ? { ...n, leido: true } : n)
+          );
+          setNotificacionesSinLeer(prev => Math.max(0, prev - 1));
+      } catch (error) {
+          console.error("Error al marcar como leída:", error);
+      }
+  };
 
   const handleLogout = () => {
     cerrarSesion();
@@ -77,21 +76,27 @@ const handleMarcarLeida = async (id) => {
   };
 
   return (
-    <>
-      <header className="navbar flex justify-between items-center p-4">
+    <> {/* <--- Agregado fragmento de apertura para que coincida con el final */}
+      <header className="navbar">
+        
         {/* SECCIÓN IZQUIERDA */}
-        <a href="/dashboard" className="logo flex items-center gap-2" style={{ textDecoration: 'none' }}>
+        <a href="/dashboard" className="logo" style={{ textDecoration: 'none' }}>
           <span className="logo-icon">BT</span>
           <span className="logo-text">{nombreApp}</span>
         </a>
 
-        {/* SECCIÓN CENTRAL */}
+        {/* SECCIÓN CENTRAL (Unificada y corregida) */}
         <nav className="nav-links flex gap-4">
-          {usuarioActivo && ['dashboard', 'ofertas', 'historial', 'transacciones'].map(link => (
-             <a key={link} href={`/${link}`} className={paginaActiva === link ? 'active font-bold text-blue-600' : ''}>
-               {link.charAt(0).toUpperCase() + link.slice(1)}
-             </a>
-          ))}
+          {usuarioActivo && (
+            <>
+              <a href="/dashboard" className={paginaActiva === 'dashboard' ? 'active font-bold text-blue-600' : ''}>Vista General</a>
+              <a href="/ofertas" className={paginaActiva === 'ofertas' ? 'active font-bold text-blue-600' : ''}>Catálogo de Ofertas</a>
+              <a href="/historial" className={paginaActiva === 'historial' ? 'active font-bold text-blue-600' : ''}>Mis Ofertas</a>
+              <a href="/transacciones" className={paginaActiva === 'transacciones' ? 'active font-bold text-blue-600' : ''}>Mis Transacciones</a>
+              <a href="/cobroscomunales" className={paginaActiva === 'cobroscomunales' ? 'active font-bold text-blue-600' : ''}>Cobros Comunales</a>
+              <a href="/comunidad" className={paginaActiva === 'comunidad' ? 'active font-bold text-blue-600' : ''}>Comunidad</a>
+            </>
+          )}
           <a href="/perfil" className={paginaActiva === 'perfil' ? 'active font-bold text-blue-600' : ''}>Perfil</a>
           {esAdmin && <a href="/admin" className="font-bold">Gestión Admin</a>}
         </nav>
@@ -131,37 +136,37 @@ const handleMarcarLeida = async (id) => {
       )}
 
       <div className={`fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-500 ease-out ${showNotifications ? 'translate-x-0' : 'translate-x-full'}`}>
-  <div className="p-6 flex flex-col h-full">
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-xl font-bold">Notificaciones</h2>
-      <button onClick={() => setShowNotifications(false)} className="cursor-pointer text-gray-500 hover:text-black">✕</button>
-    </div>
-
-    {/* Lista de Notificaciones */}
-    <div className="flex-1 overflow-y-auto space-y-4">
-      {notificaciones.length > 0 ? (
-        notificaciones.map((notif) => (
-          <div 
-            key={notif.id} 
-            onClick={() => !notif.leido && handleMarcarLeida(notif.id)} // <--- Se marca al hacer clic
-            className={`p-4 rounded-lg border text-sm transition-all cursor-pointer ${
-              notif.leido ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-            }`}
-          >
-            <p className={`font-medium ${notif.leido ? 'text-gray-600' : 'text-blue-900'}`}>
-              {notif.mensaje}
-            </p>
-            <span className="text-xs text-gray-400 mt-2 block">
-              {new Date(notif.creado_el).toLocaleDateString()}
-            </span>
+        <div className="p-6 flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold">Notificaciones</h2>
+            <button onClick={() => setShowNotifications(false)} className="cursor-pointer text-gray-500 hover:text-black">✕</button>
           </div>
-        ))
-      ) : (
-        <div className="text-gray-400 text-center mt-10">No tienes notificaciones.</div>
-      )}
-    </div>
-  </div>
-</div>
+
+          {/* Lista de Notificaciones */}
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {notificaciones.length > 0 ? (
+              notificaciones.map((notif) => (
+                <div 
+                  key={notif.id} 
+                  onClick={() => !notif.leido && handleMarcarLeida(notif.id)}
+                  className={`p-4 rounded-lg border text-sm transition-all cursor-pointer ${
+                    notif.leido ? 'bg-gray-50 border-gray-100 opacity-70' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                  }`}
+                >
+                  <p className={`font-medium ${notif.leido ? 'text-gray-600' : 'text-blue-900'}`}>
+                    {notif.mensaje}
+                  </p>
+                  <span className="text-xs text-gray-400 mt-2 block">
+                    {new Date(notif.creado_el).toLocaleDateString()}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-400 text-center mt-10">No tienes notificaciones.</div>
+            )}
+          </div>
+        </div>
+      </div>
     </>
   );
 }

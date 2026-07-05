@@ -336,12 +336,12 @@ function RegisterPage() {
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="propiedad">Código o número de propiedad</label>
+                  <label htmlFor="propiedad">Número de propiedad</label>
                   <input
                     type="text"
                     id="propiedad"
                     name="propiedad"
-                    placeholder="Ej. Casa A-12 / Torre 3 Apt. 4B"
+                    placeholder="Ej. 0001"
                     value={formData.propiedad}
                     onChange={validarCampo}
                     required
@@ -399,8 +399,7 @@ function RegisterPage() {
                       </div>
                     )}
                     <span>
-                      Deseo ofrecer mantenimiento técnico en infraestructuras
-                      comunes.
+                      Deseo ofrecer mis servicios en alguna(s) área en específico.
                     </span>
                   </div>
                 </label>

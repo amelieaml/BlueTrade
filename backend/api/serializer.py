@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import Certificado, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Notificacion
+from .models import Certificado, CobroComunal, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Resena, Notificacion
+from django.db import transaction
+from django.db.models import F
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
@@ -21,7 +26,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         }
 
     def validate_codigo_casa(self, value):
-        # REGLA: Si la casa ya está ocupada, rechaza el registro inmediatamente
         if value.ocupada:
             raise serializers.ValidationError("Esta propiedad ya se encuentra vinculada a un usuario registrado.")
         return value
@@ -99,16 +103,17 @@ class OfertaSerializer(serializers.ModelSerializer):
         }
 
 class TransaccionSerializer(serializers.ModelSerializer):
-    # 1. Traemos los nombres de los usuarios vinculados
     comprador_nombre = serializers.ReadOnlyField(source='comprador.nombre')
     vendedor_nombre = serializers.ReadOnlyField(source='vendedor.nombre')
     
-    # 2. Creamos el campo para el texto descriptivo
     oferta_resumen = serializers.SerializerMethodField()
+
+    ya_calificada = serializers.SerializerMethodField()
+    usuario_agua_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaccion
-        fields = '__all__' # Esto incluirá automáticamente los campos nuevos que definimos arriba
+        fields = '__all__' 
         extra_kwargs = {
             'oferta': {'required': False},
             'estado': {'required': False},
@@ -116,7 +121,6 @@ class TransaccionSerializer(serializers.ModelSerializer):
             'confirmacion_vendedor': {'required': False}
         }
 
-    # 3. Función que construye el texto "X Litros ⇄ Y Horas"
     def get_oferta_resumen(self, obj):
         if not obj.oferta:
             return "Oferta no disponible"
@@ -133,6 +137,18 @@ class TransaccionSerializer(serializers.ModelSerializer):
             return f"{texto_ofrecido} ⇄ {texto_solicitado}"
         except Exception:
             return f"Oferta #{obj.oferta.id}"
+    def get_ya_calificada(self, obj):
+        return hasattr(obj, 'resena')
+
+    def get_usuario_agua_id(self, obj):
+        if not obj.oferta:
+            return None
+        if obj.oferta.tipo_ofrecido == 'AGUA':
+            return obj.vendedor.id
+        elif obj.oferta.tipo_solicitado == 'AGUA':
+            return obj.comprador.id
+        return None
+    
 class NotificacionSerializer(serializers.ModelSerializer):
     # Campo calculado: El frontend recibirá esto como 'mensaje'
     mensaje = serializers.SerializerMethodField()
@@ -155,3 +171,60 @@ class NotificacionSerializer(serializers.ModelSerializer):
         
         return mensajes.get(obj.tipo, "Tienes una nueva actualización.")
     
+
+    
+
+class ResenaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Resena
+        fields = '__all__'
+        extra_kwargs = {
+            'evaluador': {'required': False},
+            'evaluado': {'required': False}
+        }
+
+class CobroSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CobroComunal
+        fields = '__all__'
+        # Bloqueamos estos campos para que el frontend no pueda alterarlos
+        read_only_fields = ('administrador', 'alicuota', 'fecha_creacion')
+
+    def validate(self, data):
+        # Validación: Evitamos la división por cero en el cálculo matemático
+        if data.get('usuarios_involucrados', 0) <= 0:
+            raise serializers.ValidationError({
+                "usuarios_involucrados": "Debe haber al menos 1 usuario involucrado para generar el cobro."
+            })
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        monto_total = validated_data['monto_total']
+
+        # Paso 1: Filtramos ESTRICTAMENTE a los usuarios con estado ACTIVO
+        usuarios_activos = User.objects.filter(estado='ACTIVO')
+        
+        # Contamos cuántos usuarios activos hay realmente en la base de datos
+        cantidad_usuarios_reales = usuarios_activos.count()
+
+        # Validación de seguridad: Si no hay usuarios activos, abortamos la operación
+        if cantidad_usuarios_reales == 0:
+            raise serializers.ValidationError({
+                "error": "No hay usuarios en estado ACTIVO para aplicar este cobro."
+            })
+
+        # Forzamos que el registro guarde la cantidad real, ignorando si el frontend mandó otro número
+        validated_data['usuarios_involucrados'] = cantidad_usuarios_reales
+
+        # Paso 2 matemático: Cálculo de la porción por persona
+        alicuota_calculada = monto_total / cantidad_usuarios_reales
+        validated_data['alicuota'] = alicuota_calculada
+
+        # Creamos el registro del cobro comunal
+        cobro_maestro = super().create(validated_data)
+
+        # Paso 3 matemático: Descontamos directamente solo al grupo de usuarios activos
+        usuarios_activos.update(litros_agua=F('litros_agua') - alicuota_calculada)
+
+        return cobro_maestro

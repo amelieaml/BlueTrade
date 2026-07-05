@@ -1,28 +1,65 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
-import { guardarCertificado, getServicios } from '../api/item.api';
+import { guardarCertificado, getServicios, getResenasUsuario, getUsuario } from '../api/item.api'; 
+import { useParams } from 'react-router-dom'; 
 import '../styles/PerfilUsuario.css'; 
 
 function PerfilUsuario() {
-  const { usuario, obtenerPerfilActualizado } = useContext(AuthContext);
+  const { usuario: usuarioLogueado, obtenerPerfilActualizado } = useContext(AuthContext);
+  const { id } = useParams(); 
+
+  const [usuario, setUsuario] = useState(null);
   const [archivo, setArchivo] = useState(null);
   const [serviciosDB, setServiciosDB] = useState([]);
   const [tipoServicio, setTipoServicio] = useState(''); 
   const [cargando, setCargando] = useState(false);
+  const [resenas, setResenas] = useState([]);
+  
+  const [cargandoDatos, setCargandoDatos] = useState(true);
 
   useEffect(() => {
-    const cargarServicios = async () => {
+    const cargarDatosPerfil = async () => {
+      setCargandoDatos(true);
       try {
-        const response = await getServicios();
-        setServiciosDB(response.data.filter(s => !s.es_externo));
+        const responseServicios = await getServicios();
+        setServiciosDB(responseServicios.data.filter(s => !s.es_externo));
         
+        const idUrlNum = id ? Number(id) : null;
+        const usuarioLogueadoId = usuarioLogueado?.id ? Number(usuarioLogueado.id) : null;
+        
+        const usuarioIdAConsultar = idUrlNum || usuarioLogueadoId;
+        
+        if (usuarioIdAConsultar) {
+          if (!idUrlNum || idUrlNum === usuarioLogueadoId) {
+            setUsuario(usuarioLogueado);
+          } 
+          else {
+            const responsePublico = await getUsuario(idUrlNum);
+            setUsuario(responsePublico.data);
+          }
+
+          const responseResenas = await getResenasUsuario(usuarioIdAConsultar);
+          setResenas(responseResenas.data);
+        } else {
+          setUsuario(null);
+        }
       } catch (error) {
-        console.error("Error al recuperar los servicios:", error);
+        console.error("Error al recuperar información del perfil:", error);
+        setUsuario(null);
+      } finally {
+        setCargandoDatos(false);
       }
     };
-    if (usuario?.id) cargarServicios();
-  }, [usuario]);
+    
+    if (usuarioLogueado?.id || id) {
+      cargarDatosPerfil();
+    }
+  }, [id, usuarioLogueado]); 
+
+  const promedioCalificacion = resenas.length > 0 
+    ? (resenas.reduce((acc, r) => acc + Number(r.calificacion), 0) / resenas.length).toFixed(1)
+    : "0.0";
 
   const getIniciales = (nombre) => {
     if (!nombre) return "??";
@@ -47,13 +84,14 @@ function PerfilUsuario() {
     setArchivo(e.target.files[0]);
   };
   
-  const handleUpload = async () => {
+  const handleUpload = async (e) => {
+    e.preventDefault();
     if (!archivo) return;
     setCargando(true);
     try {
       const formData = new FormData();
       formData.append('certificado', archivo);
-      formData.append('tipo_servicio', tipoServicio); 
+      formData.append('tipoServicio', tipoServicio); 
 
       await guardarCertificado(usuario.id, formData);
       await obtenerPerfilActualizado(usuario.id); 
@@ -68,7 +106,7 @@ function PerfilUsuario() {
     }
   };
 
-  if (!usuario) {
+  if (cargandoDatos) {
     return (
       <div className="perfil-loading-container">
         <div className="flex items-center gap-3">
@@ -79,8 +117,19 @@ function PerfilUsuario() {
     );
   }
 
-  const litrosTotales = usuario.litros_agua || 0;
-  const litrosDisponibles = usuario.litros_disponibles !== undefined ? usuario.litros_disponibles : litrosTotales;
+  if (!usuario) {
+    return (
+      <div className="perfil-loading-container">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-sm font-bold text-gray-500 m-0">El usuario solicitado no existe o no está disponible.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const litrosTotales = Number(usuario.litros_agua) || 0;
+  const litrosBloqueados = Number(usuario.litros_bloqueados) || 0;
+  const litrosDisponibles = Number(usuario.litros_disponibles) !== undefined ? Number(usuario.litros_disponibles) : (litrosTotales - litrosBloqueados);
   const porcentajeDisponible = litrosTotales > 0 ? (litrosDisponibles / litrosTotales) * 100 : 0;
   
   const misCertificados = usuario.certificados || [];
@@ -90,20 +139,42 @@ function PerfilUsuario() {
       <NavbarDashboard paginaActiva="perfil" />
 
       <div className="perfil-wrapper">
-        
         <div className="perfil-card-central">
           
           <div className="perfil-cabecera">
             <div className="perfil-avatar">
               {getIniciales(usuario.nombre)}
             </div>
-            
             <div className="perfil-nombre-container">
-              <h1 className="perfil-nombre">
-                {usuario.nombre}
-              </h1>
-            </div>
+              <h1 className="perfil-nombre">{usuario.nombre}</h1>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  {[...Array(5)].map((_, i) => (
+                    <svg 
+                      key={i} 
+                      style={{ 
+                        width: '15px', 
+                        height: '15px', 
+                        color: i < Math.round(Number(promedioCalificacion)) ? '#ffb400' : 'rgba(99, 116, 137, 0.4)' 
+                      }} 
+                      fill={i < Math.round(Number(promedioCalificacion)) ? "currentColor" : "none"} 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.233.577 1.83l-3.97 2.88a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.97-2.88a1 1 0 00-1.176 0l-3.97 2.88c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.88c-.783-.597-.384-1.83.577-1.83h4.906a1 1 0 00.95-.69l1.519-4.674z" />
+                    </svg>
+                  ))}
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 'black', color: '#000000' }}>
+                  {promedioCalificacion}
+                </span>
+                <span style={{ fontSize: '11px', color: '#637489' }}>
+                  ({resenas.length} {resenas.length === 1 ? 'opinión' : 'opiniones'})
+                </span>
+              </div>
 
+            </div>
             <div className="perfil-badge-container">
               <span className={`perfil-badge-base ${getBadgeEstadoConfig(usuario.estado)}`}>
                 Estatus: {usuario.estado ? usuario.estado.replace('_', ' ') : 'EN ESPERA'}
@@ -113,15 +184,12 @@ function PerfilUsuario() {
 
           <div className="balance-container">
             <div className="balance-decoracion"></div>
-            
             <div className="balance-header">
               <div>
-                <span className="balance-subtitulo">
-                  Balance Neto Disponible
-                </span>
+                <span className="balance-subtitulo">Balance Neto Disponible</span>
                 <div className="balance-litros-wrapper">
                   <h2 className="balance-litros-principal">
-                    {litrosDisponibles.toLocaleString('de-DE')}
+                    {litrosDisponibles.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                   </h2>
                   <span className="balance-decay-label balance-unidad">Litros</span>
                 </div>
@@ -130,14 +198,16 @@ function PerfilUsuario() {
               <div className="balance-widgets-container">
                 <div className="balance-widget-total">
                   <span className="balance-widget-label-total">Total</span>
-                  <span className="balance-widget-valor-total">{litrosTotales} L</span>
+                  <span className="balance-widget-valor-total">{litrosTotales.toLocaleString('de-DE')} L</span>
                 </div>
                 <div className="balance-widget-bloqueado">
                   <span className="balance-widget-label-bloqueado">
                     <span className="balance-widget-pulso"></span>
                     Bloqueado
                   </span>
-                  <span className="balance-widget-valor-bloqueado">{usuario.litros_bloqueados || "0.0"} L</span>
+                  <span className="balance-widget-valor-bloqueado">
+                    {litrosBloqueados.toLocaleString('de-DE', { minimumFractionDigits: 1 })} L
+                  </span>
                 </div>
               </div>
             </div>
@@ -146,7 +216,7 @@ function PerfilUsuario() {
               <div className="balance-barra-fondo">
                 <div 
                   className="balance-barra-relleno"
-                  style={{ width: `${Math.min(porcentajeDisponible, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(porcentajeDisponible, 0), 100)}%` }}
                 ></div>
               </div>
               <div className="balance-barra-footer">
@@ -154,7 +224,7 @@ function PerfilUsuario() {
                 <span className="balance-porcentaje-badge">
                   {porcentajeDisponible.toFixed(0)}% Disponible
                 </span>
-                <span>{litrosTotales} L</span>
+                <span>{litrosTotales.toLocaleString('de-DE')} L</span>
               </div>
             </div>
           </div>
@@ -210,27 +280,18 @@ function PerfilUsuario() {
           </div>
 
           <div className="grid-secundario">
-            
             <div className="servicios-container">
               <div>
-                <h3 className="seccion-titulo">
-                  Mis Servicios Habilitados
-                </h3>
-                <p className="seccion-descripcion">
-                  Especialidades postuladas mediante comprobante.
-                </p>
+                <h3 className="seccion-titulo">Mis Servicios Habilitados</h3>
+                <p className="seccion-descripcion">Especialidades postuladas mediante comprobante.</p>
               </div>
 
               <div className="servicios-lista">
                 {misCertificados.length > 0 ? (
                   misCertificados.map((cert, index) => {
                     const esActivo = usuario.certificado;
-
                     return (
-                      <div 
-                        key={cert.id || index} 
-                        className={esActivo ? "servicio-item-plomeria" : "servicio-item-electrico"}
-                      >
+                      <div key={cert.id || index} className={esActivo ? "servicio-item-plomeria" : "servicio-item-electrico"}>
                         <div className="servicio-info-flex">
                           <div className={esActivo ? "servicio-icono-plomeria" : "servicio-icono-electrico"}>
                             <svg className="svg-icono-standard" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -260,14 +321,11 @@ function PerfilUsuario() {
               </div>
             </div>
 
+            {(!id || id == usuarioLogueado?.id) && (
             <div className="formulario-container">
               <div>
-                <h3 className="seccion-titulo">
-                  Subir Certificado
-                </h3>
-                <p className="seccion-descripcion">
-                  Sube tu certificado para poder prestar un nuevo servicio.
-                </p>
+                <h3 className="seccion-titulo">Subir Certificado</h3>
+                <p className="seccion-descripcion">Sube tu certificado para poder prestar un nuevo servicio.</p>
               </div>
 
               <form onSubmit={handleUpload} className="form-elementos">
@@ -292,12 +350,7 @@ function PerfilUsuario() {
                       ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10" 
                       : "border-[#0066ff]/20 bg-white hover:bg-[#0066ff]/5"
                   }`}>
-                    <input 
-                      type="file" 
-                      onChange={subirArchivo}
-                      required
-                      className="dropzone-input-oculto" 
-                    />
+                    <input type="file" onChange={subirArchivo} required className="dropzone-input-oculto" />
                     <div className="dropzone-contenido">
                       <svg className={`svg-icono-mediano ${archivo ? "text-emerald-600" : "text-[#0066ff]/60"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         {archivo ? (
@@ -314,21 +367,76 @@ function PerfilUsuario() {
                 </div>
 
                 {archivo && tipoServicio && (
-                  <button 
-                    type="submit"
-                    disabled={cargando}
-                    className="form-boton-subir"
-                  >
+                  <button type="submit" disabled={cargando} className="form-boton-subir">
                     {cargando ? "Procesando bloque..." : "Postular Certificado"}
                   </button>
                 )}
               </form>
+            </div>)}
+          </div>
+
+          <div className="reseñas-seccion-container" style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0, 102, 255, 0.1)' }}>
+            <div>
+              <h3 className="seccion-titulo">Reseñas de la Comunidad</h3>
+              <p className="seccion-descripcion">Calificaciones otorgadas por los vecinos en transacciones previas.</p>
             </div>
 
+            <div className="reseñas-lista" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+              {resenas.length > 0 ? (
+                resenas.map((resena) => (
+                  <div 
+                    key={resena.id} 
+                    className="resena-item-card" 
+                    style={{ 
+                      background: 'rgba(254, 240, 138, 0.03)', 
+                      border: '1px solid #e2e8f0', 
+                      padding: '16px', 
+                      borderRadius: '16px',
+                      boxShadow: '0 4px 20px -2px rgba(20, 70, 140, 0.06), 0 2px 6px -1px rgba(20, 70, 140, 0.03)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <div className="estrellas-container" style={{ display: 'flex', gap: '2px' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <svg 
+                            key={i} 
+                            style={{ 
+                              width: '13px', 
+                              height: '13px', 
+                              color: i < resena.calificacion ? '#eab308' : 'rgba(145, 160, 178, 0.3)' 
+                            }} 
+                            fill={i < resena.calificacion ? "currentColor" : "none"} 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.233.577 1.83l-3.97 2.88a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.97-2.88a1 1 0 00-1.176 0l-3.97 2.88c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.88c-.783-.597-.384-1.83.577-1.83h4.906a1 1 0 00.95-.69l1.519-4.674z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#91a0b2', fontWeight: '500' }}>
+                        {new Date(resena.fecha).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '13px', color: '#000000', margin: '0', lineHeight: '1.5', fontWeight: '500' }}>
+                      "{resena.comentario}"
+                    </p>
+
+                    <div style={{ marginTop: '8px', fontSize: '10px', color: '#0066ff', fontFamily: 'monospace', fontWeight: '600', opacity: 0.8 }}>
+                      Transacción #{resena.transaccion}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] font-medium text-[#637489] italic pt-2">
+                  Aún no has recibido calificaciones en la plataforma.
+                </p>
+              )}
+            </div>
           </div>
 
         </div>
-
       </div>
     </div>
   );

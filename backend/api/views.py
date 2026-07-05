@@ -8,8 +8,10 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 
+from rest_framework.exceptions import ValidationError
 
 from .serializer import (
+    User,
     UsuarioSerializer, 
     ServicioSerializer, 
     CertificadoSerializer, 
@@ -17,9 +19,11 @@ from .serializer import (
     UsuarioAdminSerializer,
     TransaccionSerializer,
     DirectorioServicioSerializer,
+    ResenaSerializer,
+    CobroSerializer,
     NotificacionSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Notificacion
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena, CobroComunal, Notificacion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -28,7 +32,6 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='listar-admin')
     def listar_admin(self, request):
         usuarios = Usuario.objects.all().order_by('id')
-        # Es vital pasar el contexto para que las URLs del certificado funcionen
         serializer = UsuarioAdminSerializer(
             usuarios, 
             many=True, 
@@ -39,7 +42,6 @@ class UsuarioView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
     def registro_completo(self, request):
-        # 1. Validación: El serializador solo verifica que los datos están bien
         usuario_serializer = UsuarioSerializer(data=request.data)
         
         if usuario_serializer.is_valid(): 
@@ -47,16 +49,14 @@ class UsuarioView(viewsets.ModelViewSet):
                 nombre=usuario_serializer.validated_data['nombre'],
                 ci=usuario_serializer.validated_data['ci'],
                 email=usuario_serializer.validated_data['email'],
+                telefono=usuario_serializer.validated_data['telefono'],
                 codigo_casa=usuario_serializer.validated_data['codigo_casa']
             )
             
-            # 3. Configuración POO: Asignamos lógica de negocio (setter)
             nuevo_usuario.set_password(request.data.get('password'))
             
-            # 4. Persistencia manual: Tú decides cuándo se guarda
             nuevo_usuario.save()
             
-            # 5. Lógica de negocio adicional: controlando el estado del otro objeto
             residencia = nuevo_usuario.codigo_casa
             residencia.ocupada = True
             residencia.save()
@@ -125,6 +125,71 @@ class UsuarioView(viewsets.ModelViewSet):
             "message": "Inicio de sesión exitoso",
             "user": serializer.data
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'], url_path='resenas_recibidas')
+    def resenas_recibidas(self, request, pk=None):
+        usuario = self.get_object()
+        resenas = Resena.objects.filter(evaluado=usuario).order_by('-id')
+        serializer = ResenaSerializer(resenas, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='comunidad')
+    def comunidad(self, request):
+    
+        queryset = Usuario.objects.filter(estado='ACTIVO')
+
+        nombre = request.query_params.get('nombre', None)
+        servicio = request.query_params.get('servicio', None)
+        reputacion = request.query_params.get('reputacion', None)
+        ordenar = request.query_params.get('ordenar', 'alfabetico')
+
+        if nombre:
+            queryset = queryset.filter(nombre__icontains=nombre)
+            
+        if servicio:
+            queryset = queryset.filter(tipo_servicio_intencion__icontains=servicio)
+
+        if ordenar == 'reputacion':
+            
+            usuarios_ordenados = sorted(queryset, key=lambda u: u.promedio_calificacion, reverse=True)
+        else:
+            usuarios_ordenados = queryset.order_by('nombre')
+
+        if reputacion and float(reputacion) > 0:
+            usuarios_ordenados = [u for u in usuarios_ordenados if u.promedio_calificacion >= float(reputacion)]
+
+        data = []
+        for u in usuarios_ordenados:
+            data.append({
+                "id": u.id,
+                "nombre": u.nombre,
+                "codigo_casa": u.codigo_casa.codigo if u.codigo_casa else "S/N",
+                "tipo_servicio_principal": u.tipo_servicio_intencion or "Consumidor de Agua",
+                "certificado_verificado": u.certificado,
+                "reputacion": str(u.promedio_calificacion)
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def certificados(self, request, pk=None):
+        """
+        Devuelve la lista de certificados asociados a un usuario específico.
+        """
+        # Obtenemos la instancia del usuario según el ID (pk) de la URL
+        usuario_instancia = self.get_object() 
+        
+        # Filtramos los certificados que le pertenecen a este usuario
+        certificados = Certificado.objects.filter(usuario=usuario_instancia)
+        
+        # Utilizamos el serializador que ya tienes creado
+        serializer = CertificadoSerializer(
+            certificados, 
+            many=True, 
+            context={'request': request} # Importante para construir las URLs absolutas de los archivos
+        )
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
 class ServicioView(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
@@ -213,8 +278,8 @@ class OfertaView(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         
         data = request.data.copy()
-        
         usuario_id = data.get('usuario_id')
+
         if not usuario_id:
             return Response({"error": "El campo 'usuario_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -223,12 +288,19 @@ class OfertaView(viewsets.ModelViewSet):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
+        tipo_ofrecido = data.get('tipo_ofrecido')
+        cantidad_ofrecida = float(data.get('cantidad_ofrecida', 0))
+
+        if tipo_ofrecido == 'AGUA' and usuario_instancia.litros_agua < cantidad_ofrecida:
+            return Response({"error": "Saldo insuficiente para cubrir esta oferta."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if tipo_ofrecido == 'AGUA':
+            usuario_instancia.litros_agua -= cantidad_ofrecida
+            usuario_instancia.save()
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        # ✨ LA SOLUCIÓN MAGISTRAL DE DJANGO ✨
-        # En lugar de mapear los 8 campos manualmente, le decimos al serializador 
-        # que guarde todo lo que validó, e inyectamos el usuario manualmente.
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
@@ -258,6 +330,27 @@ class OfertaView(viewsets.ModelViewSet):
         
         return Response({"message": "No hay coincidencias."}, status=status.HTTP_404_NOT_FOUND)
 
+    
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        nuevo_estado = request.data.get('estado')
+        
+        if instance.tipo_ofrecido == 'AGUA' and nuevo_estado != instance.estado:
+            usuario = instance.usuario
+            cantidad = instance.cantidad_ofrecida
+
+            if instance.estado == 'ACTIVO' and nuevo_estado in ['PAUSADO', 'CANCELADO']:
+                usuario.litros_agua += cantidad
+                usuario.save()
+            
+            elif instance.estado == 'PAUSADO' and nuevo_estado == 'ACTIVO':
+                if usuario.litros_disponibles < cantidad:
+                    return Response({"detail": "Saldo insuficiente para reactivar la oferta."}, status=status.HTTP_400_BAD_REQUEST)
+                usuario.litros_agua -= cantidad
+                usuario.save()
+
+        return super().partial_update(request, *args, **kwargs)
+    
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaccion.objects.select_related('comprador', 'vendedor', 'oferta').all()
     serializer_class = TransaccionSerializer
@@ -295,17 +388,14 @@ class TransaccionViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Validación de seguridad: Si ya está COMPLETADA, bloquear cualquier cambio
         if instance.estado == 'COMPLETADA':
             return Response(
                 {"error": "No se puede modificar una transacción que ya ha sido completada."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        # Ejecutamos la actualización normal (procesa el cambio a CANCELADA o el cambio de confirmaciones)
         response = super().partial_update(request, *args, **kwargs)
         
-        # Volvemos a consultar la instancia post-guardado para verificar si ambos confirmaron
         instance.refresh_from_db()
         if instance.confirmacion_comprador and instance.confirmacion_vendedor:
             if instance.estado in ['PENDIENTE', 'EN_PROCESO']:
@@ -349,3 +439,51 @@ class NotificacionViewSet(viewsets.ModelViewSet):
         except Notificacion.DoesNotExist:
             return Response({'error': f'No existe notificación con ID {pk}'}, status=status.HTTP_404_NOT_FOUND)
     
+class ResenaViewSet(viewsets.ModelViewSet):
+    queryset = Resena.objects.all()
+    serializer_class = ResenaSerializer
+
+    def perform_create(self, serializer):
+        transaccion_id = self.request.data.get('transaccion')
+        from .models import Transaccion
+        transaccion_instancia = Transaccion.objects.get(id=transaccion_id)
+        
+        oferta = transaccion_instancia.oferta
+        usuario_que_ofrecio_agua = None
+
+        if oferta.tipo_ofrecido == 'AGUA':
+            usuario_que_ofrecio_agua = transaccion_instancia.vendedor
+        elif oferta.tipo_solicitado == 'AGUA':
+            usuario_que_ofrecio_agua = transaccion_instancia.comprador
+
+        evaluador = self.request.user 
+        
+        if evaluador.is_anonymous:
+            evaluador = usuario_que_ofrecio_agua
+        else:
+            if evaluador != usuario_que_ofrecio_agua:
+                raise ValidationError(
+                    {"error": "Acceso denegado. Solo los usuarios que aportaron Agua pueden calificar al proveedor del Servicio."}
+                )
+
+        if evaluador == transaccion_instancia.comprador:
+            evaluado = transaccion_instancia.vendedor
+        else:
+            evaluado = transaccion_instancia.comprador
+
+        serializer.save(evaluador=evaluador, evaluado=evaluado)
+
+
+class CobroComunalViewSet(viewsets.ModelViewSet):
+    queryset = CobroComunal.objects.all()
+    serializer_class = CobroSerializer
+    
+    # 1. ELIMINAMOS o comentamos la línea de permisos
+    # permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # 2. Como ya no hay token, buscamos al primer usuario que sea admin en tu base de datos
+        admin_por_defecto = User.objects.filter(es_admin=True).first()
+        
+        # Guardamos el cobro asociándolo a ese admin por defecto
+        serializer.save(administrador=admin_por_defecto)

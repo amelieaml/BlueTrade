@@ -1,0 +1,160 @@
+.resena-container {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(0, 120, 255, 0.18), transparent 35%),
+    linear-gradient(135deg, #f7fbff 0%, #eef6ff 45%, #ffffff 100%);
+  color: #102033;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.resena-card {
+  background: white;
+  border-radius: 28px;
+  padding: 45px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 18px 45px rgba(20, 70, 140, 0.1);
+  border: 1px solid rgba(0, 102, 255, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.resena-card h2 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #102033;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.resena-subtitle {
+  color: #637489;
+  text-align: center;
+  margin-bottom: 32px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.resena-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #102033;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Selector de estrellas interactivo */
+.estrellas-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.estrella-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s ease;
+}
+
+.estrella-btn:hover {
+  transform: scale(1.2);
+}
+
+.estrella-icon {
+  width: 42px;
+  height: 42px;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+/* Textarea Premium */
+.resena-textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #dbe4ea;
+  border-radius: 18px;
+  padding: 16px;
+  font-size: 15px;
+  color: #1f2937;
+  background: #ffffff;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.resena-textarea:focus {
+  border-color: #0066ff;
+  box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.12);
+}
+
+.resena-textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Botones de acción */
+.resena-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.btn-submit-resena {
+  flex: 2;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #0066ff, #00b8ff);
+  box-shadow: 0 12px 28px rgba(0, 102, 255, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.btn-submit-resena:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 102, 255, 0.34);
+}
+
+.btn-cancelar-resena {
+  flex: 1;
+  border: 1px solid #dbe4ea;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #637489;
+  background: white;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  text-align: center;
+}
+
+.btn-cancelar-resena:hover {
+  background: #f4f8fb;
+  color: #102033;
+}

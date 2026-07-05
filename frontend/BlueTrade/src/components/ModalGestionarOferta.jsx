@@ -133,7 +133,6 @@ function ModalGestionarOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario
         <div className="p-6 md:p-7 border-b border-gray-50 relative text-left shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-[#102033] tracking-tight m-0">Gestionar oferta #{oferta.id}</h2>
-            {/* Aplicación dinámica de colores al estado */}
             <span className={`text-[10px] font-black tracking-wider px-2 py-1 rounded-md border uppercase ${getEstadoEstilos(oferta.estado)}`}>
               {oferta.estado}
             </span>
