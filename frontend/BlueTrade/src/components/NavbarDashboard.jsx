@@ -164,10 +164,10 @@ function NavbarDashboard({
             ) : (
               <div className="text-gray-400 text-center mt-10">No tienes notificaciones.</div>
             )}
-          </div>
-        </div>
-      </div>
-    </> {/* <--- ETIQUETA FRAGMENTO DE CIERRE (esta ya la tenías) */}
+          </div> {/* Cierra el contenedor de la lista (flex-1) */}
+        </div> {/* Cierra el contenedor del padding (p-6) */}
+      </div> {/* Cierra el contenedor del panel lateral derecho (fixed top-0) */}
+    </> 
   );
 }
 
