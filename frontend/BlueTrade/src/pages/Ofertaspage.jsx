@@ -10,6 +10,7 @@ import TarjetaServicioExterno from '../components/TarjetaServiciosExternos';
 import ModalDetalleOferta from '../components/ModalDetalleOferta'; 
 import ModalCrearOferta from '../components/ModalCrearOferta'; 
 import Alerta from '../components/alerta';
+import ModalMatching from '../components/ModalBuscarMatch'; 
 
 function OfertasPage() {
   const { usuario } = useContext(AuthContext);
@@ -27,6 +28,20 @@ function OfertasPage() {
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
+  const [ofertaMatch, setOfertaMatch] = useState('');
+  const [isModalMatchingOpen, setIsModalMatchingOpen] = useState(false);
+  const [faseModal, setFaseModal] = useState('FORMULARIO'); // 'FORMULARIO' o 'DETALLE'
+
+  // Función para manejar la búsqueda desde el modal
+  const handleBuscarMatch = async (datos) => {
+    try {
+      const res = await buscarMatch(datos); // Tu función en item.api.js
+      setOfertaSeleccionada(res.data);
+      setFaseModal('DETALLE');
+    } catch (error) {
+      alert("No se encontró un match exacto.");
+    }
+  };
   
   useEffect(() => {
     if (usuario?.id) {
@@ -193,7 +208,7 @@ function OfertasPage() {
     // Los unimos. Los servicios externos saldrán mezclados al final o al inicio
     return [...ofertasMapeadas, ...serviciosMapeados];
   }, [ofertasFiltradas, serviciosExternosFiltrados]);
-  
+  console.log("ofertaMatch:", ofertaMatch);
   useEffect(() => {
     cargarDatos();
   }, []);
@@ -226,6 +241,28 @@ function OfertasPage() {
         usuario={usuario}
         certificadosUsuario={certificadosUsuario}
       />
+      {isModalMatchingOpen && !ofertaMatch && (
+      <ModalMatching 
+        isOpen={true} 
+        onClose={() => setIsModalMatchingOpen(false)} 
+        onMatchEncontrado={(o) => setOfertaSeleccionada(o)} 
+        serviciosDB={serviciosInternos}
+      />
+    )}
+
+    {ofertaSeleccionada && (
+      <ModalDetalleOferta 
+        oferta={ofertaSeleccionada} 
+        isOpen={true} 
+        onClose={() => { setOfertaSeleccionada(null); setIsModalMatchingOpen(false); }}
+        onConfirmar={handleConfirmar}
+        onRechazar={() => {
+          setOfertaSeleccionada(null);
+          setIsModalMatchingOpen(false);
+          setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
+        }}
+      />
+    )}
       
       {alerta.mostrar && (
         <Alerta 
@@ -252,6 +289,12 @@ function OfertasPage() {
             className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             + Publicar intercambio
+          </button>
+          <button 
+            onClick={() => setIsModalMatchingOpen(true)}
+            className="bg-purple-600 text-white px-6 py-3 rounded-full font-bold hover:bg-purple-700 transition-all"
+          >
+            Matching
           </button>
         </div>
 

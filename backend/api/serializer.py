@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Certificado, CobroComunal, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Resena
+from .models import Certificado, CobroComunal, DirectorioServicio, Transaccion, Usuario, Residencia, Servicio, Oferta, Resena, Notificacion
 from django.db import transaction
 from django.db.models import F
 from django.contrib.auth import get_user_model
@@ -137,7 +137,6 @@ class TransaccionSerializer(serializers.ModelSerializer):
             return f"{texto_ofrecido} ⇄ {texto_solicitado}"
         except Exception:
             return f"Oferta #{obj.oferta.id}"
-
     def get_ya_calificada(self, obj):
         return hasattr(obj, 'resena')
 
@@ -149,6 +148,31 @@ class TransaccionSerializer(serializers.ModelSerializer):
         elif obj.oferta.tipo_solicitado == 'AGUA':
             return obj.comprador.id
         return None
+    
+class NotificacionSerializer(serializers.ModelSerializer):
+    # Campo calculado: El frontend recibirá esto como 'mensaje'
+    mensaje = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notificacion
+        fields = ['id', 'tipo', 'mensaje', 'leido', 'creado_el']
+
+    def get_mensaje(self, obj):
+        data = obj.data
+        t_id = data.get('transaccion_id', 'N/A')
+        print(f"Generando mensaje para notificación: {obj.tipo} con datos: {data}")
+        mensajes = {
+            'TRANS_INICIADA': f"Nueva transacción #{t_id} iniciada. ¡Revisa los detalles!",
+            'CONFIRMACION_RECIBIDA': f"El {data.get('rol')}, {data.get('nombre_usuario')}  ha confirmado la transacción #{t_id}.",
+            'TRANS_COMPLETADA': f"¡Éxito! La transacción #{t_id} se ha completado.",
+            'TRANS_CANCELADA': f"La transacción #{t_id} ha sido cancelada.",
+            'NUEVO_USUARIO_PENDIENTE': f"{data.get('nombre_usuario')} ha solicitado acceso y espera validación.",
+        }
+        
+        return mensajes.get(obj.tipo, "Tienes una nueva actualización.")
+    
+
+    
 
 class ResenaSerializer(serializers.ModelSerializer):
     class Meta:

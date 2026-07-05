@@ -1,6 +1,7 @@
 from django.db import transaction
 import requests
 from django.utils import timezone
+from .services import MatchingEngine
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
 from .serializer import (
+    User,
     UsuarioSerializer, 
     ServicioSerializer, 
     CertificadoSerializer, 
@@ -19,9 +21,10 @@ from .serializer import (
     TransaccionSerializer,
     DirectorioServicioSerializer,
     ResenaSerializer,
-    CobroSerializer
+    CobroSerializer,
+    NotificacionSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena, CobroComunal
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena, CobroComunal, Notificacion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -302,6 +305,32 @@ class OfertaView(viewsets.ModelViewSet):
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
+    @action(detail=False, methods=['post'], url_path='matching')
+    def realizar_matching(self, request):
+        data = request.data
+        
+        # Diccionario normalizado
+        params = {
+            'tipo_que_busco': data.get('tipo_solicitado'),
+            'cat_que_busco': data.get('categoria_solicitada'),
+            'tipo_que_ofrecido': data.get('tipo_ofrecido'),
+            'cat_que_ofrecido': data.get('categoria_ofrecida')
+        }
+        
+        # Filtro de seguridad: aseguramos que el usuario esté autenticado
+        user = request.user if request.user.is_authenticated else None
+        ofertas_disponibles = Oferta.objects.filter(estado='ACTIVO')
+        
+        if user:
+            ofertas_disponibles = ofertas_disponibles.exclude(usuario=user)
+        
+        mejor_match = MatchingEngine.encontrar_mejor_match(params, ofertas_disponibles)
+        
+        if mejor_match:
+            return Response(OfertaSerializer(mejor_match).data, status=status.HTTP_200_OK)
+        
+        return Response({"message": "No hay coincidencias."}, status=status.HTTP_404_NOT_FOUND)
+
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -378,6 +407,39 @@ class TransaccionViewSet(viewsets.ModelViewSet):
                 
         return response
 
+class NotificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificacionSerializer
+    permission_classes = [AllowAny] # Mantenemos AllowAny para que no dependa de la sesión
+
+    def get_queryset(self):
+        # Intentamos obtener el ID del usuario desde los parámetros de la URL
+        usuario_id = self.request.query_params.get('usuario_id')
+        
+        if usuario_id:
+            # Filtramos específicamente por el ID recibido
+            return Notificacion.objects.filter(usuario_id=usuario_id).order_by('-creado_el')
+        
+        # Si no se envía el ID, devolvemos nada (o podrías retornar Notificacion.objects.all() si quieres que sea público)
+        return Notificacion.objects.none()
+
+    @action(detail=True, methods=['patch'])
+    def marcar_leida(self, request, pk=None):
+        try:
+            # Forzamos la búsqueda de la notificación por el ID (pk)
+            notificacion = Notificacion.objects.get(pk=pk)
+            
+            # Opcional: Validar que la notificación pertenece al usuario_id que envías
+            usuario_id = request.query_params.get('usuario_id')
+            if usuario_id and int(notificacion.usuario_id) != int(usuario_id):
+                return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
+            
+            notificacion.leido = True
+            notificacion.save()
+            return Response({'status': 'notificación leída'}, status=status.HTTP_200_OK)
+            
+        except Notificacion.DoesNotExist:
+            return Response({'error': f'No existe notificación con ID {pk}'}, status=status.HTTP_404_NOT_FOUND)
+    
 class ResenaViewSet(viewsets.ModelViewSet):
     queryset = Resena.objects.all()
     serializer_class = ResenaSerializer
