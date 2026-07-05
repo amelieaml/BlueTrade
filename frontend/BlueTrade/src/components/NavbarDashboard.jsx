@@ -93,7 +93,6 @@ function NavbarDashboard({
               <a href="/ofertas" className={paginaActiva === 'ofertas' ? 'active font-bold text-blue-600' : ''}>Catálogo de Ofertas</a>
               <a href="/historial" className={paginaActiva === 'historial' ? 'active font-bold text-blue-600' : ''}>Mis Ofertas</a>
               <a href="/transacciones" className={paginaActiva === 'transacciones' ? 'active font-bold text-blue-600' : ''}>Mis Transacciones</a>
-              <a href="/cobroscomunales" className={paginaActiva === 'cobroscomunales' ? 'active font-bold text-blue-600' : ''}>Cobros Comunales</a>
               <a href="/comunidad" className={paginaActiva === 'comunidad' ? 'active font-bold text-blue-600' : ''}>Comunidad</a>
             </>
           )}
