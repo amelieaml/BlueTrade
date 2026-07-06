@@ -1,6 +1,13 @@
-import { useState, useMemo, useEffect, useContext } from 'react'; 
+import { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { getOfertas, getServicios, iniciarTransaccion, actualizarOferta, obtenerCertificadosUsuario } from '../api/item.api'; 
+import { 
+  getOfertas, 
+  getServicios, 
+  iniciarTransaccion, 
+  actualizarOferta, 
+  obtenerCertificadosUsuario,
+  getOfertasCompletadas
+} from '../api/item.api';
 
 import NavbarDashboard from '../components/NavbarDashboard';
 import FiltroOfertas from '../components/FiltroOfertas';
@@ -10,13 +17,14 @@ import TarjetaServicioExterno from '../components/TarjetaServiciosExternos';
 import ModalDetalleOferta from '../components/ModalDetalleOferta'; 
 import ModalCrearOferta from '../components/ModalCrearOferta'; 
 import Alerta from '../components/alerta';
-import ModalMatching from '../components/ModalBuscarMatch'; 
+import ModalMatching from '../components/ModalBuscarMatch';
 
 function OfertasPage() {
   const { usuario } = useContext(AuthContext);
   
   // Estados de datos
   const [ofertas, setOfertas] = useState([]);
+  const [cargandoOfertas, setCargandoOfertas] = useState(true);
   const [serviciosDB, setServiciosDB] = useState([]);
   const [serviciosInternos, setServiciosInternos] = useState([]);
   const [certificadosUsuario, setCertificadosUsuario] = useState([]);
@@ -28,48 +36,63 @@ function OfertasPage() {
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState(null);
   const [isModalCrearOpen, setIsModalCrearOpen] = useState(false);
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
-  const [ofertaMatch, setOfertaMatch] = useState('');
   const [isModalMatchingOpen, setIsModalMatchingOpen] = useState(false);
-  const [faseModal, setFaseModal] = useState('FORMULARIO'); // 'FORMULARIO' o 'DETALLE'
 
-  // Función para manejar la búsqueda desde el modal
-  const handleBuscarMatch = async (datos) => {
-    try {
-      const res = await buscarMatch(datos); // Tu función en item.api.js
-      setOfertaSeleccionada(res.data);
-      setFaseModal('DETALLE');
-    } catch (error) {
-      alert("No se encontró un match exacto.");
-    }
-  };
+  const [ofertasCompletadas, setOfertasCompletadas] = useState([]);
+  const [completadasCargadas, setCompletadasCargadas] = useState(false);
+  const [cargandoCompletadas, setCargandoCompletadas] = useState(false);
+  const [offsetCompletadas, setOffsetCompletadas] = useState(0);
+  const [hayMasCompletadas, setHayMasCompletadas] = useState(true);
+
+  const LIMITE_COMPLETADAS = 20;
+
+  const usuarioId = usuario?.id;
+  const esAdmin = Boolean(usuario?.es_admin);
   
   useEffect(() => {
-    if (usuario?.id) {
-      const fetchCertificados = async () => {
-        try {
-          const res = await obtenerCertificadosUsuario(usuario.id);
-          setCertificadosUsuario(res.data || []);
-        } catch (error) {
-          console.error("Error al cargar los certificados del usuario:", error);
-        }
-      };
-      fetchCertificados();
-    }
-  }, [usuario?.id]);
+    if (!usuarioId) return;
 
-  const cargarDatos = async () => {
-    try {
-      const [resOfertas, resServicios] = await Promise.all([
-        getOfertas(),
-        getServicios()
-      ]);
-      setOfertas(resOfertas.data);
-      setServiciosDB(resServicios.data);
-      setServiciosInternos(resServicios.data.filter(s => !s.es_externo));
-    } catch (error) {
-      console.error("Error al cargar datos:", error);
-    }
-  };
+    let componenteActivo = true;
+
+    const cargarDatos = async () => {
+      try {
+        setCargandoOfertas(true);
+
+        const [resOfertas, resServicios] = await Promise.all([
+          getOfertas(usuarioId),
+          getServicios()
+        ]);
+
+        if (!componenteActivo) return;
+
+        setOfertas(resOfertas.data);
+        setServiciosDB(resServicios.data);
+        setServiciosInternos(resServicios.data.filter(s => !s.es_externo));
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+
+        if (componenteActivo) {
+          setAlerta({
+            mostrar: true,
+            mensaje: 'No se pudieron cargar las ofertas disponibles.',
+            tipo: 'error'
+          });
+        }
+      } finally {
+        if (componenteActivo) {
+          setCargandoOfertas(false);
+        }
+      }
+    };
+
+    cargarDatos();
+
+    return () => {
+      componenteActivo = false;
+    };
+  }, [usuarioId]);
+
+
 
   // Manejadores de eventos
   const handleVerDetalle = (oferta) => setOfertaSeleccionada(oferta);
@@ -79,6 +102,16 @@ function OfertasPage() {
   const handleConfirmar = async () => {
     // 1. Validaciones de seguridad iniciales
     if (!ofertaSeleccionada || !usuario) return;
+
+    if (ofertaSeleccionada.estado !== 'ACTIVO') {
+        setAlerta({
+            mostrar: true,
+            mensaje: 'Esta oferta ya no está disponible para iniciar una transacción.',
+            tipo: 'warning'
+        });
+        handleCerrarModal();
+        return;
+    }
     
     // Validación de lógica de negocio (Agua)
     const tipoSolicitado = ofertaSeleccionada.tipo_solicitado?.toUpperCase();
@@ -95,7 +128,6 @@ function OfertasPage() {
     try {
         // 2. Llamada a la API
         await iniciarTransaccion(ofertaSeleccionada.id, usuario.id);
-        console.log("Transacción creada correctamente");
 
         // 3. Actualización de estado de la oferta
         await actualizarOferta(ofertaSeleccionada.id, {
@@ -125,8 +157,15 @@ function OfertasPage() {
   };
 
   const ofertaCreada = (nuevaOferta) => {
-    setOfertas((prev) => [nuevaOferta, ...prev]);
-    setAlerta({ mostrar: true, mensaje: '¡Oferta publicada con éxito!', tipo: 'success' });
+    if (esAdmin) {
+      setOfertas((prev) => [nuevaOferta, ...prev]);
+    }
+
+    setAlerta({
+      mostrar: true,
+      mensaje: '¡Oferta publicada con éxito!',
+      tipo: 'success'
+    });
   };
 
   const handleFiltroChange = (campo, valor) => {
@@ -145,12 +184,45 @@ function OfertasPage() {
       }, 1200);
     }
   };
+
+  const cargarOfertasCompletadas = async () => {
+    if (!usuarioId || !esAdmin || cargandoCompletadas || !hayMasCompletadas) return;
+
+    try {
+      setCargandoCompletadas(true);
+
+      const res = await getOfertasCompletadas(
+        usuarioId,
+        LIMITE_COMPLETADAS,
+        offsetCompletadas
+      );
+
+      const nuevasCompletadas = res.data.results || [];
+
+      setOfertasCompletadas((prev) => [
+        ...prev,
+        ...nuevasCompletadas
+      ]);
+
+      setOffsetCompletadas(res.data.next_offset || 0);
+      setHayMasCompletadas(Boolean(res.data.next_offset));
+      setCompletadasCargadas(true);
+    } catch (error) {
+      console.error("Error al cargar ofertas completadas:", error);
+
+      setAlerta({
+        mostrar: true,
+        mensaje: 'No se pudieron cargar las ofertas completadas.',
+        tipo: 'error'
+      });
+    } finally {
+      setCargandoCompletadas(false);
+    }
+  };
   
   // Memoización de categorías basadas en la BD
   const categoriesDisponibles = useMemo(() => {
-    console.log("Calculando categorías disponibles a partir de serviciosDB:", serviciosDB);
-    return serviciosDB.map((s) => s.nombre);
-
+  return serviciosDB.map((s) => s.nombre);
   }, [serviciosDB]);
   
   const serviciosExternosFiltrados = useMemo(() => {
@@ -159,7 +231,10 @@ function OfertasPage() {
       if (!s.es_externo) return false;
       
       // Aplicar filtro de búsqueda por palabra clave al servicio externo
-      if (q && !s.nombre.toLowerCase().includes(q) && !s.descripcion.toLowerCase().includes(q)) {
+      const nombreServicio = s.nombre?.toLowerCase() || '';
+      const descripcionServicio = s.descripcion?.toLowerCase() || '';
+
+      if (q && !nombreServicio.includes(q) && !descripcionServicio.includes(q)) {
         return false;
       }
       // Filtro por tags si coincide con el nombre de la categoría del servicio
@@ -170,48 +245,80 @@ function OfertasPage() {
   }, [serviciosDB, busqueda, tagActivo]);
 
   // Lógica de filtrado
-  const ofertasFiltradas = useMemo(() => {
-    const q = busqueda.toLowerCase();
-    
-    return ofertas.filter((o) => {
-      if (o.estado !== 'ACTIVO') return false;
+  const aplicarFiltrosVisuales = useCallback((o, q) => {
+  const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada}`.toLowerCase();
 
-      // Ocultar ofertas propias
-      if (usuario?.id && o.usuario === usuario.id) return false;
+  if (q && !textoBusqueda.includes(q)) return false;
 
-      // Filtro de texto
-      const textoBusqueda = `${o.usuario_nombre} ${o.descripcion} ${o.categoria_ofrecida} ${o.categoria_solicitada}`.toLowerCase();
-      if (q && !textoBusqueda.includes(q)) return false;
+  if (
+    filtros.tipoBuscado &&
+    o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()
+  ) {
+    return false;
+  }
 
-      // Filtro de tipo (Agua/Servicio)
-      if (filtros.tipoBuscado && o.tipo_ofrecido?.toLowerCase() !== filtros.tipoBuscado.toLowerCase()) return false;
+  if (
+    filtros.cantidadMinima > 0 &&
+    (parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima
+  ) {
+    return false;
+  }
 
-      // Filtro de cantidad
-      if (filtros.cantidadMinima > 0 && (parseFloat(o.cantidad_ofrecida) || 0) < filtros.cantidadMinima) return false;
+  if (tagActivo) {
+    const coincideOfrecida = o.categoria_ofrecida === tagActivo;
+    const coincideSolicitada = o.categoria_solicitada === tagActivo;
 
-      // Filtro de Tags
-      if (tagActivo) {
-        const coincideOfrecida = o.categoria_ofrecida === tagActivo;
-        const coincideSolicitada = o.categoria_solicitada === tagActivo;
-        if (!coincideOfrecida && !coincideSolicitada) return false;
-      }
+    if (!coincideOfrecida && !coincideSolicitada) return false;
+  }
 
-      return true;
-    });
-  }, [ofertas, filtros, busqueda, tagActivo, usuario]);
-  
-  const listaResultadosCombinados = useMemo(() => {
-    // Mapeamos los elementos añadiendo un atributo 'tipoComponente' para diferenciarlos en el ciclo render
-    const ofertasMapeadas = ofertasFiltradas.map(o => ({ ...o, tipoComponente: 'OFERTA' }));
-    const serviciosMapeados = serviciosExternosFiltrados.map(s => ({ ...s, tipoComponente: 'SERVICIO_EXTERNO' }));
-    
-    // Los unimos. Los servicios externos saldrán mezclados al final o al inicio
-    return [...ofertasMapeadas, ...serviciosMapeados];
-  }, [ofertasFiltradas, serviciosExternosFiltrados]);
-  console.log("ofertaMatch:", ofertaMatch);
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  return true;
+}, [filtros, tagActivo]);
+
+const ofertasActivasFiltradas = useMemo(() => {
+  const q = busqueda.toLowerCase();
+
+  return ofertas.filter((o) => {
+    if (o.estado !== 'ACTIVO') return false;
+    return aplicarFiltrosVisuales(o, q);
+  });
+}, [ofertas, busqueda, aplicarFiltrosVisuales]);
+
+const ofertasCompletadasFiltradas = useMemo(() => {
+  if (!esAdmin) return [];
+
+  const q = busqueda.toLowerCase();
+
+  return ofertasCompletadas.filter((o) => {
+    return aplicarFiltrosVisuales(o, q);
+  });
+}, [ofertasCompletadas, busqueda, esAdmin, aplicarFiltrosVisuales]);
+
+const listaResultadosPrincipales = useMemo(() => {
+  const ofertasActivasMapeadas = ofertasActivasFiltradas.map(o => ({
+    ...o,
+    tipoComponente: 'OFERTA'
+  }));
+
+  const serviciosMapeados = serviciosExternosFiltrados.map(s => ({
+    ...s,
+    tipoComponente: 'SERVICIO_EXTERNO'
+  }));
+
+  return [
+    ...ofertasActivasMapeadas,
+    ...serviciosMapeados
+  ];
+}, [
+  ofertasActivasFiltradas,
+  serviciosExternosFiltrados
+]);
+
+const ofertasCompletadasMapeadas = useMemo(() => {
+  return ofertasCompletadasFiltradas.map(o => ({
+    ...o,
+    tipoComponente: 'OFERTA'
+  }));
+}, [ofertasCompletadasFiltradas]);
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
@@ -241,26 +348,15 @@ function OfertasPage() {
         usuario={usuario}
         certificadosUsuario={certificadosUsuario}
       />
-      {isModalMatchingOpen && !ofertaMatch && (
+      {isModalMatchingOpen && (
       <ModalMatching 
         isOpen={true} 
         onClose={() => setIsModalMatchingOpen(false)} 
-        onMatchEncontrado={(o) => setOfertaSeleccionada(o)} 
-        serviciosDB={serviciosInternos}
-      />
-    )}
-
-    {ofertaSeleccionada && (
-      <ModalDetalleOferta 
-        oferta={ofertaSeleccionada} 
-        isOpen={true} 
-        onClose={() => { setOfertaSeleccionada(null); setIsModalMatchingOpen(false); }}
-        onConfirmar={handleConfirmar}
-        onRechazar={() => {
-          setOfertaSeleccionada(null);
+        onMatchEncontrado={(o) => {
+          setOfertaSeleccionada(o);
           setIsModalMatchingOpen(false);
-          setAlerta({ mostrar: true, mensaje: 'Has cerrado la oferta.', tipo: 'warning' });
         }}
+        serviciosDB={serviciosInternos}
       />
     )}
       
@@ -330,41 +426,141 @@ function OfertasPage() {
             </div>
           </aside>
 
-          <section className="flex-grow w-full">
+          <section className="flex-grow w-full flex flex-col gap-8">
             <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-8">
-              <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex justify-between items-center">
-                <h3 className="text-2xl font-extrabold text-[#102033]">Resultados disponibles</h3>
+              <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                  <h3 className="text-2xl font-extrabold text-[#102033] m-0">
+                    Ofertas activas y servicios conectados
+                  </h3>
+                  <p className="text-sm text-[#637489] mt-2 m-0">
+                    Intercambios disponibles y servicios externos compatibles con tu búsqueda.
+                  </p>
+                </div>
+
                 <p className="text-sm font-bold text-[#0066ff] bg-[#0066ff]/10 px-4 py-2 rounded-full inline-flex m-0">
-                  {listaResultadosCombinados.length} totales
+                  {listaResultadosPrincipales.length} disponibles
                 </p>
               </div>
 
-              {listaResultadosCombinados.length === 0 ? (
-                <div className="text-center py-20 text-[#637489]">No se encontraron resultados para la búsqueda.</div>
+              {cargandoOfertas ? (
+                <div className="text-center py-20">
+                  <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-[#0066ff]/20 border-t-[#0066ff] animate-spin" />
+                  <p className="text-[#637489] font-semibold m-0">
+                    Cargando ofertas disponibles...
+                  </p>
+                </div>
+              ) : listaResultadosPrincipales.length === 0 ? (
+                <div className="text-center py-20 text-[#637489]">
+                  No se encontraron ofertas activas ni servicios conectados para la búsqueda.
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {listaResultadosCombinados.map((item) => {
+                  {listaResultadosPrincipales.map((item) => {
                     if (item.tipoComponente === 'OFERTA') {
                       return (
                         <TarjetaOferta 
-                          key={`oferta-${item.id}`} 
+                          key={`oferta-activa-${item.id}`} 
                           oferta={item} 
                           onVerDetalle={handleVerDetalle} 
                         />
                       );
-                    } else {
-                      return (
-                        <TarjetaServicioExterno 
-                          key={`ext-${item.id}`} 
-                          servicio={item} 
-                          onRedireccionar={manejarRedireccionExterna} 
-                        />
-                      );
                     }
+
+                    return (
+                      <TarjetaServicioExterno 
+                        key={`servicio-externo-${item.id}`} 
+                        servicio={item} 
+                        onRedireccionar={manejarRedireccionExterna} 
+                      />
+                    );
                   })}
                 </div>
               )}
             </div>
+
+            {esAdmin && (
+              <div className="bg-white/86 backdrop-blur-[18px] border border-emerald-100 shadow-[0_30px_80px_rgba(20,70,140,0.12)] rounded-[32px] p-8">
+                <div className="mb-8 border-b border-emerald-500/10 pb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-[#102033] m-0">
+                      Ofertas completadas
+                    </h3>
+                    <p className="text-sm text-[#637489] mt-2 m-0">
+                      Consulta el historial administrativo de intercambios finalizados.
+                    </p>
+                  </div>
+
+                  <p className="text-sm font-bold text-emerald-700 bg-emerald-500/10 px-4 py-2 rounded-full inline-flex m-0">
+                    {ofertasCompletadasMapeadas.length} mostradas
+                  </p>
+                </div>
+
+                {!completadasCargadas ? (
+                  <div className="rounded-[28px] border border-emerald-100 bg-emerald-50/50 px-6 py-10 text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <svg
+                        className="h-7 w-7"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+
+                    <h4 className="text-xl font-extrabold text-[#102033] m-0">
+                      Historial de ofertas finalizadas
+                    </h4>
+
+                    <p className="text-[#637489] mt-3 mb-6 max-w-xl mx-auto">
+                      Accede al registro de intercambios completados para revisión administrativa.
+                    </p>
+
+                    <button
+                      onClick={cargarOfertasCompletadas}
+                      disabled={cargandoCompletadas}
+                      className="bg-emerald-600 text-white px-6 py-3 rounded-full font-bold hover:bg-emerald-700 transition-all disabled:opacity-60"
+                    >
+                      {cargandoCompletadas ? 'Consultando historial...' : 'Consultar historial'}
+                    </button>
+                  </div>
+                ) : ofertasCompletadasMapeadas.length === 0 ? (
+                  <div className="text-center py-14 text-[#637489]">
+                    No hay ofertas completadas para mostrar.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {ofertasCompletadasMapeadas.map((item) => (
+                        <TarjetaOferta 
+                          key={`oferta-completada-${item.id}`} 
+                          oferta={item} 
+                          onVerDetalle={handleVerDetalle} 
+                        />
+                      ))}
+                    </div>
+
+                    {hayMasCompletadas && (
+                      <div className="flex justify-center mt-8">
+                        <button
+                          onClick={cargarOfertasCompletadas}
+                          disabled={cargandoCompletadas}
+                          className="bg-emerald-600 text-white px-6 py-3 rounded-full font-bold hover:bg-emerald-700 transition-all disabled:opacity-60"
+                        >
+                          {cargandoCompletadas ? 'Cargando...' : 'Cargar más completadas'}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </div>

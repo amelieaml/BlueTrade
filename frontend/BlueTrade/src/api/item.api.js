@@ -112,19 +112,51 @@ export const crearOferta = async (datosOferta) => {
     });
 };
 
-export const getOfertas = async () => {
-    const urlOfertas =
-        'http://127.0.0.1:8000/item/test/ofertas/';
+export const getOfertas = async (usuarioId) => {
+    const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
 
     const token = localStorage.getItem('token');
 
     return axios.get(urlOfertas, {
+        params: {
+            usuario_id: usuarioId
+        },
         headers: {
             ...(token && {
                 Authorization: `Bearer ${token}`
             })
         }
     });
+};
+
+export const getOfertasCompletadas = async (
+    usuarioId,
+    limit = 20,
+    offset = 0
+) => {
+    const urlOfertasCompletadas =
+        'http://127.0.0.1:8000/item/test/ofertas/completadas/';
+
+    const token = localStorage.getItem('token');
+
+    return axios.get(urlOfertasCompletadas, {
+        params: {
+            usuario_id: usuarioId,
+            limit,
+            offset
+        },
+        headers: {
+            ...(token && {
+                Authorization: `Bearer ${token}`
+            })
+        }
+    });
+};
+
+export const getServiciosExternosConectados = async () => {
+    return axios.get(
+        'http://127.0.0.1:8000/item/test/servicios/externos-conectados/'
+    );
 };
 
 export const actualizarOferta = async (

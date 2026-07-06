@@ -47,25 +47,24 @@ class UsuarioAdminSerializer(serializers.ModelSerializer):
 
     def get_certificado_url(self, obj):
         request = self.context.get('request')
-        
+
         tipo_servicio_valor = obj.tipo_servicio_intencion
-        if not tipo_servicio_valor or tipo_servicio_valor in [None, '', 'null', 'None']:
+
+        if not tipo_servicio_valor or str(tipo_servicio_valor).strip() in ['', 'null', 'None']:
             return None
 
-        tipo_servicio_id = tipo_servicio_valor.id if hasattr(tipo_servicio_valor, 'id') else tipo_servicio_valor
-        
-        if not tipo_servicio_id or tipo_servicio_id in [None, '', 'null', 'None']:
-            return None
+        tipo_servicio_nombre = str(tipo_servicio_valor).strip()
 
         certificado = Certificado.objects.filter(
             usuario_id=obj.id,
-            tipo_servicio_id=tipo_servicio_id
+            tipo_servicio__nombre__iexact=tipo_servicio_nombre
         ).last()
 
         if certificado and certificado.archivo:
             if request is not None:
                 return request.build_absolute_uri(certificado.archivo.url)
             return certificado.archivo.url
+
         return None
 
 class CertificadoSerializer(serializers.ModelSerializer):

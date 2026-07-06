@@ -274,7 +274,84 @@ class CertificadoView(viewsets.ModelViewSet):
 
 class OfertaView(viewsets.ModelViewSet):
     serializer_class = OfertaSerializer
-    queryset = Oferta.objects.all().order_by('-creado_el')
+
+    def get_queryset(self):
+        usuario_id = self.request.query_params.get('usuario_id')
+
+        queryset = Oferta.objects.select_related('usuario').order_by('-creado_el')
+
+        if not usuario_id:
+            return queryset.filter(estado='ACTIVO')
+
+        try:
+            usuario = Usuario.objects.only('id', 'es_admin').get(pk=usuario_id)
+        except Usuario.DoesNotExist:
+            return Oferta.objects.none()
+
+        if usuario.es_admin:
+            return queryset.filter(estado='ACTIVO')
+
+        return queryset.filter(
+            estado='ACTIVO'
+        ).exclude(
+            usuario_id=usuario.id
+        )
+    
+    @action(detail=False, methods=['get'], url_path='completadas')
+    def completadas(self, request):
+        usuario_id = request.query_params.get('usuario_id')
+
+        try:
+            limit = int(request.query_params.get('limit', 20))
+            offset = int(request.query_params.get('offset', 0))
+        except ValueError:
+            return Response(
+                {"error": "limit y offset deben ser números válidos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        limit = min(max(limit, 1), 50)
+        offset = max(offset, 0)
+
+        if not usuario_id:
+            return Response(
+                {"error": "usuario_id es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            usuario = Usuario.objects.only('id', 'es_admin').get(pk=usuario_id)
+        except Usuario.DoesNotExist:
+            return Response(
+                {"error": "Usuario no encontrado."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not usuario.es_admin:
+            return Response(
+                {"error": "No autorizado."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = Oferta.objects.select_related('usuario').filter(
+            estado='COMPLETADO'
+        ).order_by('-creado_el')
+
+        total = queryset.count()
+        ofertas = queryset[offset:offset + limit]
+
+        serializer = self.get_serializer(ofertas, many=True)
+
+        siguiente_offset = offset + limit
+        hay_mas = siguiente_offset < total
+
+        return Response({
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": siguiente_offset if hay_mas else None,
+            "results": serializer.data
+        }, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         
@@ -318,11 +395,16 @@ class OfertaView(viewsets.ModelViewSet):
         }
         
         # Filtro de seguridad: aseguramos que el usuario esté autenticado
-        user = request.user if request.user.is_authenticated else None
-        ofertas_disponibles = Oferta.objects.filter(estado='ACTIVO')
-        
-        if user:
-            ofertas_disponibles = ofertas_disponibles.exclude(usuario=user)
+        usuario_id = data.get('usuario_id')
+
+        ofertas_disponibles = Oferta.objects.select_related('usuario').filter(
+            estado='ACTIVO'
+        )
+
+        if usuario_id:
+            ofertas_disponibles = ofertas_disponibles.exclude(
+                usuario_id=usuario_id
+            )
         
         mejor_match = MatchingEngine.encontrar_mejor_match(params, ofertas_disponibles)
         
@@ -478,4 +560,3 @@ class ResenaViewSet(viewsets.ModelViewSet):
 class CobroComunalViewSet(viewsets.ModelViewSet):
     queryset = CobroComunal.objects.all()
     serializer_class = CobroSerializer
-    
