@@ -1,5 +1,8 @@
 @import "../index.css";
 
+/* =========================================
+   CARGA Y CONTENEDOR GENERAL
+========================================= */
 
 .perfil-loading-container {
   @apply min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] flex items-center justify-center text-[#5d6f82] font-semibold;
@@ -20,6 +23,10 @@
 .perfil-card-central {
   @apply bg-white border border-[#dbe4ea] rounded-3xl shadow-[0_16px_48px_rgba(20,70,140,0.04)] p-6 md:p-8 space-y-6 transition-all duration-300 hover:shadow-[0_20px_56px_rgba(20,70,140,0.06)];
 }
+
+/* =========================================
+   CABECERA DEL PERFIL
+========================================= */
 
 .perfil-cabecera {
   @apply flex flex-col items-center text-center gap-3 border-b border-[#0066ff]/5 pb-5;
@@ -44,6 +51,10 @@
 .perfil-badge-base {
   @apply inline-block px-3 py-1 rounded-full font-bold text-[10px] tracking-wide border uppercase;
 }
+
+/* =========================================
+   BALANCE DE AGUA
+========================================= */
 
 .balance-container {
   @apply relative overflow-hidden bg-gradient-to-br from-[#f4f9fd] to-[#eef6ff] border border-[#cbdbee]/70 rounded-2xl p-5 flex flex-col gap-4 shadow-sm;
@@ -94,7 +105,7 @@
 }
 
 .balance-widget-label-bloqueado {
-  @apply block text-[8px] font-bold uppercase text-amber-600 tracking-wider flex items-center gap-1;
+  @apply flex items-center gap-1 text-[8px] font-bold uppercase text-amber-600 tracking-wider;
 }
 
 .balance-widget-pulso {
@@ -125,7 +136,10 @@
   @apply bg-white px-2 py-0.5 rounded-md border border-[#cbdbee]/40 text-[#0066ff] font-extrabold shadow-sm;
 }
 
-/* 3. Grid de Detalles Personales */
+/* =========================================
+   DETALLES PERSONALES
+========================================= */
+
 .grid-detalles {
   @apply grid grid-cols-1 sm:grid-cols-2 gap-3.5;
 }
@@ -166,6 +180,10 @@
   @apply w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0;
 }
 
+/* =========================================
+   SECCIONES SECUNDARIAS
+========================================= */
+
 .grid-secundario {
   @apply grid grid-cols-1 md:grid-cols-2 gap-5 items-start pt-2;
 }
@@ -186,22 +204,28 @@
   @apply space-y-2.5;
 }
 
+/* =========================================
+   TARJETAS DE SERVICIOS
+========================================= */
+
 .servicio-item-plomeria {
-  @apply border border-emerald-500/5 bg-white/70 rounded-xl p-3 flex justify-between items-center shadow-sm transition-all duration-200;
+  @apply border border-emerald-500/5 bg-white/70 rounded-xl p-3 flex justify-between items-center gap-3 shadow-sm transition-all duration-200;
 }
+
 .servicio-item-plomeria:hover {
   @apply border-emerald-500/20;
 }
 
 .servicio-item-electrico {
-  @apply border border-amber-500/5 bg-white/70 rounded-xl p-3 flex justify-between items-center shadow-sm transition-all duration-200;
+  @apply border border-amber-500/5 bg-white/70 rounded-xl p-3 flex justify-between items-center gap-3 shadow-sm transition-all duration-200;
 }
+
 .servicio-item-electrico:hover {
   @apply border-amber-500/20;
 }
 
 .servicio-info-flex {
-  @apply flex items-center gap-3;
+  @apply flex items-center gap-3 min-w-0;
 }
 
 .servicio-icono-plomeria {
@@ -215,19 +239,23 @@
 .servicio-nombre-plomeria {
   @apply text-xs font-black text-[#0f1f33] m-0 transition-colors;
 }
+
 .servicio-item-plomeria:hover .servicio-nombre-plomeria {
   @apply text-emerald-600;
 }
 
 .servicio-nombre-electrico {
-  @apply text-xs font-black text-[#0f1f33] m-0;
+  @apply text-xs font-black text-[#0f1f33] m-0 transition-colors;
+}
+
+.servicio-item-electrico:hover .servicio-nombre-electrico {
+  @apply text-amber-600;
 }
 
 .servicio-id-label {
   @apply text-[10px] font-mono text-[#91a0b2] m-0 mt-0.5;
 }
 
-/* Corregida utilidad 'py-0.2' que fallaba en la inyección de estilos */
 .servicio-id-badge {
   @apply bg-slate-200/60 px-1 rounded text-slate-600;
   padding-top: 0.5px;
@@ -235,14 +263,73 @@
 }
 
 .servicio-status-activo {
-  @apply px-2 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 uppercase tracking-wider;
+  @apply shrink-0 px-2 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 uppercase tracking-wider;
 }
 
 .servicio-status-revision {
-  @apply px-2 py-0.5 rounded-md text-[9px] font-black bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase tracking-wider;
+  @apply shrink-0 px-2 py-0.5 rounded-md text-[9px] font-black bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase tracking-wider;
 }
 
-/* Formulario Certificados */
+/* =========================================
+   VISTA PREVIA PEQUEÑA DEL CERTIFICADO
+========================================= */
+
+.servicio-certificado-contenido {
+  @apply flex items-center gap-3 min-w-0 flex-1;
+}
+
+.servicio-certificado-datos {
+  @apply min-w-0;
+}
+
+.certificado-miniatura {
+  @apply relative w-[70px] h-[70px] min-w-[70px] overflow-hidden rounded-xl border border-[#0066ff]/15 bg-[#f4f8fd] p-0 cursor-pointer transition-all duration-200 shadow-sm;
+}
+
+.certificado-miniatura:hover:not(:disabled) {
+  @apply border-[#0066ff]/40 -translate-y-0.5 shadow-md;
+}
+
+.certificado-miniatura:disabled {
+  @apply cursor-default opacity-60;
+}
+
+.certificado-miniatura img {
+  @apply block w-full h-full object-cover;
+}
+
+.certificado-miniatura-overlay {
+  @apply absolute left-0 right-0 bottom-0 py-1 bg-[#07182c]/80 text-white text-[8px] font-black uppercase tracking-wider opacity-0 transition-opacity duration-200;
+}
+
+.certificado-miniatura:hover .certificado-miniatura-overlay {
+  @apply opacity-100;
+}
+
+.certificado-miniatura-pdf {
+  @apply w-full h-full flex flex-col items-center justify-center gap-1 text-[#0066ff] text-[9px] font-black;
+}
+
+.certificado-miniatura-pdf svg {
+  @apply w-7 h-7;
+}
+
+.certificado-miniatura-vacia {
+  @apply w-full h-full flex items-center justify-center p-2 text-center text-[9px] font-bold text-[#91a0b2];
+}
+
+.certificado-ver-boton {
+  @apply mt-1 p-0 border-0 bg-transparent text-[#0066ff] text-[10px] font-black cursor-pointer;
+}
+
+.certificado-ver-boton:hover {
+  @apply underline;
+}
+
+/* =========================================
+   FORMULARIO DE CERTIFICADOS
+========================================= */
+
 .formulario-container {
   @apply bg-gradient-to-br from-[#0066ff]/[0.03] to-indigo-500/[0.03] border border-[#0066ff]/10 rounded-2xl p-4 space-y-4 shadow-[inset_0_1px_2px_rgba(0,102,255,0.02)];
 }
@@ -271,10 +358,162 @@
   @apply w-full py-2.5 bg-gradient-to-r from-[#0066ff] to-[#00b8ff] hover:from-[#0052cc] hover:to-[#00a6e6] text-white rounded-xl font-black text-xs shadow-md shadow-[#0066ff]/10 active:scale-[0.98] transition-all;
 }
 
+.form-boton-subir:disabled {
+  @apply opacity-60 cursor-not-allowed active:scale-100;
+}
+
+/* =========================================
+   ICONOS
+========================================= */
+
 .svg-icono-standard {
   @apply w-4 h-4;
 }
 
 .svg-icono-mediano {
   @apply w-5 h-5;
+}
+
+/* =========================================
+   MODAL DEL CERTIFICADO
+========================================= */
+
+.certificado-modal-fondo {
+  @apply fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-[#051120]/75 backdrop-blur-sm;
+  animation: certificadoFondoEntrada 0.18s ease;
+}
+
+.certificado-modal {
+  @apply w-full max-w-[900px] max-h-[90vh] overflow-hidden bg-white rounded-3xl border border-white/10 shadow-[0_28px_80px_rgba(0,20,50,0.35)];
+  animation: certificadoModalEntrada 0.22s ease;
+}
+
+.certificado-modal-header {
+  @apply flex items-start justify-between gap-5 px-6 py-5 border-b border-[#e8eef5];
+}
+
+.certificado-modal-etiqueta {
+  @apply block mb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#0066ff];
+}
+
+.certificado-modal-titulo {
+  @apply m-0 text-lg font-black text-[#102033];
+}
+
+.certificado-modal-cerrar {
+  @apply w-9 h-9 min-w-9 rounded-full border border-[#dce5ef] bg-[#f7f9fc] text-[#405168] text-2xl leading-none flex items-center justify-center cursor-pointer transition-all duration-200;
+}
+
+.certificado-modal-cerrar:hover {
+  @apply bg-[#eef4fb] text-[#0066ff] rotate-6;
+}
+
+.certificado-modal-contenido {
+  @apply flex items-center justify-center min-h-[280px] max-h-[calc(90vh-150px)] overflow-auto p-6 bg-[#eef3f8];
+}
+
+.certificado-modal-imagen {
+  @apply block max-w-full max-h-[calc(90vh-210px)] object-contain rounded-xl shadow-[0_12px_35px_rgba(17,39,68,0.16)];
+}
+
+.certificado-modal-pdf {
+  @apply w-full h-[68vh] border-0 rounded-xl bg-white;
+}
+
+.certificado-modal-footer {
+  @apply flex justify-end px-6 py-4 border-t border-[#e8eef5];
+}
+
+.certificado-abrir-enlace {
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white text-[11px] font-black no-underline transition-all duration-200;
+}
+
+.certificado-abrir-enlace:hover {
+  @apply -translate-y-0.5;
+}
+
+/* =========================================
+   ANIMACIONES
+========================================= */
+
+@keyframes certificadoFondoEntrada {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes certificadoModalEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 640px) {
+  .perfil-wrapper {
+    @apply px-4 pt-8;
+  }
+
+  .perfil-card-central {
+    @apply p-4 rounded-2xl;
+  }
+
+  .balance-litros-principal {
+    @apply text-3xl;
+  }
+
+  .servicio-item-plomeria,
+  .servicio-item-electrico {
+    @apply items-start flex-col;
+  }
+
+  .servicio-certificado-contenido {
+    @apply items-start w-full;
+  }
+
+  .servicio-status-activo,
+  .servicio-status-revision {
+    @apply self-start;
+  }
+
+  .certificado-miniatura {
+    @apply w-16 h-16 min-w-16;
+  }
+
+  .certificado-modal-fondo {
+    @apply p-3;
+  }
+
+  .certificado-modal {
+    @apply rounded-2xl;
+  }
+
+  .certificado-modal-header {
+    @apply p-4;
+  }
+
+  .certificado-modal-contenido {
+    @apply p-3 min-h-[220px];
+  }
+
+  .certificado-modal-pdf {
+    height: 70vh;
+  }
+
+  .certificado-modal-footer {
+    @apply px-4 py-3;
+  }
 }

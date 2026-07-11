@@ -4,8 +4,7 @@ import {
   getOfertas, 
   getServicios, 
   iniciarTransaccion, 
-  actualizarOferta, 
-  obtenerCertificadosUsuario,
+  actualizarOferta,
   getOfertasCompletadas
 } from '../api/item.api';
 

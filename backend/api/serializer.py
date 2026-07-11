@@ -6,6 +6,36 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+class CertificadoSerializer(serializers.ModelSerializer):
+    archivo_url = serializers.SerializerMethodField()
+    nombre_servicio = serializers.CharField(
+        source='tipo_servicio.nombre',
+        read_only=True
+    )
+
+    class Meta:
+        model = Certificado
+        fields = [
+            'id',
+            'archivo',
+            'archivo_url',
+            'creado_el',
+            'usuario',
+            'tipo_servicio',
+            'nombre_servicio',
+        ]
+
+    def get_archivo_url(self, obj):
+        if not obj.archivo:
+            return None
+
+        request = self.context.get('request')
+
+        if request is not None:
+            return request.build_absolute_uri(obj.archivo.url)
+
+        return obj.archivo.url
+    
 class UsuarioSerializer(serializers.ModelSerializer):
     codigo_casa = serializers.SlugRelatedField(
         slug_field='codigo',
@@ -14,20 +44,28 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'does_not_exist': 'El número de propiedad ingresado no pertenece a ninguna residencia válida de la urbanización.'
         }
     )
-    
+
     litros_disponibles = serializers.ReadOnlyField()
     litros_bloqueados = serializers.ReadOnlyField()
+
+    certificados = CertificadoSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Usuario
         fields = '__all__'
         extra_kwargs = {
-            'password': {'write_only': True} 
+            'password': {'write_only': True}
         }
 
     def validate_codigo_casa(self, value):
         if value.ocupada:
-            raise serializers.ValidationError("Esta propiedad ya se encuentra vinculada a un usuario registrado.")
+            raise serializers.ValidationError(
+                "Esta propiedad ya se encuentra vinculada a un usuario registrado."
+            )
+
         return value
 
 class UsuarioAdminSerializer(serializers.ModelSerializer):
@@ -67,20 +105,26 @@ class UsuarioAdminSerializer(serializers.ModelSerializer):
 
         return None
 
-class CertificadoSerializer(serializers.ModelSerializer):
-    archivo_url = serializers.SerializerMethodField()
+class UsuarioListadoAdminSerializer(serializers.ModelSerializer):
+    codigo_casa = serializers.CharField(
+        source='codigo_casa.codigo',
+        read_only=True
+    )
 
     class Meta:
-        model = Certificado
-        fields = ['id', 'archivo', 'archivo_url', 'creado_el', 'usuario', 'tipo_servicio']
-
-    def get_archivo_url(self, obj):
-        request = self.context.get('request')
-        if obj.archivo and hasattr(obj.archivo, 'url'):
-            if request is not None:
-                return request.build_absolute_uri(obj.archivo.url)
-        return None
-        
+        model = Usuario
+        fields = [
+            'id',
+            'nombre',
+            'email',
+            'codigo_casa',
+            'intencion_agua',
+            'intencion_servicio',
+            'tipo_servicio_intencion',
+            'estado',
+            'es_admin',
+        ]
+     
 class ServicioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servicio

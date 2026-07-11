@@ -11,6 +11,13 @@ export const getUsuarios = async () => {
     return axios.get(API_BASE_URL);
 };
 
+// Obtener usuarios para el panel administrativo
+export const getUsuariosAdmin = async (signal) => {
+    return axios.get(`${API_BASE_URL}listar-admin/`, {
+        signal
+    });
+};
+
 // Obtener usuario por ID
 export const getUsuario = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/`);
@@ -74,9 +81,6 @@ export const guardarCertificado = async (
         'http://127.0.0.1:8000/item/test/certificados/';
 
     return axios.post(urlCertificados, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
     });
 };
 

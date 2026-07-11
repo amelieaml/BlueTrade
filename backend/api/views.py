@@ -18,6 +18,7 @@ from .serializer import (
     CertificadoSerializer, 
     OfertaSerializer, 
     UsuarioAdminSerializer,
+    UsuarioListadoAdminSerializer,
     TransaccionSerializer,
     DirectorioServicioSerializer,
     ResenaSerializer,
@@ -28,17 +29,40 @@ from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, 
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
-    queryset = Usuario.objects.all()
-
+    queryset = Usuario.objects.select_related(
+        'codigo_casa'
+    ).prefetch_related(
+        'certificados__tipo_servicio'
+    )
+    
     @action(detail=False, methods=['get'], url_path='listar-admin')
     def listar_admin(self, request):
-        usuarios = Usuario.objects.all().order_by('id')
-        serializer = UsuarioAdminSerializer(
-            usuarios, 
-            many=True, 
-            context={'request': request}
+        usuarios = (
+            Usuario.objects
+            .select_related('codigo_casa')
+            .only(
+                'id',
+                'nombre',
+                'email',
+                'codigo_casa',
+                'intencion_agua',
+                'intencion_servicio',
+                'tipo_servicio_intencion',
+                'estado',
+                'es_admin',
+            )
+            .order_by('es_admin', 'id')
         )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = UsuarioListadoAdminSerializer(
+            usuarios,
+            many=True
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
 
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
