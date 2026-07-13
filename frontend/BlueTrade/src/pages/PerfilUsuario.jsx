@@ -563,7 +563,6 @@ function PerfilUsuario() {
               <div className="servicios-lista">
                 {misCertificados.length > 0 ? (
                   misCertificados.map((cert, index) => {
-                    const esActivo = usuario.certificado;
                     const rutaArchivo = cert.archivo_url || cert.archivo;
                     const urlArchivo = obtenerUrlCertificado(rutaArchivo);
                     const archivoEsPDF = esArchivoPDF(rutaArchivo);
@@ -571,11 +570,7 @@ function PerfilUsuario() {
                     return (
                       <div
                         key={cert.id || index}
-                        className={
-                          esActivo
-                            ? "servicio-item-plomeria"
-                            : "servicio-item-electrico"
-                        }
+                        className="servicio-item-plomeria"
                       >
                         <div className="servicio-certificado-contenido">
                           <button
@@ -634,13 +629,7 @@ function PerfilUsuario() {
                           </button>
 
                           <div className="servicio-info-flex">
-                            <div
-                              className={
-                                esActivo
-                                  ? "servicio-icono-plomeria"
-                                  : "servicio-icono-electrico"
-                              }
-                            >
+                            <div className="servicio-icono-plomeria">
                               <svg
                                 className="svg-icono-standard"
                                 fill="none"
@@ -657,13 +646,7 @@ function PerfilUsuario() {
                             </div>
 
                             <div className="servicio-certificado-datos">
-                              <h4
-                                className={
-                                  esActivo
-                                    ? "servicio-nombre-plomeria"
-                                    : "servicio-nombre-electrico"
-                                }
-                              >
+                              <h4 className="servicio-nombre-plomeria">
                                 {cert.nombre_servicio ||
                                   `Servicio Técnico #${cert.tipo_servicio}`}
                               </h4>
@@ -687,16 +670,6 @@ function PerfilUsuario() {
                             </div>
                           </div>
                         </div>
-
-                        <span
-                          className={
-                            esActivo
-                              ? "servicio-status-activo"
-                              : "servicio-status-revision"
-                          }
-                        >
-                          {esActivo ? "Activo" : "Revisión"}
-                        </span>
                       </div>
                     );
                   })
