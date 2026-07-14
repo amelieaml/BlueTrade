@@ -42,6 +42,7 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
   // 1. Estados para manejar la carga de la oferta específica
   const [detalleOferta, setDetalleOferta] = useState(null);
   const [cargandoOferta, setCargandoOferta] = useState(false);
+  const [errorOferta, setErrorOferta] = useState(false); // <-- Nuevo estado para errores
 
   // 2. Efecto que se dispara al abrir el modal para buscar el ID en tu API
   useEffect(() => {
@@ -49,6 +50,8 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
       if (!isOpen || !transaccion?.oferta) return;
       
       setCargandoOferta(true);
+      setErrorOferta(false); // Reiniciamos el error al intentar cargar
+      
       try {
         const token = localStorage.getItem('token');
         const urlOferta = `http://127.0.0.1:8000/item/test/ofertas/${transaccion.oferta}/`;
@@ -62,9 +65,11 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
           setDetalleOferta(data);
         } else {
           console.error("Error al obtener la oferta, status:", response.status);
+          setErrorOferta(true); // Marcamos que hubo un error (como un 404)
         }
       } catch (error) {
         console.error("Error de red al cargar la oferta:", error);
+        setErrorOferta(true); // Marcamos error si falla la red
       } finally {
         setCargandoOferta(false);
       }
@@ -72,12 +77,15 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
     obtenerDetallesOferta();
 
-    if (!isOpen) setDetalleOferta(null);
+    if (!isOpen) {
+        setDetalleOferta(null);
+        setErrorOferta(false);
+    }
   }, [isOpen, transaccion]);
 
   if (!isOpen || !transaccion) return null;
 
-  // 3. Lógica de  y roles
+  // 3. Lógica de roles
   const confirmoYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
   const confirmoContraparte = vistaActiva === 'compras' ? transaccion.confirmacion_vendedor : transaccion.confirmacion_comprador;
   const miRol = vistaActiva === 'compras' ? 'Comprador' : 'Vendedor';
@@ -175,10 +183,14 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
           <div className="space-y-6">
             
-            {/* Si está cargando, mostramos un aviso. Si ya cargó, mostramos las dos tarjetas */}
-            {cargandoOferta || !detalleOferta ? (
+            {/* Manejo de estados de carga, error y visualización */}
+            {cargandoOferta ? (
               <div className="p-10 text-center bg-gray-50 rounded-[24px] border border-gray-100 animate-pulse">
                 <p className="text-gray-500 font-semibold m-0">Obteniendo detalles del intercambio...</p>
+              </div>
+            ) : errorOferta || !detalleOferta ? (
+              <div className="p-10 text-center bg-rose-50 rounded-[24px] border border-rose-100">
+                <p className="text-rose-500 font-semibold m-0">No se pudo cargar la información de la oferta. Verifica si aún existe o intenta de nuevo más tarde.</p>
               </div>
             ) : (
               <>
@@ -309,14 +321,14 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                       </button>
                     )}
 
-                    {/* El botón de confirmar cambia de estado si ya confirmaste */}
+                    {/* El botón de confirmar cambia de estado si ya confirmaste o si hubo error al cargar la oferta */}
                     <button 
                       onClick={() => onConfirmar(transaccion.id)}
-                      disabled={litrosInsuficientes || yaConfirmeYo}
+                      disabled={litrosInsuficientes || yaConfirmeYo || errorOferta}
                       className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
                         yaConfirmeYo
                           ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
-                          : litrosInsuficientes 
+                          : litrosInsuficientes || errorOferta
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                             : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
                       }`}
