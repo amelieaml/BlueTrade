@@ -16,6 +16,7 @@ import AdminDashboardPage from "../pages/AdminDashboardPage.jsx";
 import SolicitudesRegistroPage from "../pages/SolicitudesRegistroPage.jsx";
 import DetalleSolicitudPage from "../pages/DetalleSolicitudPage.jsx";
 import ComunidadPage from "../pages/ComunidadPage.jsx";
+import CobrosComunalesPage from "../pages/CobrosComunalesPage.jsx";
 
 function AppRouter() {
   return (
@@ -51,6 +52,7 @@ function AppRouter() {
         />
 
         <Route path="/resena/:idTransaccion" element={<PaginaResena />} />
+        <Route path="/cobroscomunales" element={<CobrosComunalesPage />} />
 
         
 

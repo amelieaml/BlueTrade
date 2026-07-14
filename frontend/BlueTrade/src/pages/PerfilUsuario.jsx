@@ -1,61 +1,206 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import NavbarDashboard from '../components/NavbarDashboard';
-import { guardarCertificado, getServicios, getResenasUsuario, getUsuario } from '../api/item.api'; 
+// 1. IMPORTANTE: Agregamos obtenerCobrosComunales aquí
+import { guardarCertificado, getServicios, getResenasUsuario, getUsuario, obtenerCobrosComunales } from '../api/item.api'; 
 import { useParams } from 'react-router-dom'; 
 import '../styles/PerfilUsuario.css'; 
 
 function PerfilUsuario() {
-  const { usuario: usuarioLogueado, obtenerPerfilActualizado } = useContext(AuthContext);
+  const { usuario: usuarioLogueado } = useContext(AuthContext);
   const { id } = useParams(); 
 
-  const [usuario, setUsuario] = useState(null);
+  const cobrosCargadosRef = useRef(false);
+
+  const [usuario, setUsuario] = useState(() => {
+    return id ? null : usuarioLogueado;
+  });
   const [archivo, setArchivo] = useState(null);
   const [serviciosDB, setServiciosDB] = useState([]);
   const [tipoServicio, setTipoServicio] = useState(''); 
   const [cargando, setCargando] = useState(false);
   const [resenas, setResenas] = useState([]);
   
-  const [cargandoDatos, setCargandoDatos] = useState(true);
+  // 2. Estado para almacenar los cobros comunales
+  const [cobros, setCobros] = useState([]);
+  const [perfilPublicoConsultado, setPerfilPublicoConsultado] = useState(false);
+
+  const [cargandoPerfil, setCargandoPerfil] = useState(Boolean(id));
+  const [cargandoResenas, setCargandoResenas] = useState(true);
+  const [cargandoCobros, setCargandoCobros] = useState(true);
+  const [certificadoSeleccionado, setCertificadoSeleccionado] = useState(null);
 
   useEffect(() => {
-    const cargarDatosPerfil = async () => {
-      setCargandoDatos(true);
-      try {
-        const responseServicios = await getServicios();
-        setServiciosDB(responseServicios.data.filter(s => !s.es_externo));
-        
-        const idUrlNum = id ? Number(id) : null;
-        const usuarioLogueadoId = usuarioLogueado?.id ? Number(usuarioLogueado.id) : null;
-        
-        const usuarioIdAConsultar = idUrlNum || usuarioLogueadoId;
-        
-        if (usuarioIdAConsultar) {
-          if (!idUrlNum || idUrlNum === usuarioLogueadoId) {
-            setUsuario(usuarioLogueado);
-          } 
-          else {
-            const responsePublico = await getUsuario(idUrlNum);
+    let componenteActivo = true;
+
+    const cargarPerfil = async () => {
+      const idUrlNum = id ? Number(id) : null;
+      const usuarioLogueadoId = usuarioLogueado?.id
+        ? Number(usuarioLogueado.id)
+        : null;
+
+      const esPerfilPropio =
+        !idUrlNum || idUrlNum === usuarioLogueadoId;
+
+      const usuarioIdAConsultar =
+        idUrlNum || usuarioLogueadoId;
+
+      setPerfilPublicoConsultado(false);
+
+
+      if (esPerfilPropio && usuarioLogueado) {
+        setUsuario(usuarioLogueado);
+        setCargandoPerfil(false);
+        setPerfilPublicoConsultado(true);
+
+        try {
+          const responsePerfilCompleto = await getUsuario(
+            usuarioLogueadoId
+          );
+
+          if (componenteActivo) {
+            setUsuario(responsePerfilCompleto.data);
+          }
+        } catch (error) {
+          console.error(
+            "Error al cargar el perfil completo:",
+            error
+          );
+        }
+      }
+
+      if (!esPerfilPropio && idUrlNum) {
+        setUsuario(null);
+        setCargandoPerfil(true);
+
+        try {
+          const responsePublico = await getUsuario(idUrlNum);
+
+          if (componenteActivo) {
             setUsuario(responsePublico.data);
           }
+        } catch (error) {
+          console.error("Error al consultar el perfil público:", error);
 
-          const responseResenas = await getResenasUsuario(usuarioIdAConsultar);
-          setResenas(responseResenas.data);
-        } else {
-          setUsuario(null);
+          if (componenteActivo) {
+            setUsuario(null);
+          }
+        } finally {
+          if (componenteActivo) {
+            setCargandoPerfil(false);
+            setPerfilPublicoConsultado(true);
+          }
         }
-      } catch (error) {
-        console.error("Error al recuperar información del perfil:", error);
-        setUsuario(null);
-      } finally {
-        setCargandoDatos(false);
       }
-    };
-    
-    if (usuarioLogueado?.id || id) {
-      cargarDatosPerfil();
-    }
-  }, [id, usuarioLogueado]); 
+
+      if (!usuarioIdAConsultar) {
+        setCargandoPerfil(false);
+        setCargandoResenas(false);
+        setCargandoCobros(false);
+        return;
+      }
+
+      setCargandoResenas(true);
+
+      if (!cobrosCargadosRef.current) {
+        setCargandoCobros(true);
+      }
+
+      const promesaServicios = getServicios()
+        .then((response) => {
+          if (!componenteActivo) return;
+
+          const servicios = Array.isArray(response.data)
+            ? response.data
+            : response.data?.results || [];
+
+          setServiciosDB(
+            servicios.filter((servicio) => !servicio.es_externo)
+          );
+        })
+        .catch((error) => {
+          console.error("Error al cargar servicios:", error);
+
+          if (componenteActivo) {
+            setServiciosDB([]);
+          }
+        });
+
+      const promesaResenas = getResenasUsuario(usuarioIdAConsultar)
+        .then((response) => {
+          if (!componenteActivo) return;
+
+          const data = Array.isArray(response.data)
+            ? response.data
+            : response.data?.results || [];
+
+          setResenas(data);
+        })
+        .catch((error) => {
+          console.error("Error al cargar reseñas:", error);
+
+          if (componenteActivo) {
+            setResenas([]);
+          }
+        })
+        .finally(() => {
+          if (componenteActivo) {
+            setCargandoResenas(false);
+          }
+        });
+
+      let promesaCobros = Promise.resolve();
+
+      if (!cobrosCargadosRef.current) {
+        cobrosCargadosRef.current = true;
+
+        promesaCobros = obtenerCobrosComunales()
+          .then((response) => {
+            if (!componenteActivo) return;
+
+            const data = Array.isArray(response.data)
+              ? response.data
+              : response.data?.results || [];
+
+            const cobrosOrdenados = [...data].sort(
+              (a, b) =>
+                new Date(b.fecha_creacion) -
+                new Date(a.fecha_creacion)
+            );
+
+            setCobros(cobrosOrdenados);
+          })
+          .catch((error) => {
+            console.error("Error al cargar cobros:", error);
+
+            cobrosCargadosRef.current = false;
+
+            if (componenteActivo) {
+              setCobros([]);
+            }
+          })
+          .finally(() => {
+            if (componenteActivo) {
+              setCargandoCobros(false);
+            }
+          });
+      } else {
+        setCargandoCobros(false);
+      }
+
+      await Promise.allSettled([
+        promesaServicios,
+        promesaResenas,
+        promesaCobros,
+      ]);
+      }; // Cierra cargarPerfil
+
+      cargarPerfil();
+
+      return () => {
+        componenteActivo = false;
+      };
+    }, [id, usuarioLogueado?.id]);
 
   const promedioCalificacion = resenas.length > 0 
     ? (resenas.reduce((acc, r) => acc + Number(r.calificacion), 0) / resenas.length).toFixed(1)
@@ -80,38 +225,160 @@ function PerfilUsuario() {
     }
   };
 
+  const obtenerUrlCertificado = (archivo) => {
+    if (!archivo) return "";
+
+    if (
+      archivo.startsWith("http://") ||
+      archivo.startsWith("https://")
+    ) {
+      return archivo;
+    }
+
+    return `http://127.0.0.1:8000${archivo}`;
+  };
+
+  const esArchivoPDF = (archivo) => {
+    if (!archivo) return false;
+
+    const archivoSinParametros = archivo
+      .split("?")[0]
+      .toLowerCase();
+
+    return archivoSinParametros.endsWith(".pdf");
+  };
+
+  const abrirCertificado = (certificado) => {
+    const rutaArchivo =
+      certificado?.archivo_url || certificado?.archivo;
+
+    if (!rutaArchivo) return;
+
+    setCertificadoSeleccionado(certificado);
+  };
+
+  const cerrarCertificado = () => {
+    setCertificadoSeleccionado(null);
+  };
+
   const subirArchivo = (e) => {
-    setArchivo(e.target.files[0]);
+    const archivoSeleccionado = e.target.files?.[0] || null;
+    setArchivo(archivoSeleccionado);
   };
   
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!archivo) return;
-    setCargando(true);
-    try {
-      const formData = new FormData();
-      formData.append('certificado', archivo);
-      formData.append('tipoServicio', tipoServicio); 
 
-      await guardarCertificado(usuario.id, formData);
-      await obtenerPerfilActualizado(usuario.id); 
+    if (!archivo || !tipoServicio || !usuario?.id) {
+      alert("Selecciona una especialidad y un archivo.");
+      return;
+    }
+
+    setCargando(true);
+
+    try {
+      await guardarCertificado(
+        usuario.id,
+        tipoServicio,
+        archivo
+      );
+
+      const responseUsuario = await getUsuario(usuario.id);
+      setUsuario(responseUsuario.data);
+
       alert("Certificado enviado a revisión con éxito.");
+
       setArchivo(null);
-      setTipoServicio('');
+      setTipoServicio("");
     } catch (error) {
-      console.error("Error al procesar el certificado:", error);
-      alert("Error al subir el documento.");
+      console.error(
+        "Error al procesar el certificado:",
+        error.response?.data || error
+      );
+
+      alert("Error al subir el documento. Revisa la consola.");
     } finally {
       setCargando(false);
     }
   };
 
-  if (cargandoDatos) {
+  if (!usuario && cargandoPerfil) {
     return (
-      <div className="perfil-loading-container">
-        <div className="flex items-center gap-3">
-          <div className="perfil-loading-spinner"></div>
-          <span>Sincronizando registros del sistema...</span>
+      <div className="perfil-main-container">
+        <NavbarDashboard paginaActiva="perfil" />
+
+        <div className="perfil-wrapper">
+          <div className="perfil-card-central">
+            <div className="perfil-cabecera">
+              <div
+                className="perfil-avatar"
+                style={{
+                  background: "#e8eef7",
+                  color: "transparent",
+                }}
+              >
+                --
+              </div>
+
+              <div className="perfil-nombre-container">
+                <div
+                  style={{
+                    width: "220px",
+                    height: "25px",
+                    borderRadius: "8px",
+                    background: "#e8eef7",
+                  }}
+                />
+
+                <div
+                  style={{
+                    width: "140px",
+                    height: "14px",
+                    marginTop: "10px",
+                    borderRadius: "6px",
+                    background: "#f0f4f8",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div
+              className="balance-container"
+              style={{
+                minHeight: "190px",
+                opacity: 0.55,
+              }}
+            />
+
+            <div className="grid-detalles">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  key={item}
+                  className="detalle-card"
+                  style={{
+                    minHeight: "90px",
+                    background: "#f5f8fc",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usuario && id && perfilPublicoConsultado) {
+    return (
+      <div className="perfil-main-container">
+        <NavbarDashboard paginaActiva="perfil" />
+
+        <div className="perfil-wrapper">
+          <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-bold text-gray-500 m-0">
+              El usuario solicitado no existe o no está disponible.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -119,20 +386,27 @@ function PerfilUsuario() {
 
   if (!usuario) {
     return (
-      <div className="perfil-loading-container">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-sm font-bold text-gray-500 m-0">El usuario solicitado no existe o no está disponible.</p>
-        </div>
+      <div className="perfil-main-container">
+        <NavbarDashboard paginaActiva="perfil" />
       </div>
     );
   }
 
   const litrosTotales = Number(usuario.litros_agua) || 0;
   const litrosBloqueados = Number(usuario.litros_bloqueados) || 0;
-  const litrosDisponibles = Number(usuario.litros_disponibles) !== undefined ? Number(usuario.litros_disponibles) : (litrosTotales - litrosBloqueados);
+  const litrosDisponiblesBackend = Number(usuario.litros_disponibles);
+
+  const litrosDisponibles = Number.isFinite(litrosDisponiblesBackend)
+    ? litrosDisponiblesBackend
+    : litrosTotales - litrosBloqueados;
   const porcentajeDisponible = litrosTotales > 0 ? (litrosDisponibles / litrosTotales) * 100 : 0;
   
   const misCertificados = usuario.certificados || [];
+
+  const archivoCertificadoSeleccionado =
+    certificadoSeleccionado?.archivo_url ||
+    certificadoSeleccionado?.archivo ||
+    "";
 
   return (
     <div className="perfil-main-container">
@@ -289,27 +563,113 @@ function PerfilUsuario() {
               <div className="servicios-lista">
                 {misCertificados.length > 0 ? (
                   misCertificados.map((cert, index) => {
-                    const esActivo = usuario.certificado;
+                    const rutaArchivo = cert.archivo_url || cert.archivo;
+                    const urlArchivo = obtenerUrlCertificado(rutaArchivo);
+                    const archivoEsPDF = esArchivoPDF(rutaArchivo);
+
                     return (
-                      <div key={cert.id || index} className={esActivo ? "servicio-item-plomeria" : "servicio-item-electrico"}>
-                        <div className="servicio-info-flex">
-                          <div className={esActivo ? "servicio-icono-plomeria" : "servicio-icono-electrico"}>
-                            <svg className="svg-icono-standard" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className={esActivo ? "servicio-nombre-plomeria" : "servicio-nombre-electrico"}>
-                              {cert.nombre_servicio || `Servicio Técnico #${cert.tipo_servicio}`}
-                            </h4>
-                            <p className="servicio-id-label">
-                              ID Ref: <span className="servicio-id-badge">#{cert.id || index + 1}</span>
-                            </p>
+                      <div
+                        key={cert.id || index}
+                        className="servicio-item-plomeria"
+                      >
+                        <div className="servicio-certificado-contenido">
+                          <button
+                            type="button"
+                            className="certificado-miniatura"
+                            onClick={() => abrirCertificado(cert)}
+                            disabled={!urlArchivo}
+                            aria-label="Ver certificado"
+                          >
+                            {urlArchivo ? (
+                              archivoEsPDF ? (
+                                <div className="certificado-miniatura-pdf">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M14 2v6h6M8 13h8M8 17h5"
+                                    />
+                                  </svg>
+
+                                  <span>PDF</span>
+                                </div>
+                              ) : (
+                                <img
+                                  src={urlArchivo}
+                                  alt={`Certificado de ${
+                                    cert.nombre_servicio || "servicio"
+                                  }`}
+                                  loading="lazy"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              )
+                            ) : (
+                              <div className="certificado-miniatura-vacia">
+                                Sin archivo
+                              </div>
+                            )}
+
+                            {urlArchivo && (
+                              <span className="certificado-miniatura-overlay">
+                                Ver
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="servicio-info-flex">
+                            <div className="servicio-icono-plomeria">
+                              <svg
+                                className="svg-icono-standard"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </div>
+
+                            <div className="servicio-certificado-datos">
+                              <h4 className="servicio-nombre-plomeria">
+                                {cert.nombre_servicio ||
+                                  `Servicio Técnico #${cert.tipo_servicio}`}
+                              </h4>
+
+                              <p className="servicio-id-label">
+                                ID Ref:{" "}
+                                <span className="servicio-id-badge">
+                                  #{cert.id || index + 1}
+                                </span>
+                              </p>
+
+                              {urlArchivo && (
+                                <button
+                                  type="button"
+                                  className="certificado-ver-boton"
+                                  onClick={() => abrirCertificado(cert)}
+                                >
+                                  Ver certificado
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <span className={esActivo ? "servicio-status-activo" : "servicio-status-revision"}>
-                          {esActivo ? "Activo" : "Revisión"}
-                        </span>
                       </div>
                     );
                   })
@@ -350,7 +710,13 @@ function PerfilUsuario() {
                       ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10" 
                       : "border-[#0066ff]/20 bg-white hover:bg-[#0066ff]/5"
                   }`}>
-                    <input type="file" onChange={subirArchivo} required className="dropzone-input-oculto" />
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,application/pdf"
+                      onChange={subirArchivo}
+                      required
+                      className="dropzone-input-oculto"
+                    />
                     <div className="dropzone-contenido">
                       <svg className={`svg-icono-mediano ${archivo ? "text-emerald-600" : "text-[#0066ff]/60"}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         {archivo ? (
@@ -382,7 +748,11 @@ function PerfilUsuario() {
             </div>
 
             <div className="reseñas-lista" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
-              {resenas.length > 0 ? (
+              {cargandoResenas && resenas.length === 0 ? (
+                <p className="text-[11px] font-medium text-[#637489] italic pt-2">
+                  Cargando reseñas...
+                </p>
+              ) : resenas.length > 0 ? (
                 resenas.map((resena) => (
                   <div 
                     key={resena.id} 
@@ -436,8 +806,133 @@ function PerfilUsuario() {
             </div>
           </div>
 
+          {/* 4. NUEVA SECCIÓN: HISTORIAL DE COBROS COMUNALES */}
+          <div className="cobros-seccion-container" style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0, 102, 255, 0.1)' }}>
+            <div>
+              <h3 className="seccion-titulo">Historial de Cobros Comunales</h3>
+              <p className="seccion-descripcion">Descuentos automáticos aplicados al saldo de litros.</p>
+            </div>
+
+            <div className="cobros-lista" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+              {cargandoCobros && cobros.length === 0 ? (
+                <p className="text-[11px] font-medium text-[#637489] italic pt-2">
+                  Cargando historial...
+                </p>
+              ) : cobros.length > 0 ? (
+                cobros.map((cobro) => (
+                  <div
+                    key={cobro.id}
+                    style={{
+                      background: '#f3f8ff',
+                      border: '1px solid #dbe4ea',
+                      padding: '16px',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#0f1f33' }}>
+                        {cobro.descripcion}
+                      </h4>
+                      <span style={{ fontSize: '11px', color: '#637489', fontWeight: '500' }}>
+                        {new Date(cobro.fecha_creacion).toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ display: 'block', fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>
+                        - {Number(cobro.alicuota).toFixed(2)} L
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#91a0b2', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        Alícuota
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] font-medium text-[#637489] italic pt-2">
+                  No se han registrado cobros comunales en la plataforma.
+                </p>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
+
+    {certificadoSeleccionado && (
+      <div
+        className="certificado-modal-fondo"
+        onClick={cerrarCertificado}
+        role="presentation"
+      >
+        <div
+          className="certificado-modal"
+          onClick={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vista previa del certificado"
+        >
+          <div className="certificado-modal-header">
+            <div>
+              <span className="certificado-modal-etiqueta">
+                Certificado
+              </span>
+
+              <h3 className="certificado-modal-titulo">
+                {certificadoSeleccionado.nombre_servicio ||
+                  `Servicio Técnico #${certificadoSeleccionado.tipo_servicio}`}
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              className="certificado-modal-cerrar"
+              onClick={cerrarCertificado}
+              aria-label="Cerrar certificado"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="certificado-modal-contenido">
+            {esArchivoPDF(archivoCertificadoSeleccionado) ? (
+              <iframe
+                src={obtenerUrlCertificado(
+                  archivoCertificadoSeleccionado
+                )}
+                title="Vista previa del certificado PDF"
+                className="certificado-modal-pdf"
+              />
+            ) : (
+              <img
+                src={obtenerUrlCertificado(
+                  archivoCertificadoSeleccionado
+                )}
+                alt="Certificado ampliado"
+                className="certificado-modal-imagen"
+              />
+            )}
+          </div>
+
+          <div className="certificado-modal-footer">
+            <a
+              href={obtenerUrlCertificado(
+                certificadoSeleccionado.archivo_url ||
+certificadoSeleccionado.archivo
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="certificado-abrir-enlace"
+            >
+              Abrir archivo original
+            </a>
+          </div>
+        </div>
+      </div>
+    )}
+
     </div>
   );
 }

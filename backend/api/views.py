@@ -1,39 +1,68 @@
 from django.db import transaction
 import requests
 from django.utils import timezone
+from .services import MatchingEngine
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
+from django.contrib.auth import get_user_model
 
 from rest_framework.exceptions import ValidationError
 
 from .serializer import (
+    User,
     UsuarioSerializer, 
     ServicioSerializer, 
     CertificadoSerializer, 
     OfertaSerializer, 
     UsuarioAdminSerializer,
+    UsuarioListadoAdminSerializer,
     TransaccionSerializer,
     DirectorioServicioSerializer,
-    ResenaSerializer
+    ResenaSerializer,
+    CobroSerializer,
+    NotificacionSerializer
 )
-from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena
+from .models import DirectorioServicio, Servicio, Usuario, Certificado, Oferta, Transaccion, Resena, CobroComunal, Notificacion
 
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
-    queryset = Usuario.objects.all()
-
+    queryset = Usuario.objects.select_related(
+        'codigo_casa'
+    ).prefetch_related(
+        'certificados__tipo_servicio'
+    )
+    
     @action(detail=False, methods=['get'], url_path='listar-admin')
     def listar_admin(self, request):
-        usuarios = Usuario.objects.all().order_by('id')
-        serializer = UsuarioAdminSerializer(
-            usuarios, 
-            many=True, 
-            context={'request': request}
+        usuarios = (
+            Usuario.objects
+            .select_related('codigo_casa')
+            .only(
+                'id',
+                'nombre',
+                'email',
+                'codigo_casa',
+                'intencion_agua',
+                'intencion_servicio',
+                'tipo_servicio_intencion',
+                'estado',
+                'es_admin',
+            )
+            .order_by('es_admin', 'id')
         )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = UsuarioListadoAdminSerializer(
+            usuarios,
+            many=True
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
 
     @action(detail=False, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     @transaction.atomic 
@@ -269,7 +298,84 @@ class CertificadoView(viewsets.ModelViewSet):
 
 class OfertaView(viewsets.ModelViewSet):
     serializer_class = OfertaSerializer
-    queryset = Oferta.objects.all().order_by('-creado_el')
+
+    def get_queryset(self):
+        usuario_id = self.request.query_params.get('usuario_id')
+
+        queryset = Oferta.objects.select_related('usuario').order_by('-creado_el')
+
+        if not usuario_id:
+            return queryset.filter(estado='ACTIVO')
+
+        try:
+            usuario = Usuario.objects.only('id', 'es_admin').get(pk=usuario_id)
+        except Usuario.DoesNotExist:
+            return Oferta.objects.none()
+
+        if usuario.es_admin:
+            return queryset.filter(estado='ACTIVO')
+
+        return queryset.filter(
+            estado='ACTIVO'
+        ).exclude(
+            usuario_id=usuario.id
+        )
+    
+    @action(detail=False, methods=['get'], url_path='completadas')
+    def completadas(self, request):
+        usuario_id = request.query_params.get('usuario_id')
+
+        try:
+            limit = int(request.query_params.get('limit', 20))
+            offset = int(request.query_params.get('offset', 0))
+        except ValueError:
+            return Response(
+                {"error": "limit y offset deben ser números válidos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        limit = min(max(limit, 1), 50)
+        offset = max(offset, 0)
+
+        if not usuario_id:
+            return Response(
+                {"error": "usuario_id es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            usuario = Usuario.objects.only('id', 'es_admin').get(pk=usuario_id)
+        except Usuario.DoesNotExist:
+            return Response(
+                {"error": "Usuario no encontrado."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not usuario.es_admin:
+            return Response(
+                {"error": "No autorizado."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = Oferta.objects.select_related('usuario').filter(
+            estado='COMPLETADO'
+        ).order_by('-creado_el')
+
+        total = queryset.count()
+        ofertas = queryset[offset:offset + limit]
+
+        serializer = self.get_serializer(ofertas, many=True)
+
+        siguiente_offset = offset + limit
+        hay_mas = siguiente_offset < total
+
+        return Response({
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": siguiente_offset if hay_mas else None,
+            "results": serializer.data
+        }, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         
@@ -300,6 +406,37 @@ class OfertaView(viewsets.ModelViewSet):
         nueva_oferta = serializer.save(usuario=usuario_instancia)
 
         return Response(OfertaSerializer(nueva_oferta).data, status=status.HTTP_201_CREATED)
+    @action(detail=False, methods=['post'], url_path='matching')
+    def realizar_matching(self, request):
+        data = request.data
+        
+        # Diccionario normalizado
+        params = {
+            'tipo_que_busco': data.get('tipo_solicitado'),
+            'cat_que_busco': data.get('categoria_solicitada'),
+            'tipo_que_ofrecido': data.get('tipo_ofrecido'),
+            'cat_que_ofrecido': data.get('categoria_ofrecida')
+        }
+        
+        # Filtro de seguridad: aseguramos que el usuario esté autenticado
+        usuario_id = data.get('usuario_id')
+
+        ofertas_disponibles = Oferta.objects.select_related('usuario').filter(
+            estado='ACTIVO'
+        )
+
+        if usuario_id:
+            ofertas_disponibles = ofertas_disponibles.exclude(
+                usuario_id=usuario_id
+            )
+        
+        mejor_match = MatchingEngine.encontrar_mejor_match(params, ofertas_disponibles)
+        
+        if mejor_match:
+            return Response(OfertaSerializer(mejor_match).data, status=status.HTTP_200_OK)
+        
+        return Response({"message": "No hay coincidencias."}, status=status.HTTP_404_NOT_FOUND)
+
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -376,6 +513,39 @@ class TransaccionViewSet(viewsets.ModelViewSet):
                 
         return response
 
+class NotificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificacionSerializer
+    permission_classes = [AllowAny] # Mantenemos AllowAny para que no dependa de la sesión
+
+    def get_queryset(self):
+        # Intentamos obtener el ID del usuario desde los parámetros de la URL
+        usuario_id = self.request.query_params.get('usuario_id')
+        
+        if usuario_id:
+            # Filtramos específicamente por el ID recibido
+            return Notificacion.objects.filter(usuario_id=usuario_id).order_by('-creado_el')
+        
+        # Si no se envía el ID, devolvemos nada (o podrías retornar Notificacion.objects.all() si quieres que sea público)
+        return Notificacion.objects.none()
+
+    @action(detail=True, methods=['patch'])
+    def marcar_leida(self, request, pk=None):
+        try:
+            # Forzamos la búsqueda de la notificación por el ID (pk)
+            notificacion = Notificacion.objects.get(pk=pk)
+            
+            # Opcional: Validar que la notificación pertenece al usuario_id que envías
+            usuario_id = request.query_params.get('usuario_id')
+            if usuario_id and int(notificacion.usuario_id) != int(usuario_id):
+                return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
+            
+            notificacion.leido = True
+            notificacion.save()
+            return Response({'status': 'notificación leída'}, status=status.HTTP_200_OK)
+            
+        except Notificacion.DoesNotExist:
+            return Response({'error': f'No existe notificación con ID {pk}'}, status=status.HTTP_404_NOT_FOUND)
+    
 class ResenaViewSet(viewsets.ModelViewSet):
     queryset = Resena.objects.all()
     serializer_class = ResenaSerializer
@@ -409,3 +579,8 @@ class ResenaViewSet(viewsets.ModelViewSet):
             evaluado = transaccion_instancia.comprador
 
         serializer.save(evaluador=evaluador, evaluado=evaluado)
+
+
+class CobroComunalViewSet(viewsets.ModelViewSet):
+    queryset = CobroComunal.objects.all()
+    serializer_class = CobroSerializer

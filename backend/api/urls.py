@@ -11,6 +11,8 @@ router.register(r'certificados', CertificadoView, 'certificado')
 router.register(r'ofertas', OfertaView, 'oferta')
 router.register(r'transacciones', TransaccionViewSet, 'transaccion')
 router.register(r'resenas', ResenaViewSet, 'resena')
+router.register(r'cobros', CobroComunalViewSet, 'cobro')
+router.register(r'notificaciones', NotificacionViewSet, 'notificacion')
 
 urlpatterns = [
     path('test/', include(router.urls))

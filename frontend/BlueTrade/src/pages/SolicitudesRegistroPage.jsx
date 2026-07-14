@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavbarDashboard from "../components/NavbarDashboard";
 import "../styles/SolicitudesRegistroPage.css";
+import { getUsuariosAdmin } from "../api/item.api";
 
 function SolicitudesRegistroPage() {
   const navigate = useNavigate();
@@ -9,38 +10,40 @@ function SolicitudesRegistroPage() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-   /*esa funcion deberia ir en item a[i--- */
-  useEffect(() => {
-    const cargarSolicitudes = async () => {
-      try {
-        const respuesta = await fetch(
-          "http://127.0.0.1:8000/item/test/usuarios/listar-admin/"
-        );
 
-        if (!respuesta.ok) {
-          throw new Error("No se pudieron obtener los usuarios");
+  useEffect(() => {
+    const controlador = new AbortController();
+
+    const cargarSolicitudes = async () => {
+      setCargando(true);
+      setError("");
+
+      try {
+        const respuesta = await getUsuariosAdmin(controlador.signal);
+
+        setSolicitudes(respuesta.data);
+      } catch (error) {
+        if (
+          error.name === "CanceledError" ||
+          error.code === "ERR_CANCELED"
+        ) {
+          return;
         }
 
-        const data = await respuesta.json();
-
-        const usuariosOrdenados = data.sort((a, b) => {
-          if (a.es_admin === b.es_admin) {
-            return a.id - b.id;
-          }
-
-          return a.es_admin ? 1 : -1;
-        });
-
-        setSolicitudes(usuariosOrdenados);
-      } catch (error) {
         console.error("Error al obtener usuarios:", error);
         setError("No se pudieron cargar los usuarios registrados.");
       } finally {
-        setCargando(false);
+        if (!controlador.signal.aborted) {
+          setCargando(false);
+        }
       }
     };
 
     cargarSolicitudes();
+
+    return () => {
+      controlador.abort();
+    };
   }, []);
 
   const usuariosAdmins = solicitudes.filter((usuario) => usuario.es_admin);

@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.conf import settings
 
 class Residencia(models.Model):
     codigo = models.CharField(max_length=50, unique=True) 
@@ -227,6 +228,22 @@ class Transaccion(models.Model):
 
     def __str__(self):
         return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
+    
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificaciones')
+    tipo = models.CharField(max_length=50) # Ej: 'TRANS_COMPLETADA', 'NUEVA_RESEÑA'
+    data = models.JSONField(default=dict)  # Ej: {'id': 123, 'mensaje': '...'}
+    leido = models.BooleanField(default=False)
+    creado_el = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado_el']
+        indexes = [models.Index(fields=['usuario', 'leido'])]
+    def __str__(self):
+
+        # Muestra el tipo de notificación, el usuario y si está leída
+        estado = "Leída" if self.leido else "No leída"
+        return f"{self.tipo} | {self.usuario.nombre} | {estado}"
 
 class Resena(models.Model):
     transaccion = models.OneToOneField('Transaccion', on_delete=models.CASCADE, related_name='resena')
@@ -235,3 +252,11 @@ class Resena(models.Model):
     calificacion = models.IntegerField(choices=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)])
     comentario = models.TextField(max_length=500)
     fecha = models.DateTimeField(auto_now_add=True)
+
+class CobroComunal(models.Model):
+    administrador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cobros_comunales')
+    descripcion = models.TextField(max_length=255)
+    monto_total = models.FloatField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    usuarios_involucrados = models.IntegerField()
+    alicuota = models.FloatField()

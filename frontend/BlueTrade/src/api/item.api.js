@@ -11,6 +11,13 @@ export const getUsuarios = async () => {
     return axios.get(API_BASE_URL);
 };
 
+// Obtener usuarios para el panel administrativo
+export const getUsuariosAdmin = async (signal) => {
+    return axios.get(`${API_BASE_URL}listar-admin/`, {
+        signal
+    });
+};
+
 // Obtener usuario por ID
 export const getUsuario = async (idUsuario) => {
     return axios.get(`${API_BASE_URL}${idUsuario}/`);
@@ -74,9 +81,6 @@ export const guardarCertificado = async (
         'http://127.0.0.1:8000/item/test/certificados/';
 
     return axios.post(urlCertificados, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
     });
 };
 
@@ -112,19 +116,51 @@ export const crearOferta = async (datosOferta) => {
     });
 };
 
-export const getOfertas = async () => {
-    const urlOfertas =
-        'http://127.0.0.1:8000/item/test/ofertas/';
+export const getOfertas = async (usuarioId) => {
+    const urlOfertas = 'http://127.0.0.1:8000/item/test/ofertas/';
 
     const token = localStorage.getItem('token');
 
     return axios.get(urlOfertas, {
+        params: {
+            usuario_id: usuarioId
+        },
         headers: {
             ...(token && {
                 Authorization: `Bearer ${token}`
             })
         }
     });
+};
+
+export const getOfertasCompletadas = async (
+    usuarioId,
+    limit = 20,
+    offset = 0
+) => {
+    const urlOfertasCompletadas =
+        'http://127.0.0.1:8000/item/test/ofertas/completadas/';
+
+    const token = localStorage.getItem('token');
+
+    return axios.get(urlOfertasCompletadas, {
+        params: {
+            usuario_id: usuarioId,
+            limit,
+            offset
+        },
+        headers: {
+            ...(token && {
+                Authorization: `Bearer ${token}`
+            })
+        }
+    });
+};
+
+export const getServiciosExternosConectados = async () => {
+    return axios.get(
+        'http://127.0.0.1:8000/item/test/servicios/externos-conectados/'
+    );
 };
 
 export const actualizarOferta = async (
@@ -189,6 +225,38 @@ export const actualizarTransaccion = async (idTransaccion, datosTransaccion) => 
     );
 };
 
+const URL_NOTIFICACIONES = 'http://127.0.0.1:8000/item/test/notificaciones/';
+
+export const getNotificaciones = async (usuarioId) => {
+    const token = localStorage.getItem('token');
+    return axios.get(`${URL_NOTIFICACIONES}?usuario_id=${usuarioId}`, {
+        headers: {
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};
+
+// 2. Marcar una notificación como leída
+export const marcarNotificacionLeida = async (idNotificacion) => {
+    const token = localStorage.getItem('token');
+    return axios.patch(`${URL_NOTIFICACIONES}${idNotificacion}/marcar_leida/`, {}, {
+        headers: {
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};
+
+export const buscarMatch = async (datosMatching) => {
+    const token = localStorage.getItem('token');
+    return axios.post('http://127.0.0.1:8000/item/test/ofertas/matching/', datosMatching, {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    });
+};
+
+
 export const crearResena = async (datosResena) => {
     const token = localStorage.getItem('token');
     
@@ -208,3 +276,16 @@ export const obtenerCertificadosUsuario = async (usuarioId) => {
   // Ajusta la URL a la ruta real de tu backend
   return await axios.get(`${API_BASE_URL}${usuarioId}/certificados/`);
 }
+
+export const crearCobroComunal = async (datosCobro) => {
+    return axios.post('http://127.0.0.1:8000/item/test/cobros/', datosCobro);
+};
+
+export const obtenerCobrosComunales = async () => {
+    return axios.get('http://127.0.0.1:8000/item/test/cobros/');
+};
+
+// Obtener un solo cobro por su ID
+export const obtenerCobroComunal = async (id) => {
+    return axios.get(`http://127.0.0.1:8000/item/test/cobros/${id}/`);
+};
