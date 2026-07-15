@@ -118,3 +118,20 @@ def notificar_admins_nuevo_usuario(sender, instance, created, **kwargs):
                     'mensaje': '¡Felicidades! Tu perfil ha sido aprobado. Ya puedes operar en el sistema.'
                 }
             )
+    if not created and instance.estado == 'REVISION_PENDIENTE':
+        # Capturamos el comentario que la vista adjuntó temporalmente al objeto
+        comentario_personalizado = getattr(
+            instance, 
+            '_comentario_revision', 
+            'El administrador ha solicitado correcciones en tu perfil. Por favor, revisa tus datos.'
+        )
+        
+        # Registramos la notificación dirigida al usuario afectado
+        Notificacion.objects.create(
+            usuario=instance,
+            tipo='REVISION_PENDIENTE',
+            data={
+                'usuario_id': instance.id,
+                'mensaje': comentario_personalizado
+            }
+        )

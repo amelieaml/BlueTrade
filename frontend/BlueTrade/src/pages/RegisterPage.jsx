@@ -171,7 +171,9 @@ function RegisterPage() {
         });
       }
       
-      navigate('/login');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
 
     } catch (error) {
         console.error("Error capturado:", error);
@@ -548,6 +550,13 @@ function RegisterPage() {
           </form>
         </section>
       </main>
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
     </div>
   );
 }

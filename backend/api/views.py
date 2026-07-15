@@ -222,6 +222,31 @@ class UsuarioView(viewsets.ModelViewSet):
             })
 
         return Response(data, status=status.HTTP_200_OK)
+    @action(detail=True, methods=['post'], url_path='solicitar-correccion')
+    @transaction.atomic
+    def solicitar_correccion(self, request, pk=None):
+        usuario = self.get_object()
+        comentario = request.data.get('comentario')
+
+        if not comentario:
+            return Response(
+                {"error": "El comentario de corrección es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1. Guardamos el comentario temporalmente en la instancia para que la señal lo lea
+        usuario._comentario_revision = comentario
+        
+        # 2. Cambiamos el estado a REVISION_PENDIENTE
+        usuario.estado = 'REVISION_PENDIENTE'
+        
+        # 3. Guardamos. Al ejecutar save(), se disparará la señal pasándole el comentario
+        usuario.save()
+
+        return Response(
+            {"message": "Solicitud de corrección registrada bajo el estado de Revisión Pendiente."},
+            status=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['get'])
     def certificados(self, request, pk=None):
