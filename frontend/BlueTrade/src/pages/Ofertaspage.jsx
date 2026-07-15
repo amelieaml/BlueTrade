@@ -378,19 +378,20 @@ const ofertasCompletadasMapeadas = useMemo(() => {
               Explora los recursos de intercambio en tu comunidad.
             </p>
           </div>
-          
-          <button 
-            onClick={() => setIsModalCrearOpen(true)}
-            className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-          >
-            + Publicar intercambio
-          </button>
-          <button 
-            onClick={() => setIsModalMatchingOpen(true)}
-            className="bg-purple-600 text-white px-6 py-3 rounded-full font-bold hover:bg-purple-700 transition-all"
-          >
-            Matching
-          </button>
+          <div className="flex flex-row items-center justify-end gap-3 w-full md:w-auto">
+            <button 
+              onClick={() => setIsModalCrearOpen(true)}
+              className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer whitespace-nowrap"
+            >
+              + Publicar intercambio
+            </button>
+            <button 
+              onClick={() => setIsModalMatchingOpen(true)}
+              className="bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3.5 px-7 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.28)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer whitespace-nowrap"
+            >
+              Matching
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
 import { registrarUsuario, guardarCertificado, getServicios, registrarUsuarioCompleto } from '../api/item.api.js';
 import { useNavigate } from 'react-router-dom';
+import Alerta from '../components/alerta';
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
   const [tipoServicioIntencion, setTipoServicioIntencion] = useState('');
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
 
   const [archivo, setArchivo] = useState(null);
@@ -91,7 +93,11 @@ function RegisterPage() {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      setAlerta({
+          mostrar: true,
+          mensaje: "Las contraseñas no coinciden",
+          tipo: "error"
+        });
       return;
     }
     
@@ -127,17 +133,33 @@ function RegisterPage() {
 
         if (requiereArchivo) {
           if (!archivo) {
-            alert("Este servicio requiere que adjuntes un archivo de certificado.");
+            setAlerta({
+              mostrar: true,
+              mensaje: "Este servicio requiere que adjuntes un archivo de certificado.",
+              tipo: "error"
+            });
             return;
           }
           await guardarCertificado(idUsuario, tipoServicioIntencion, archivo);
-          alert("¡Usuario y certificado registrados con éxito!");
+          setAlerta({
+            mostrar: true,
+            mensaje: "¡Usuario y certificado registrados con éxito!",
+            tipo: "success"
+          });
         } else {
-          alert("¡Usuario registrado con éxito! (Sin certificado requerido para este servicio)");
+          setAlerta({
+            mostrar: true,
+            mensaje: "¡Usuario registrado con éxito! (Sin certificado requerido para este servicio)",
+            tipo: "success"
+          });
         }
         
       } else {
-        alert("¡Usuario registrado con éxito!");
+        setAlerta({
+          mostrar: true,
+          mensaje: "¡Usuario registrado con éxito!",
+          tipo: "success"
+        });
       }
       
       navigate('/login');
@@ -156,7 +178,11 @@ function RegisterPage() {
             alert(`Error del servidor (${error.response.status}): ${JSON.stringify(datos)}`);
           }
         } else {
-          console.error("Error inesperado:", error);
+          setAlerta({
+            mostrar: true,
+            mensaje: "Error inesperado. Por favor, inténtalo de nuevo.",
+            tipo: "error"
+          });
         }
     }
   };
@@ -192,8 +218,15 @@ function RegisterPage() {
           Ya tengo cuenta
         </a>
       </header>
-
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
       <main className="register-main">
+
         <section className="register-info">
           <span className="register-badge">
             Solicitud de ingreso a la urbanización
