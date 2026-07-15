@@ -32,7 +32,7 @@ function FiltroOfertas({ filtroTipo, cantidadMinima, onChange }) {
       {filtroTipo === 'agua' && (
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
-            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Mínimo de litros</label>
+            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Máximo de litros</label>
             <span className="text-[12px] font-bold text-[#5b8cff] bg-[#5b8cff]/10 px-2.5 py-1 rounded-md">
               {cantidadMinima.toLocaleString()} L
             </span>
@@ -58,7 +58,7 @@ function FiltroOfertas({ filtroTipo, cantidadMinima, onChange }) {
       {filtroTipo === 'servicio' && (
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
-            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Mínimo de horas</label>
+            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Máximo de horas</label>
             <span className="text-[12px] font-bold text-[#ffb443] bg-[#ffb443]/10 px-2.5 py-1 rounded-md">
               {cantidadMinima} h
             </span>

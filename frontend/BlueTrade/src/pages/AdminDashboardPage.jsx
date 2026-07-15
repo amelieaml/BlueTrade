@@ -7,12 +7,13 @@ function AdminDashboardPage() {
 
   const opcionesAdmin = [
     {
-      titulo: "Usuarios y solicitudes",
+      titulo: "Gestión de usuarios",
       descripcion:
         "Revisar perfiles pendientes, certificados técnicos, datos de propiedad y solicitudes de registro.",
       ruta: "/admin/usuarios",
       etiqueta: "Principal",
       accion: "Gestionar usuarios",
+      detalle: "Solicitudes, certificados y perfiles",
       icono: (
         <svg
           className="admin-action-icon"
@@ -29,12 +30,13 @@ function AdminDashboardPage() {
       ),
     },
     {
-      titulo: "Ofertas publicadas",
+      titulo: "Ofertas públicas",
       descripcion:
         "Supervisar las ofertas de intercambio de agua y servicios dentro de la urbanización.",
       ruta: "/ofertas",
       etiqueta: "Intercambios",
       accion: "Ver ofertas",
+      detalle: "Ofertas activas y servicios conectados",
       icono: (
         <svg
           className="admin-action-icon"
@@ -51,12 +53,13 @@ function AdminDashboardPage() {
       ),
     },
     {
-      titulo: "Solicitudes",
+      titulo: "Cobros comunales",
       descripcion:
-        "Consultar solicitudes enviadas por usuarios y validar información asociada a sus perfiles.",
-      ruta: "/solicitudes",
-      etiqueta: "Solicitudes",
-      accion: "Revisar",
+        "Emitir cobros de condominio y realizar el descuento masivo de litros de agua a los residentes activos.",
+      ruta: "/cobroscomunales",
+      etiqueta: "Finanzas",
+      accion: "Cobros comunales",
+      detalle: "Cobros, descuentos y control comunal",
       icono: (
         <svg
           className="admin-action-icon"
@@ -67,7 +70,7 @@ function AdminDashboardPage() {
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+            d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       ),
@@ -78,81 +81,157 @@ function AdminDashboardPage() {
     navigate(ruta);
   };
 
-
   return (
-  <main className="admin-profile-dashboard">
-    <NavbarDashboard paginaActiva="admin" />
+    <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
 
-    <section className="admin-dashboard-content">
-      <div className="admin-main-card">
-        <div className="admin-card-header">
-          <span className="admin-small-label">Panel administrativo</span>
+      <NavbarDashboard paginaActiva="admin" />
 
-          <h1>Dashboard de administrador</h1>
-
-          <p>
-            Gestiona usuarios, solicitudes, ofertas y operaciones principales
-            de BlueTrade desde un solo panel.
-          </p>
-        </div>
-
-        <hr className="admin-card-divider" />
-
-        <div className="admin-action-row">
-          {opcionesAdmin.map((opcion, index) => (
-            <button
-              type="button"
-              className="admin-circle-action"
-              key={opcion.titulo}
-              onClick={() => manejarClick(opcion.ruta)}
-            >
-              <span
-                className={`admin-circle-icon ${
-                  index === 0 ? "admin-circle-icon-primary" : ""
-                }`}
-              >
-                {opcion.icono}
-              </span>
-
-              <span className="admin-circle-text">{opcion.accion}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <section className="admin-summary-section">
-        <div className="admin-section-title-row">
+      <main className="max-w-[1500px] mx-auto px-6 lg:px-12 pt-12 relative z-10">
+        <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 bg-white/86 border border-white/90 p-8 rounded-[32px] backdrop-blur-[18px] shadow-[0_30px_80px_rgba(20,70,140,0.18)]">
           <div>
-            <span className="admin-section-eyebrow">Opciones disponibles</span>
-            <h2>Gestión del sistema</h2>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-[-2px] text-[#0f1f33] leading-none m-0">
+              Panel{" "}
+              <span className="bg-gradient-to-r from-[#0066ff] to-[#00b8ff] bg-clip-text text-transparent">
+                Administrativo
+              </span>
+            </h1>
+
+            <p className="text-[#5d6f82] mt-4 text-lg leading-relaxed max-w-2xl m-0">
+              Controla usuarios, ofertas y operaciones internas de BlueTrade
+              desde un solo espacio.
+            </p>
           </div>
-        </div>
 
-        <div className="admin-dashboard-grid">
-          {opcionesAdmin.map((opcion) => (
-            <article className="admin-dashboard-card" key={opcion.titulo}>
-              <div>
-                <span className="admin-card-tag">{opcion.etiqueta}</span>
+          <div className="rounded-2xl bg-[#f0f6ff] border border-[#0066ff]/10 p-4 w-full md:w-[220px]">
+            <p className="text-[11px] font-black text-[#6a7b8f] uppercase tracking-wider m-0">
+              Rol
+            </p>
 
-                <h3>{opcion.titulo}</h3>
+            <h3 className="text-2xl font-extrabold text-[#102033] m-0 mt-1">
+              Admin
+            </h3>
+          </div>
+        </section>
 
-                <p>{opcion.descripcion}</p>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <aside className="w-full lg:w-[320px] xl:w-[380px] shrink-0">
+            <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-6 lg:sticky lg:top-24">
+              <h3 className="text-xl font-extrabold text-[#102033] mb-6">
+                Accesos rápidos
+              </h3>
+
+              <div className="flex flex-col gap-4">
+                {opcionesAdmin.map((opcion, index) => (
+                  <button
+                    key={opcion.titulo}
+                    type="button"
+                    onClick={() => manejarClick(opcion.ruta)}
+                    className="w-full border border-[#0066ff]/10 bg-white hover:border-[#0066ff] hover:shadow-[0_8px_30px_rgba(0,102,255,0.12)] cursor-pointer rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 flex items-center gap-4 text-left"
+                  >
+                    <span
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                        index === 0
+                          ? "bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white shadow-[0_8px_20px_rgba(0,102,255,0.25)]"
+                          : "bg-[#f0f6ff] text-[#0066ff]"
+                      }`}
+                    >
+                      {opcion.icono}
+                    </span>
+
+                    <span>
+                      <span className="block text-sm font-extrabold text-[#102033]">
+                        {opcion.accion}
+                      </span>
+                      <span className="block text-xs font-semibold text-[#637489] mt-1">
+                        {opcion.detalle}
+                      </span>
+                    </span>
+                  </button>
+                ))}
               </div>
 
-              <button
-                type="button"
-                className="admin-card-button"
-                onClick={() => manejarClick(opcion.ruta)}
-              >
-                Entrar
-              </button>
-            </article>
-          ))}
+              <hr className="border-[#0066ff]/10 my-6" />
+
+              <div className="rounded-[28px] border border-[#0066ff]/10 bg-[#f3f8ff] p-5">
+                <p className="text-[11px] font-black text-[#0066ff] uppercase tracking-wider m-0">
+                  Estado del panel
+                </p>
+
+                <h4 className="text-lg font-extrabold text-[#102033] mt-2 mb-2">
+                  Operativo
+                </h4>
+
+                <p className="text-sm text-[#637489] leading-relaxed m-0">
+                  Usa este panel para entrar a las áreas principales de gestión
+                  administrativa.
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          <section className="flex-grow w-full">
+            <div className="bg-white/86 backdrop-blur-[18px] border border-white/90 shadow-[0_30px_80px_rgba(20,70,140,0.18)] rounded-[32px] p-8">
+              <div className="mb-8 border-b border-[#0066ff]/10 pb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                  <h3 className="text-2xl font-extrabold text-[#102033] m-0">
+                    Módulos administrativos
+                  </h3>
+
+                  <p className="text-sm text-[#637489] mt-2 m-0">
+                    Selecciona el área que deseas gestionar dentro del sistema.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {opcionesAdmin.map((opcion, index) => (
+                  <article
+                    key={opcion.titulo}
+                    className="border border-[#0066ff]/10 bg-white hover:border-[#0066ff] hover:shadow-[0_8px_30px_rgba(0,102,255,0.12)] rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between min-h-[260px]"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-4 mb-6">
+                        <span
+                          className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                            index === 0
+                              ? "bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white shadow-[0_8px_20px_rgba(0,102,255,0.25)]"
+                              : "bg-[#f0f6ff] text-[#0066ff]"
+                          }`}
+                        >
+                          {opcion.icono}
+                        </span>
+
+                        <span className="text-[11px] font-black tracking-wider px-3 py-1.5 rounded-md border uppercase bg-[#0066ff]/10 text-[#0066ff] border-[#0066ff]/10">
+                          {opcion.etiqueta}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xl font-extrabold text-[#102033] m-0">
+                        {opcion.titulo}
+                      </h4>
+
+                      <p className="text-sm text-[#637489] leading-relaxed mt-3 mb-0">
+                        {opcion.descripcion}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => manejarClick(opcion.ruta)}
+                      className="mt-8 w-fit bg-gradient-to-r from-[#3662AD] to-[#0F5FED] text-white font-bold py-3 px-6 rounded-full shadow-[0_12px_28px_rgba(0,102,255,0.22)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border-none"
+                    >
+                      Entrar
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
-    </section>
-  </main>
-);
+      </main>
+    </div>
+  );
 }
 
 export default AdminDashboardPage;

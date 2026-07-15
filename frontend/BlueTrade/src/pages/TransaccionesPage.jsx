@@ -1,7 +1,11 @@
 import { useState, useEffect, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getMisTransacciones } from '../api/item.api';
+import { actualizarTransaccion } from '../api/item.api';
+
 import NavbarDashboard from '../components/NavbarDashboard';
+import TransaccionSeleccionadaModal from '../components/TransaccionSeleccionadaModal';
 
 
 const IconoCheck = ({ className = "w-4 h-4" }) => (
@@ -20,15 +24,24 @@ function TransaccionesPage() {
   const { usuario } = useContext(AuthContext);
   const [transacciones, setTransacciones] = useState([]);
   const [vistaActiva, setVistaActiva] = useState('compras'); 
+  const [transaccionSeleccionada, setTransaccionSeleccionada] = useState(null);
+  const navigate = useNavigate();
 
-  const cargarTransacciones = async () => {
-    try {
-      const response = await getMisTransacciones();
-      setTransacciones(response.data);
-    } catch (error) {
-      console.error("Error al cargar las transacciones:", error);
+  useEffect(() => {
+    const cargarTransacciones = async () => {
+      try {
+        const response = await getMisTransacciones();
+        console.log("Respuesta de mi API:", response.data);
+        setTransacciones(response.data);
+      } catch (error) {
+        console.error("Error al cargar las transacciones:", error);
+      }
+    };
+
+    if (usuario?.id) {
+      cargarTransacciones();
     }
-  };
+  }, [usuario]);
   
 
   const misCompras = useMemo(() => {
@@ -71,6 +84,21 @@ function TransaccionesPage() {
     </div>
   );
 
+  const handleConfirmarTransaccion = async (idTransaccion) => {
+        try {
+            await actualizarTransaccion(idTransaccion, { estado: 'EN_PROCESO' });
+            
+            // 2. Optimizamos la UI: actualizamos el estado local de React directamente
+            setTransacciones(prevTransacciones => 
+                prevTransacciones.map(t => 
+                    t.id === idTransaccion ? { ...t, estado: 'EN_PROCESO' } : t
+                )
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7fbff] via-[#eef6ff] to-[#ffffff] text-[#3D4F6E] font-sans pb-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%)] pointer-events-none" />
@@ -85,7 +113,7 @@ function TransaccionesPage() {
               Mis <span className="bg-gradient-to-r from-[#0066ff] to-[#00b8ff] bg-clip-text text-transparent">intercambios</span>
             </h1>
             <p className="text-[#5d6f82] mt-4 text-lg leading-relaxed max-w-2xl m-0">
-              Monitorea y gestiona el flujo de tus transacciones activas e históricas.
+              Monitorea y gestiona el flujo de todas tus transacciones.
             </p>
           </div>
 
@@ -129,15 +157,24 @@ function TransaccionesPage() {
                 return (
                   <div 
                     key={tx.id} 
-                    className="border border-[#0066ff]/10 bg-white hover:border-[#0066ff]/30 rounded-2xl p-6 transition-all duration-200 shadow-[0_4px_20px_rgba(20,70,140,0.02)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                    onClick={() => setTransaccionSeleccionada(tx)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setTransaccionSeleccionada(tx); }}
+                    className="border border-[#0066ff]/10 bg-white hover:border-[#0066ff] hover:shadow-[0_8px_30px_rgba(0,102,255,0.12)] cursor-pointer rounded-2xl p-6 transition-all duration-300 transform hover:-translate-y-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#0066ff]/50"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-[#6a7b8f] tracking-wider uppercase">
-                        Transacción #{tx.id}
+                      {/* Subtítulo suave en gris, combinando el ID de transacción y la contraparte */}
+                      <span className="text-xs font-medium text-[#6a7b8f] tracking-wider uppercase">
+                        Transacción #{tx.id} • Con {vistaActiva === 'compras' ? (tx.vendedor_nombre || 'Usuario') : (tx.comprador_nombre || 'Usuario')}
                       </span>
-                      <h4 className="text-lg font-bold text-[#102033] m-0">
-                        Oferta Vinculada ID: {tx.oferta}
+                      
+                      {/* El resumen de la oferta con un peso de fuente más elegante y limpio */}
+                      <h4 className="text-lg font-medium text-[#102033] m-0">
+                        {tx.oferta_resumen || `Oferta vinculada #${tx.oferta}`}
                       </h4>
+                      
+                      {/* La fecha intacta como la tenías originalmente */}
                       <p className="text-sm text-[#5d6f82] m-0 mt-1">
                         Iniciada el: {new Date(tx.fecha_inicio).toLocaleDateString()}
                       </p>
@@ -157,6 +194,41 @@ function TransaccionesPage() {
                         </div>
                       </div>
 
+                      {(() => {
+                        // CORRECCIÓN AQUÍ: Se cambiaron las referencias de 'transaccion' a 'tx'
+                        if (tx.estado !== 'COMPLETADA') return null;
+
+                        if (usuario?.id !== tx.usuario_agua_id) {
+                          return null; 
+                        }
+
+                        if (tx.ya_calificada) {
+                          return (
+                            <button 
+                              disabled
+                              className="px-6 py-3 font-bold rounded-2xl bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed text-sm flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Ya Calificado
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); // Evita abrir el modal al hacer clic en el botón
+                              navigate(`/resena/${tx.id}`);
+                            }}
+                            className="px-6 py-3 font-bold rounded-2xl text-white bg-gradient-to-r from-[#0066ff] to-[#00b8ff] shadow-[0_8px_20px_rgba(0,102,255,0.2)] hover:shadow-[0_12px_28px_rgba(0,102,255,0.3)] hover:-translate-y-0.5 transition-all text-sm cursor-pointer"
+                          >
+                            Calificar
+                          </button>
+                        );
+                      })()}
+
                       {renderBadgeEstado(tx.estado)}
                     </div>
                   </div>
@@ -166,6 +238,83 @@ function TransaccionesPage() {
           )}
         </div>
       </div>
+      {/* Renderizado del Modal Importado */}
+      <TransaccionSeleccionadaModal 
+        isOpen={!!transaccionSeleccionada} 
+        transaccion={transaccionSeleccionada} 
+        vistaActiva={vistaActiva}
+        usuario={usuario} // <--- NUEVO: Pasamos el usuario para validar sus litros
+        onClose={() => setTransaccionSeleccionada(null)} 
+        onConfirmar={async (idTransaccion) => {
+          try {
+              // 1. Identificamos si el rol activo es comprador o vendedor usando tu estado vistaActiva
+              const esComprador = vistaActiva === 'compras';
+              
+              // 2. Armamos el objeto dinámico para el PATCH
+              const datosAEnviar = {
+                  estado: 'EN_PROCESO',
+                  ...(esComprador ? { confirmacion_comprador: true } : { confirmacion_vendedor: true })
+              };
+
+              // 3. Ejecutamos el PATCH enviando el estado y la confirmación correspondiente
+              await actualizarTransaccion(idTransaccion, datosAEnviar);
+              
+              console.log("Confirmando transacción con éxito:", idTransaccion);
+              
+              // 4. Sincronizamos el estado de React para reflejarlo de inmediato en la lista de fondo
+              setTransacciones(prevTransacciones => 
+                  prevTransacciones.map(t => 
+                      t.id === idTransaccion 
+                          ? { 
+                              ...t, 
+                              estado: 'EN_PROCESO',
+                              ...(esComprador ? { confirmacion_comprador: true } : { confirmacion_vendedor: true })
+                            } 
+                          : t
+                  )
+              );
+
+              // Descomenta tu alerta de éxito si solucionas el import más adelante
+              /*setAlerta({ 
+                  mostrar: true, 
+                  mensaje: 'Transacción confirmada y en proceso', 
+                  tipo: 'success' 
+              });*/
+
+          } catch (error) {
+              console.error("Error al confirmar la transacción en el servidor:", error);
+              
+              /*setAlerta({ 
+                  mostrar: true, 
+                  mensaje: 'No se pudo confirmar la transacción. Intenta de nuevo.', 
+                  tipo: 'error' 
+              });*/
+          } finally {
+              // 5. Cerramos el modal pase lo que pase
+              setTransaccionSeleccionada(null);
+          }
+        }}
+        onCancelar={async (idTransaccion) => {
+          try {
+              // 1. Enviamos el PATCH al backend cambiando el estado a CANCELADA
+              await actualizarTransaccion(idTransaccion, { estado: 'CANCELADA' });
+              console.log("Transacción cancelada con éxito:", idTransaccion);
+
+              // 2. Sincronizamos el estado local de React de inmediato
+              setTransacciones(prevTransacciones => 
+                  prevTransacciones.map(t => 
+                      t.id === idTransaccion ? { ...t, estado: 'CANCELADA' } : t
+                  )
+              );
+
+          } catch (error) {
+              console.error("Error al cancelar la transacción en el servidor:", error);
+          } finally {
+              // 3. Cerramos el modal pase lo que pase
+              setTransaccionSeleccionada(null);
+          }
+        }}
+      />
     </div>
   );
 }

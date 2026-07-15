@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { crearOferta, obtenerCertificadosUsuario } from '../api/item.api'; 
+import React, { useState, useContext } from 'react';
+import { buscarMatch } from '../api/item.api';
 import { AuthContext } from '../context/AuthContext'; 
 
+// Iconos reutilizados
 const IconoAgua = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16a5 5 0 005-5c0-2.76-2.5-5.5-5-8.5-2.5 3-5 5.74-5 8.5a5 5 0 005 5z" />
@@ -21,10 +22,9 @@ const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
   </svg>
 );
 
-function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) {
+function ModalBuscarMatch({ isOpen, onClose, onMatchEncontrado, serviciosDB }) {
+  const { usuario } = useContext(AuthContext);
   const [errores, setErrores] = useState({});
-  const [certificadosUsuario, setCertificadosUsuario] = useState([]); // Nuevo estado para los certificados
-  
   const [formData, setFormData] = useState({
     tipoOfrecido: 'agua',
     cantidadOfrecida: '',
@@ -34,47 +34,10 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     descripcion: ''
   });
 
-  // Efecto para buscar los certificados del usuario al abrir el modal
-  useEffect(() => {
-    if (isOpen && usuario?.id) {
-      const fetchCertificados = async () => {
-        try {
-          const respuesta = await obtenerCertificadosUsuario(usuario.id);
-          // Asumimos que respuesta.data contiene el arreglo de certificados
-          console.log("Certificados obtenidos de Supabase:", respuesta.data);
-          setCertificadosUsuario(respuesta.data || []); 
-        } catch (error) {
-          console.error("Error al obtener los certificados del usuario:", error);
-          setCertificadosUsuario([]);
-        }
-      };
-
-      fetchCertificados();
-    } else {
-      setCertificadosUsuario([]); // Limpiamos al cerrar
-      setErrores({}); // Limpiamos errores al cerrar
-    }
-  }, [isOpen, usuario]);
-
-  useEffect(() => {
-    if (serviciosDB && serviciosDB.length > 0) {
-      const primerServicioOfrecidoValido = serviciosDB.find(s => {
-        const tieneCert = certificadosUsuario.some(cert => cert.tipo_servicio === s.id);
-        return !s.necesita_certificado || tieneCert;
-      }) || serviciosDB[0];
-
-      setFormData(prev => ({
-        ...prev,
-        categoriaOfrecidaServicio: prev.categoriaOfrecidaServicio || primerServicioOfrecidoValido.nombre,
-        categoriaSolicitadaServicio: prev.categoriaSolicitadaServicio || serviciosDB[0].nombre
-      }));
-    }
-  }, [serviciosDB, certificadosUsuario]);
-
   if (!isOpen) return null;
 
+  // Se corrige la inconsistencia del nombre de la variable derivada
   const tipoSolicitadoCalculado = formData.tipoOfrecido === 'agua' ? 'servicio' : 'agua';
-
   const esOfreceAgua = formData.tipoOfrecido === 'agua';
   const colorOfrece = esOfreceAgua ? 'bg-[#5b8cff]' : 'bg-[#ffb443]';
   const iconoOfrece = esOfreceAgua ? <IconoAgua /> : <IconoServicio />;
@@ -95,74 +58,36 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    // Limpiamos el error del campo que el usuario está modificando
-    if (errores[name]) {
-      setErrores(prev => ({ ...prev, [name]: null }));
-    }
   };
 
-  const handleSubmit = async (e) => {
-    console.log(formData)
+  const handleBuscar = async (e) => {
     e.preventDefault();
     setErrores({});
-
-    // Validación de litros disponibles
-    if (formData.tipoOfrecido === 'agua' && parseFloat(formData.cantidadOfrecida) > usuario.litros_disponibles) {
-        setErrores({ 
-            cantidadOfrecida: "No tienes suficientes litros disponibles. Tu saldo actual es " + usuario.litros_disponibles 
-        });
-        return; 
-    }
-
-    // Validación de certificado para servicios ofrecidos
-    if (formData.tipoOfrecido === 'servicio') {
-      const servicioSeleccionado = serviciosDB.find(s => s.nombre === formData.categoriaOfrecidaServicio);
-      
-      if (servicioSeleccionado?.necesita_certificado) {
-        // AHORA: Comparamos el tipo_servicio_id del certificado con el id del servicio seleccionado
-        const tieneCertificado = certificadosUsuario.some(
-          cert => cert.tipo_servicio === servicioSeleccionado.id
-        );
-
-        if (!tieneCertificado) {
-          setErrores({ certificado: `No posees la certificación técnica requerida para ofrecer "${servicioSeleccionado.nombre}".` });
-          return;
-        }
-      }
-    }
-
-
-    const payload = {
-      usuario_id: usuario?.id, 
-      tipo_ofrecido: formData.tipoOfrecido.toUpperCase(),
-      descripcion: formData.descripcion,
-      cantidad_ofrecida: parseFloat(formData.cantidadOfrecida),
-      categoria_ofrecida: formData.tipoOfrecido === 'servicio' ? formData.categoriaOfrecidaServicio : null,
-      tipo_solicitado: tipoSolicitadoCalculado.toUpperCase(),
-      cantidad_solicitada: parseFloat(formData.cantidadSolicitada),
-      categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
-    };
-
+    
     try {
-      const respuesta = await crearOferta(payload);
-      if (respuesta.status === 201) {
-        alert("¡Oferta publicada exitosamente!");
-        onSuccess(respuesta.data); 
-        
-        setFormData({
-          tipoOfrecido: 'agua',
-          cantidadOfrecida: '',
-          categoriaOfrecidaServicio: serviciosDB[0]?.nombre || '',
-          cantidadSolicitada: '',
-          categoriaSolicitadaServicio: serviciosDB[0]?.nombre || '',
-          descripcion: ''
-        });
+      const payload = {
+        usuario_id: usuario?.id,
+        tipo_ofrecido: formData.tipoOfrecido.toUpperCase(),
+        descripcion: formData.descripcion,
+        cantidad_ofrecida: parseFloat(formData.cantidadOfrecida) || 0,
+        categoria_ofrecida: formData.tipoOfrecido === 'servicio' ? formData.categoriaOfrecidaServicio : null,
+        tipo_solicitado: tipoSolicitadoCalculado.toUpperCase(),
+        cantidad_solicitada: parseFloat(formData.cantidadSolicitada) || 0,
+        categoria_solicitada: tipoSolicitadoCalculado === 'servicio' ? formData.categoriaSolicitadaServicio : null
+      };
+
+      const response = await buscarMatch(payload);
+      if (response.status === 200) {
+        onMatchEncontrado(response.data);
         onClose();
       }
     } catch (error) {
-      console.error("Error al publicar la oferta:", error);
-      const mensaje = error.response?.data?.detail || "Hubo un error al registrar tu intercambio.";
-      alert(mensaje);
+      console.error(error);
+      if (error.response?.status === 404) {
+        alert("Lo sentimos, no encontramos ninguna oferta activa que coincida exactamente con tus requerimientos.");
+      } else {
+        alert("No se encontraron coincidencias o hubo un problema al procesar la búsqueda.");
+      }
     }
   };
 
@@ -171,9 +96,9 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
       <div className="bg-white/95 backdrop-blur-[18px] border border-gray-100 rounded-[28px] shadow-[0_30px_70px_rgba(20,70,140,0.22)] w-full max-w-[560px] relative max-h-[92vh] flex flex-col overflow-hidden">
         
         <div className="p-6 md:p-7 border-b border-gray-50 relative text-left shrink-0">
-          <h2 className="text-xl font-bold text-[#102033] tracking-tight m-0">Crear nueva oferta</h2>
+          <h2 className="text-xl font-bold text-[#102033] tracking-tight m-0">Buscar coincidencia inteligente (Matching)</h2>
           <p className="text-xs text-[#637489] m-0 mt-1 leading-relaxed">
-            Especifica que deseas ofrecer y obtener a cambio
+            Ingresa lo que estás dispuesto a ofrecer y lo que esperas a cambio para buscar un intercambio automático.
           </p>
           <button 
             onClick={onClose}
@@ -183,7 +108,7 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
           </button>
         </div>
 
-        <form className="p-6 md:p-7 overflow-y-auto flex flex-col gap-5" onSubmit={handleSubmit}>
+        <form className="p-6 md:p-7 overflow-y-auto flex flex-col gap-5" onSubmit={handleBuscar}>
           
           {/* OFRECE */}
           <div className="p-5 pr-[18px] pl-6 rounded-[18px] border border-black/[0.04] bg-[#f8fafc] relative w-full box-border text-left">
@@ -206,46 +131,13 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
               {formData.tipoOfrecido === 'agua' ? (
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-[#102033] font-bold text-[13px]">Cantidad (Litros)</label>
-                  <input 
-                    type="number" 
-                    name="cantidadOfrecida" 
-                    placeholder="Ej. 1000" 
-                    value={formData.cantidadOfrecida} 
-                    onChange={handleInputChange} 
-                    required 
-                    className={`w-full border rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all 
-                      ${errores.cantidadOfrecida ? 'border-red-500 ring-1 ring-red-500' : 'border-[rgba(0,102,255,0.14)] focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10'}`}
-                  />
-                  {errores.cantidadOfrecida && (
-                    <span className="text-[#e11d48] text-[11px] font-bold mt-1">
-                      {errores.cantidadOfrecida}
-                    </span>
-                  )}
+                  <input type="number" name="cantidadOfrecida" placeholder="Ej. 1000" value={formData.cantidadOfrecida} onChange={handleInputChange} required className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"/>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-[#102033] font-bold text-[13px]">Categoría (Desde BD)</label>
-                  <select 
-                    name="categoriaOfrecidaServicio" 
-                    value={formData.categoriaOfrecidaServicio} 
-                    onChange={handleInputChange} 
-                    className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10"
-                  >
-                    {serviciosDB.map(s => {
-                      // AHORA: Comparamos por ID para saber si habilitar o deshabilitar la opción
-                      const tieneCertificado = certificadosUsuario.some(cert => cert.tipo_servicio === s.id);
-                      const opcionBloqueada = s.necesita_certificado && !tieneCertificado;
-
-                      return (
-                        <option 
-                          key={s.id} 
-                          value={s.nombre}
-                          disabled={opcionBloqueada}
-                        >
-                          {s.nombre} {opcionBloqueada ? '(Requiere certificado)' : ''}
-                        </option>
-                      )
-                    })}
+                  <select name="categoriaOfrecidaServicio" value={formData.categoriaOfrecidaServicio} onChange={handleInputChange} className="w-full border border-[rgba(0,102,255,0.14)] bg-white rounded-[14px] py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[rgba(0,102,255,0.65)] focus:ring-4 focus:ring-blue-500/10">
+                    {serviciosDB.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
                   </select>
                   {errores.certificado && (
                     <div className="mt-2 text-[#e11d48] text-[11px] font-bold flex items-center gap-1">{errores.certificado}</div>
@@ -302,12 +194,12 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
           </div>
 
           <div className="bg-[#f0f6ff] text-[#0066ff] p-3.5 rounded-xl text-xs text-left border border-blue-100">
-            <strong>Importante:</strong> al publicar la oferta, estará disponible inmediatamente.
+            <strong>Buscador Inteligente:</strong> el motor buscará de forma bidireccional y estricta una oferta existente en el sistema.
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 shrink-0">
             <button type="button" onClick={onClose} className="border border-[rgba(0,102,255,0.14)] cursor-pointer rounded-full py-3 px-6 text-sm font-bold text-[#5d6f82] bg-[#f7fbff] transition-all hover:bg-[#eef6ff]">Cancelar</button>
-            <button type="submit" className="border-none cursor-pointer rounded-full py-3 px-6 text-sm font-bold text-white bg-gradient-to-r from-[#0066ff] to-[#00b8ff] shadow-[0_10px_22px_rgba(0,102,255,0.2)] hover:-translate-y-0.5 sm:col-span-2">Publicar oferta</button>
+            <button type="submit" className="border-none cursor-pointer rounded-full py-3 px-6 text-sm font-bold text-white bg-gradient-to-r from-[#0066ff] to-[#00b8ff] shadow-[0_10px_22px_rgba(0,102,255,0.2)] hover:-translate-y-0.5 sm:col-span-2">Encontrar Match</button>
           </div>
         </form>
       </div>
@@ -315,4 +207,4 @@ function ModalCrearOferta({ isOpen, onClose, onSuccess, serviciosDB, usuario }) 
   );
 }
 
-export default ModalCrearOferta;
+export default ModalBuscarMatch;

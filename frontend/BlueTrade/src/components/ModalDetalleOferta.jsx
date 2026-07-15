@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const IconoAgua = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -19,11 +19,25 @@ const IconoFlechaAbajo = ({ className = "w-4 h-4" }) => (
   </svg>
 );
 
-function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }) {
+function ModalDetalleOferta({ 
+  oferta, 
+  isOpen, 
+  onClose, 
+  onConfirmar, 
+  onRechazar,
+  serviciosDB, 
+  certificadosUsuario 
+}) {
+  const [errorValidacion, setErrorValidacion] = useState(null);
+
+  useEffect(() => {
+    setErrorValidacion(null);
+  }, [isOpen, oferta]);
+
   if (!isOpen || !oferta) return null;
   
   const esAgua = oferta.tipo_ofrecido === 'agua' || oferta.tipo_ofrecido === 'AGUA';
-  const detalleOfrecido= oferta.tipo_ofrecido;
+  const detalleOfrecido = oferta.tipo_ofrecido;
   const cantidadOfrecida = oferta.cantidad_ofrecida;
 
   const detalleSolicitado = oferta.tipo_solicitado;
@@ -47,6 +61,28 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
   const estiloOfrecido = config[oferta.tipo_ofrecido.toUpperCase()];
   const estiloSolicitado = config[oferta.tipo_solicitado.toUpperCase()];
   
+  const handleIntentarConfirmar = () => {
+    setErrorValidacion(null);
+
+    if (oferta.tipo_solicitado?.toUpperCase() === 'SERVICIO') {
+      const servicioSolicitado = serviciosDB?.find(s => s.nombre === oferta.categoria_solicitada);
+
+      if (servicioSolicitado?.necesita_certificado) {
+        console.log("ID Necesario:", servicioSolicitado.id, "Certificados que tengo:", certificadosUsuario);
+        const tieneCertificado = certificadosUsuario?.some(
+          cert => String(cert.tipo_servicio) === String(servicioSolicitado.id)
+        );
+
+        if (!tieneCertificado) {
+          setErrorValidacion(`Necesitas una certificación técnica para ofrecer "${servicioSolicitado.nombre}". No puedes aceptar esta oferta.`);
+          return; 
+        }
+      }
+    }
+
+    onConfirmar(oferta);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       
@@ -87,9 +123,13 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
                 </div>
                 <div>
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {esAgua ? `${cantidadOfrecida.toLocaleString()} Litros de Agua` : `${cantidadOfrecida}h de Servicio`}
+                    {oferta.tipo_ofrecido?.toUpperCase() === 'AGUA' 
+                      ? `${(oferta.cantidad_ofrecida || 0).toLocaleString()} Litros de Agua` 
+                      : `${oferta.cantidad_ofrecida || 0}h de ${oferta.categoria_ofrecida || 'Servicio'}`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed capitalize">{detalleOfrecido.toLowerCase()}</p>
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                    {oferta.tipo_ofrecido?.toUpperCase() === 'AGUA' ? 'Agua' : oferta.descripcion}
+                  </p>
                 </div>
               </div>
             </div>
@@ -108,13 +148,23 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
                 </div>
                 <div>
                   <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                    {!esAgua ? `${cantidadSolicitada.toLocaleString()} Litros de Agua` : `${cantidadSolicitada}h de Servicio`}
+                    {oferta.tipo_solicitado?.toUpperCase() === 'AGUA' 
+                      ? `${(oferta.cantidad_solicitada || 0).toLocaleString()} Litros de Agua` 
+                      : `${oferta.cantidad_solicitada || 0}h de ${oferta.categoria_solicitada || 'Servicio'}`}
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">{oferta.descripcion}</p>
+                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                    {oferta.tipo_solicitado?.toUpperCase() === 'AGUA' ? 'Agua' : oferta.descripcion}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
+
+          {errorValidacion && (
+             <div className="mt-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+               <p className="text-red-700 text-sm font-semibold m-0">{errorValidacion}</p>
+             </div>
+          )}
 
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <button 
@@ -124,7 +174,7 @@ function ModalDetalleOferta({ oferta, isOpen, onClose, onConfirmar, onRechazar }
               Cancelar
             </button>
             <button 
-              onClick={() => onConfirmar(oferta)}
+              onClick={handleIntentarConfirmar}
               className="flex-[2] px-6 py-4 bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white font-bold rounded-2xl shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
             >
               Empezar transacción

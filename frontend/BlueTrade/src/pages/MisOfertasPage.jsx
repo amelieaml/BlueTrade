@@ -21,6 +21,8 @@ function MisOfertasPage() {
       
       setOfertas(responseOfertas.data);
       setServiciosDB(responseServicios.data);
+      console.log("Ofertas cargadas:", responseOfertas.data);
+      console.log("Servicios cargados:", responseServicios.data);
     } catch (error) {
       console.error("Error al cargar los datos:", error);
     }

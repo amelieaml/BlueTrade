@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.conf import settings
 
 class Residencia(models.Model):
     codigo = models.CharField(max_length=50, unique=True) 
@@ -82,15 +83,6 @@ class Usuario(AbstractBaseUser):
     
     @property
     def litros_bloqueados(self):
-        # 1. Litros bloqueados cuando tú eres el VENDEDOR (creaste una oferta ofreciendo AGUA)
-        bloqueados_ventas = self.ventas.filter(
-            estado__in=['PENDIENTE', 'EN_PROCESO'],
-            oferta__tipo_ofrecido__iexact='AGUA'
-        ).aggregate(
-            total=models.Sum('oferta__cantidad_ofrecida')
-        )['total'] or 0
-
-        # 2. Litros bloqueados cuando tú eres el COMPRADOR (aceptaste una oferta que pide AGUA)
         bloqueados_compras = self.compras.filter(
             estado__in=['PENDIENTE', 'EN_PROCESO'],
             oferta__tipo_solicitado__iexact='AGUA'
@@ -98,29 +90,55 @@ class Usuario(AbstractBaseUser):
             total=models.Sum('oferta__cantidad_solicitada')
         )['total'] or 0
 
-        return float(bloqueados_ventas) + float(bloqueados_compras)
+        bloqueados_ofertas = self.ofertas.filter(
+            estado__in=['ACTIVO', 'EN_PROCESO'],
+            tipo_ofrecido__iexact='AGUA'
+        ).aggregate(
+            total=models.Sum('cantidad_ofrecida')
+        )['total'] or 0
+
+        return float(bloqueados_compras) + float(bloqueados_ofertas)
 
     @property
     def litros_disponibles(self):
-        # El saldo real es tu total histórico menos lo que está comprometido en transacciones
         return float(self.litros_agua) - self.litros_bloqueados
+
+    @property
+    def promedio_calificacion(self):
+        from .models import Resena
+        promedio = Resena.objects.filter(evaluado=self).aggregate(
+            promed=models.Avg('calificacion')
+        )['promed']
+        
+        return round(float(promedio), 1) if promedio is not None else 0.0
 
 class Servicio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(max_length=255, unique=True)
     necesita_certificado = models.BooleanField(default=False)
+    #campos de la táctica 
+    es_externo = models.BooleanField(default=False)
+    api_origen = models.URLField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return self.nombre
+        prefix = "[Externo] " if self.es_externo else "[Interno] " 
+        return f"{prefix}{self.nombre}"
+    
+class DirectorioServicio(models.Model):
+    nombre_servicio = models.CharField(max_length=100, unique=True)
+    api_conexion = models.URLField(max_length=255, unique=True)
+    esta_activo = models.BooleanField(default=False)
+    ultima_consulta = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        estado = "Activo" if self.esta_activo else "Inactivo"
+        return f"{self.nombre_servicio} ({estado})"  
     
 class Certificado(models.Model):
     archivo = models.FileField(upload_to='comprobantes_certificados/')
     creado_el = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificados')
     tipo_servicio = models.ForeignKey('Servicio', on_delete=models.CASCADE, related_name='certificados')
-
-from django.db import models
-from django.conf import settings
 
 class EstadoOferta(models.TextChoices):
     ACTIVO = 'ACTIVO', 'Activo'
@@ -171,7 +189,6 @@ class Transaccion(models.Model):
     
     estado = models.CharField(max_length=20, choices=EstadoTransaccion.choices, default=EstadoTransaccion.PENDIENTE)
     
-    # Confirmaciones manuales de ambas partes
     confirmacion_comprador = models.BooleanField(default=False)
     confirmacion_vendedor = models.BooleanField(default=False)
     
@@ -179,30 +196,67 @@ class Transaccion(models.Model):
     fecha_finalizacion = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        # Lógica de cierre automático: si ambos confirman, se completa la transacción
-        if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != EstadoTransaccion.COMPLETADA:
-            self.estado = EstadoTransaccion.COMPLETADA
-            self.fecha_finalizacion = timezone.now()
+        if self.confirmacion_comprador and self.confirmacion_vendedor and self.estado != 'COMPLETADA':
             
-            # Actualizamos el estado de la oferta original
+            if self.oferta.tipo_ofrecido == 'AGUA':
+                self.comprador.litros_agua += self.oferta.cantidad_ofrecida
+                self.comprador.save()
+                
+            elif self.oferta.tipo_solicitado == 'AGUA':
+                if self.comprador.litros_agua >= self.oferta.cantidad_solicitada:
+                    self.comprador.litros_agua -= self.oferta.cantidad_solicitada
+                    self.oferta.usuario.litros_agua += self.oferta.cantidad_solicitada
+                    
+                    self.comprador.save()
+                    self.oferta.usuario.save()
+                else:
+                    raise ValueError("Saldo insuficiente del comprador.")
+
+            self.estado = 'COMPLETADA'
+            self.fecha_finalizacion = timezone.now()
             self.oferta.estado = 'COMPLETADO'
             self.oferta.save()
-            
-            # Deducción de recursos (Lógica de Agua)
-            if self.oferta.tipo_ofrecido.upper() == 'AGUA':
-                vendedor = self.oferta.usuario
-                vendedor.litros_agua -= self.oferta.cantidad_ofrecida
-                vendedor.save()
-                
+
         super().save(*args, **kwargs)
 
     @property
     def litros_involucrados(self):
-        # Esta transacción, ¿cuántos litros de agua involucra?
-        # Solo nos interesa si el tipo ofrecido es AGUA
+
         if self.oferta.tipo_ofrecido == 'AGUA':
             return self.oferta.cantidad_ofrecida
         return 0
 
     def __str__(self):
         return f"Transacción {self.id} | Comprador: {self.comprador.nombre} | Estado: {self.estado}"
+    
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificaciones')
+    tipo = models.CharField(max_length=50) # Ej: 'TRANS_COMPLETADA', 'NUEVA_RESEÑA'
+    data = models.JSONField(default=dict)  # Ej: {'id': 123, 'mensaje': '...'}
+    leido = models.BooleanField(default=False)
+    creado_el = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado_el']
+        indexes = [models.Index(fields=['usuario', 'leido'])]
+    def __str__(self):
+
+        # Muestra el tipo de notificación, el usuario y si está leída
+        estado = "Leída" if self.leido else "No leída"
+        return f"{self.tipo} | {self.usuario.nombre} | {estado}"
+
+class Resena(models.Model):
+    transaccion = models.OneToOneField('Transaccion', on_delete=models.CASCADE, related_name='resena')
+    evaluador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_realizadas')
+    evaluado = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resenas_recibidas')
+    calificacion = models.IntegerField(choices=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)])
+    comentario = models.TextField(max_length=500)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+class CobroComunal(models.Model):
+    administrador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cobros_comunales')
+    descripcion = models.TextField(max_length=255)
+    monto_total = models.FloatField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    usuarios_involucrados = models.IntegerField()
+    alicuota = models.FloatField()

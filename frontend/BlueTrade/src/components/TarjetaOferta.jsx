@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const IconoAgua = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,12 +99,17 @@ function TarjetaOferta({ oferta, onVerDetalle }) {
 
         {/* Footer: Usuario y Acción */}
         <div className="mt-6 pt-4 flex items-center justify-between border-t border-gray-50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-600">
+          {/* Envolvemos con Link para redirigir al perfil usando el ID del usuario */}
+          <Link 
+            to={`/perfil/${oferta.usuario}`} 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity no-underline"
+          >
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-600 cursor-pointer">
               {avatarLetra}
             </div>
-            <span className="text-[13px] font-bold text-gray-700">{nombreUsuario}</span>
-          </div>
+            <span className="text-[13px] font-bold text-gray-700 cursor-pointer">{nombreUsuario}</span>
+          </Link>
+          
           <button 
             onClick={() => onVerDetalle(oferta)}
             className="text-[13px] font-bold text-[#0066ff] hover:text-[#004a99] transition-colors bg-blue-50 px-3 py-1.5 rounded-lg border-none cursor-pointer"

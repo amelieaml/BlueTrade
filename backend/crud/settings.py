@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'crud.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATA_BASE'),
-        conn_max_age=600,
+        conn_max_age=0,
     )
 }
 

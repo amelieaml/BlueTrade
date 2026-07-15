@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
-import { registrarUsuario, guardarCertificado, getServicios, registrarUsuarioCompleto } from '../api/item.api.js';
+import {
+  guardarCertificado,
+  getServicios,
+  registrarUsuarioCompleto
+} from '../api/item.api.js';
 import { useNavigate } from 'react-router-dom';
+import Alerta from '../components/alerta';
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [intencionAgua, setIntencionAgua] = useState(false);
   const [intencionServicio, setIntencionServicio] = useState(false);
   const [tipoServicioIntencion, setTipoServicioIntencion] = useState('');
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
 
   const [archivo, setArchivo] = useState(null);
@@ -41,7 +47,7 @@ function RegisterPage() {
   const cargarServicios = async () => {
     try {
       const respuesta = await getServicios();
-      setServiciosBD(respuesta.data);
+      setServiciosBD(respuesta.data.filter(s => !s.es_externo));
     } catch (error) {
       console.error("Error al cargar los servicios:", error);
     }
@@ -91,7 +97,11 @@ function RegisterPage() {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      setAlerta({
+          mostrar: true,
+          mensaje: "Las contraseñas no coinciden",
+          tipo: "error"
+        });
       return;
     }
     
@@ -104,7 +114,7 @@ function RegisterPage() {
     const telefonoCompleto = `${formData.prefijo}${formData.telefono}`;
 
     const nuevoUsuario = {
-      ci: parseInt(formData.cedula),
+      ci: parseInt(formData.cedula, 10),
       nombre: formData.nombre,
       email: formData.email.toLowerCase(), 
       telefono: telefonoCompleto,
@@ -112,13 +122,18 @@ function RegisterPage() {
       intencion_servicio: intencionServicio,
       tipo_servicio_intencion: tipoServicioIntencion || null,
       password: formData.password,
-      codigo_casa: formData.propiedad,
-      certificado: intencionServicio 
+      codigo_casa: formData.propiedad
     };
     
     try {
       const respuesta = await registrarUsuarioCompleto(nuevoUsuario);
       const idUsuario = respuesta.data.id; 
+
+      if (!idUsuario) {
+        throw new Error(
+          "El backend creó el usuario, pero no devolvió su ID."
+        );
+      }
 
       if (intencionServicio && tipoServicioIntencion) {
         
@@ -127,20 +142,38 @@ function RegisterPage() {
 
         if (requiereArchivo) {
           if (!archivo) {
-            alert("Este servicio requiere que adjuntes un archivo de certificado.");
+            setAlerta({
+              mostrar: true,
+              mensaje: "Este servicio requiere que adjuntes un archivo de certificado.",
+              tipo: "error"
+            });
             return;
           }
           await guardarCertificado(idUsuario, tipoServicioIntencion, archivo);
-          alert("¡Usuario y certificado registrados con éxito!");
+          setAlerta({
+            mostrar: true,
+            mensaje: "¡Usuario y certificado registrados con éxito!",
+            tipo: "success"
+          });
         } else {
-          alert("¡Usuario registrado con éxito! (Sin certificado requerido para este servicio)");
+          setAlerta({
+            mostrar: true,
+            mensaje: "¡Usuario registrado con éxito! (Sin certificado requerido para este servicio)",
+            tipo: "success"
+          });
         }
         
       } else {
-        alert("¡Usuario registrado con éxito!");
+        setAlerta({
+          mostrar: true,
+          mensaje: "¡Usuario registrado con éxito!",
+          tipo: "success"
+        });
       }
       
-      navigate('/login');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
 
     } catch (error) {
         console.error("Error capturado:", error);
@@ -156,7 +189,11 @@ function RegisterPage() {
             alert(`Error del servidor (${error.response.status}): ${JSON.stringify(datos)}`);
           }
         } else {
-          console.error("Error inesperado:", error);
+          setAlerta({
+            mostrar: true,
+            mensaje: "Error inesperado. Por favor, inténtalo de nuevo.",
+            tipo: "error"
+          });
         }
     }
   };
@@ -192,8 +229,15 @@ function RegisterPage() {
           Ya tengo cuenta
         </a>
       </header>
-
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
       <main className="register-main">
+
         <section className="register-info">
           <span className="register-badge">
             Solicitud de ingreso a la urbanización
@@ -336,12 +380,12 @@ function RegisterPage() {
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label htmlFor="propiedad">Código o número de propiedad</label>
+                  <label htmlFor="propiedad">Número de propiedad</label>
                   <input
                     type="text"
                     id="propiedad"
                     name="propiedad"
-                    placeholder="Ej. Casa A-12 / Torre 3 Apt. 4B"
+                    placeholder="Ej. 0001"
                     value={formData.propiedad}
                     onChange={validarCampo}
                     required
@@ -399,8 +443,7 @@ function RegisterPage() {
                       </div>
                     )}
                     <span>
-                      Deseo ofrecer mantenimiento técnico en infraestructuras
-                      comunes.
+                      Deseo ofrecer mis servicios en alguna(s) área en específico.
                     </span>
                   </div>
                 </label>
@@ -507,6 +550,13 @@ function RegisterPage() {
           </form>
         </section>
       </main>
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
     </div>
   );
 }
