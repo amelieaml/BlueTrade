@@ -21,7 +21,6 @@ function DashboardPage() {
   
   // Datos
   const [serviciosDB, setServiciosDB] = useState([]);
-  const [serviciosInternos, setServiciosInternos] = useState([]);
   const [ofertasActivas, setOfertasActivas] = useState([]);
   const [cantidadRecarga, setCantidadRecarga] = useState('');
   const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
@@ -36,7 +35,6 @@ function DashboardPage() {
         ]);
         
         setServiciosDB(respuestaServicios.data);
-        setServiciosInternos(respuestaServicios.data.filter(s => !s.es_externo));
         
         const deUsuarioYActivas = respuestaOfertas.data.filter(oferta => 
           oferta.usuario === usuario?.id && oferta.estado === 'ACTIVO'
@@ -103,7 +101,7 @@ function DashboardPage() {
               {usuario?.nombre} - Saldo Disponible
             </h2>
             <h1 className="text-5xl md:text-6xl font-black tracking-[-2.5px] text-[#102033]">
-              {usuario?.litros_disponibles || 0} L
+              {usuario?.litros_disponibles.toFixed(1) || 0} L
             </h1>
             <p className="text-xs font-semibold text-[#5d6f82] mt-4">Equivalente en litros y horas técnicas</p>
           </div>
@@ -155,7 +153,7 @@ function DashboardPage() {
         isOpen={isModalCrearOpen}
         onClose={() => setIsModalCrearOpen(false)}
         onSuccess={handleOfertaCreada}
-        serviciosDB={serviciosInternos}
+        serviciosDB={serviciosDB}
         usuario={usuario}
       />
 
@@ -164,7 +162,7 @@ function DashboardPage() {
         oferta={ofertaParaGestionar}
         onClose={() => setOfertaParaGestionar(null)}
         onSuccess={handleOfertaActualizada}
-        serviciosDB={serviciosInternos}
+        serviciosDB={serviciosDB}
         usuario={usuario}
       />
 

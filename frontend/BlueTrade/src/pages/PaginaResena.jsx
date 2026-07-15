@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { crearResena } from '../api/item.api';
+import Alerta from '../components/alerta'; 
 import '../styles/PaginaResena.css'; 
 
 // Componente interno para renderizar las estrellas SVG de forma limpia
@@ -24,17 +25,25 @@ function PaginaResena() {
     const [calificacion, setCalificacion] = useState(5);
     const [comentario, setComentario] = useState('');
     const [cargando, setCargando] = useState(false);
+    const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setCargando(true);
         try {
             await crearResena({ transaccion: idTransaccion, calificacion, comentario });
-            alert("¡Tu valoración ha sido enviada con éxito!");
-            navigate('/transacciones');
+            setAlerta({
+                mostrar: true,
+                mensaje: "¡Tu valoración ha sido enviada con éxito!",
+                tipo: "true"
+            });
         } catch (error) {
             console.error("Error al enviar la reseña:", error);
-            alert("No se pudo procesar la reseña. Por favor, verifica el estado de la transacción.");
+            setAlerta({
+                mostrar: true,
+                mensaje: "No se pudo procesar la reseña. Por favor, verifica el estado de la transacción.",
+                tipo: "error"
+            });
         } finally {
             setCargando(false);
         }
@@ -44,7 +53,13 @@ function PaginaResena() {
         <div className="resena-container">
             {/* Elemento de fondo difuminado imitando tu LoginPage */}
             <div className="login-background" style={{ top: '-100px', left: '-100px', right: 'auto' }}></div>
-            
+            {alerta.mostrar && (
+                <Alerta 
+                mensaje={alerta.mensaje} 
+                tipo={alerta.tipo} 
+                onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+                />
+            )}
             <div className="resena-card">
                 <h2>Califica tu Experiencia</h2>
                 <p className="resena-subtitle">

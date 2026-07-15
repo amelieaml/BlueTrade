@@ -1,6 +1,7 @@
 // pages/Solicitudes.jsx
 import { useState, useEffect } from 'react';
 import NavbarDashboard from '../components/NavbarDashboard';
+import alerta from '../components/alerta'; 
 
 const SOLICITUDES_MOCK = [
   {
@@ -43,6 +44,7 @@ function SolicitudesPage() {
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedSolicitudId, setSelectedSolicitudId] = useState(null);
   const [comentarioCorreccion, setComentarioCorreccion] = useState('');
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
   // Efecto para disparar la animación cada vez que cambia el filtro
   useEffect(() => {
@@ -53,7 +55,11 @@ function SolicitudesPage() {
 
   function handleAccionDirecta(id, tipo) {
     console.log(`Acción ${tipo} procesada para la solicitud ${id}`);
-    alert(`Solicitud ${id}: Cambiada a estado [${tipo.toUpperCase()}]`);
+    setAlerta({
+          mostrar: true,
+          mensaje: `Solicitud ${id}: Cambiada a estado [${tipo.toUpperCase()}]`,
+          tipo: "error"
+        });
   }
 
   function handleAbrirCorreccion(id) {
@@ -64,7 +70,11 @@ function SolicitudesPage() {
 
   const handleEnviarCorreccion = (e) => {
     e.preventDefault();
-    alert(`Corrección enviada para la solicitud ${selectedSolicitudId} con éxito.`);
+    setAlerta({
+      mostrar: true,
+      mensaje: `Corrección enviada para la solicitud ${selectedSolicitudId} con éxito.`,
+      tipo: "error"
+    });
     setIsCommentModalOpen(false);
     setSelectedSolicitudId(null);
     setComentarioCorreccion('');
@@ -80,6 +90,13 @@ function SolicitudesPage() {
     <div className="min-h-screen bg-[#f7fbff] bg-[radial-gradient(circle_at_top_left,rgba(0,120,255,0.18),transparent_35%),linear-gradient(135deg,#f7fbff_0%,#eef6ff_45%,#ffffff_100%)] text-[#102033] font-sans pb-20 relative overflow-x-hidden">
       
       <NavbarDashboard paginaActiva="solicitudes" />
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
 
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12 pt-10 relative z-10">
         

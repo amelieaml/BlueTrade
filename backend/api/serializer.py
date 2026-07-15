@@ -210,6 +210,9 @@ class NotificacionSerializer(serializers.ModelSerializer):
             'TRANS_COMPLETADA': f"¡Éxito! La transacción #{t_id} se ha completado.",
             'TRANS_CANCELADA': f"La transacción #{t_id} ha sido cancelada.",
             'NUEVO_USUARIO_PENDIENTE': f"{data.get('nombre_usuario')} ha solicitado acceso y espera validación.",
+            'PERFIL_APROBADO': data.get('mensaje', "¡Tu perfil ha sido aprobado con éxito!"),
+            'NUEVO_COBRO_COMUNAL': f"Nuevo Cobro Comunal por '{data.get('motivo')}'. Tu alícuota correspondiente es de ${data.get('monto_cuota')}.",
+            'NUEVA_RESENA': f"{data.get('nombre_usuario', 'Un usuario')} te ha dejado una reseña de {data.get('calificacion')}★: \"{data.get('comentario')}\""
         }
         
         return mensajes.get(obj.tipo, "Tienes una nueva actualización.")

@@ -5,6 +5,7 @@ import NavbarDashboard from '../components/NavbarDashboard';
 import { guardarCertificado, getServicios, getResenasUsuario, getUsuario, obtenerCobrosComunales } from '../api/item.api'; 
 import { useParams } from 'react-router-dom'; 
 import '../styles/PerfilUsuario.css'; 
+import Alerta from '../components/alerta';
 
 function PerfilUsuario() {
   const { usuario: usuarioLogueado } = useContext(AuthContext);
@@ -29,6 +30,7 @@ function PerfilUsuario() {
   const [cargandoResenas, setCargandoResenas] = useState(true);
   const [cargandoCobros, setCargandoCobros] = useState(true);
   const [certificadoSeleccionado, setCertificadoSeleccionado] = useState(null);
+  const [alerta, setAlerta] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
   useEffect(() => {
     let componenteActivo = true;
@@ -270,7 +272,11 @@ function PerfilUsuario() {
     e.preventDefault();
 
     if (!archivo || !tipoServicio || !usuario?.id) {
-      alert("Selecciona una especialidad y un archivo.");
+      setAlerta({
+          mostrar: true,
+          mensaje: "Selecciona una especialidad y un archivo.",
+          tipo: "error"
+        });
       return;
     }
 
@@ -285,8 +291,11 @@ function PerfilUsuario() {
 
       const responseUsuario = await getUsuario(usuario.id);
       setUsuario(responseUsuario.data);
-
-      alert("Certificado enviado a revisión con éxito.");
+      setAlerta({
+          mostrar: true,
+          mensaje: "Certificado enviado a revisión con éxito.",
+          tipo: "success"
+        });
 
       setArchivo(null);
       setTipoServicio("");
@@ -295,8 +304,11 @@ function PerfilUsuario() {
         "Error al procesar el certificado:",
         error.response?.data || error
       );
-
-      alert("Error al subir el documento. Revisa la consola.");
+      setAlerta({
+          mostrar: true,
+          mensaje: "Error al subir el documento. Revisa la consola.",
+          tipo: "error"
+        });
     } finally {
       setCargando(false);
     }
@@ -411,7 +423,13 @@ function PerfilUsuario() {
   return (
     <div className="perfil-main-container">
       <NavbarDashboard paginaActiva="perfil" />
-
+      {alerta.mostrar && (
+        <Alerta 
+          mensaje={alerta.mensaje} 
+          tipo={alerta.tipo} 
+          onClose={() => setAlerta(prev => ({ ...prev, mostrar: false }))} 
+        />
+      )}
       <div className="perfil-wrapper">
         <div className="perfil-card-central">
           
