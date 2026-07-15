@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import '../styles/RegisterPage.css';
-import { registrarUsuario, guardarCertificado, getServicios, registrarUsuarioCompleto } from '../api/item.api.js';
+import {
+  guardarCertificado,
+  getServicios,
+  registrarUsuarioCompleto
+} from '../api/item.api.js';
 import { useNavigate } from 'react-router-dom';
 import Alerta from '../components/alerta';
 
@@ -110,7 +114,7 @@ function RegisterPage() {
     const telefonoCompleto = `${formData.prefijo}${formData.telefono}`;
 
     const nuevoUsuario = {
-      ci: parseInt(formData.cedula),
+      ci: parseInt(formData.cedula, 10),
       nombre: formData.nombre,
       email: formData.email.toLowerCase(), 
       telefono: telefonoCompleto,
@@ -118,13 +122,18 @@ function RegisterPage() {
       intencion_servicio: intencionServicio,
       tipo_servicio_intencion: tipoServicioIntencion || null,
       password: formData.password,
-      codigo_casa: formData.propiedad,
-      certificado: intencionServicio 
+      codigo_casa: formData.propiedad
     };
     
     try {
       const respuesta = await registrarUsuarioCompleto(nuevoUsuario);
       const idUsuario = respuesta.data.id; 
+
+      if (!idUsuario) {
+        throw new Error(
+          "El backend creó el usuario, pero no devolvió su ID."
+        );
+      }
 
       if (intencionServicio && tipoServicioIntencion) {
         

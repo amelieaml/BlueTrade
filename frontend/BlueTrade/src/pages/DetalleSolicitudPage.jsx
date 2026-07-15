@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { getUsuario } from "../api/item.api";
 import "../styles/DetalleSolicitudPage.css";
+
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -16,41 +18,42 @@ function DetalleSolicitudPage() {
   const [mensajeAccion, setMensajeAccion] = useState("");
 
   useEffect(() => {
-    if (usuario) {
-      return;
-    }
-    /*Esto deberia ir en el item api --- */
-    const cargarUsuario = async () => {
+    let componenteActivo = true;
+
+    const cargarUsuarioCompleto = async () => {
       try {
-        const respuesta = await fetch(
-          `${API_BASE_URL}/item/test/usuarios/listar-admin/`
-        );
+        setCargando(true);
+        setError("");
 
-        if (!respuesta.ok) {
-          throw new Error("No se pudo obtener el usuario");
+        const respuesta = await getUsuario(id);
+
+        if (componenteActivo) {
+          setUsuario(respuesta.data);
         }
-
-        const data = await respuesta.json();
-
-        const usuarioEncontrado = data.find(
-          (item) => String(item.id) === String(id)
-        );
-
-        if (!usuarioEncontrado) {
-          throw new Error("Usuario no encontrado");
-        }
-
-        setUsuario(usuarioEncontrado);
       } catch (error) {
-        console.error("Error al obtener detalle del usuario:", error);
-        setError("No se pudo cargar el detalle de la solicitud.");
+        console.error(
+          "Error al obtener detalle completo del usuario:",
+          error
+        );
+
+        if (componenteActivo) {
+          setError(
+            "No se pudo cargar el detalle de la solicitud."
+          );
+        }
       } finally {
-        setCargando(false);
+        if (componenteActivo) {
+          setCargando(false);
+        }
       }
     };
 
-    cargarUsuario();
-  }, [id, usuario]);
+    cargarUsuarioCompleto();
+
+    return () => {
+      componenteActivo = false;
+    };
+  }, [id]);
 
   const volverSolicitudes = () => {
     navigate("/admin/usuarios");
@@ -155,42 +158,59 @@ function DetalleSolicitudPage() {
     return "Sin intención registrada";
   };
 
-  const obtenerCertificadoUrl = () => {
-    if (!usuario) return null;
+  const obtenerCertificadosUsuario = () => {
+  if (!usuario) return [];
 
-    /*
-      Recomendado desde backend:
-      usuario.certificado_url = "http://127.0.0.1:8000/media/certificados/archivo.jpg"
+  return Array.isArray(usuario.certificados)
+    ? usuario.certificados
+    : [];
+};
 
-      También se dejan otras opciones por si tu backend devuelve:
-      usuario.certificado
-      usuario.certificado.imagen
-      usuario.certificado.archivo
-      usuario.certificado.url
-    */
-    const certificado =
-      usuario.certificado_url ||
-      usuario.certificado?.imagen ||
-      usuario.certificado?.archivo ||
-      usuario.certificado?.url ||
-      usuario.certificado;
+const obtenerCertificadoPrincipal = () => {
+  const certificados = obtenerCertificadosUsuario();
 
-    if (!certificado || certificado === true) {
-      return null;
-    }
+  return certificados.length > 0
+    ? certificados[0]
+    : null;
+};
 
-    if (typeof certificado !== "string") {
-      return null;
-    }
+const obtenerCertificadoUrl = () => {
+  if (!usuario) return null;
 
-    if (certificado.startsWith("http://") || certificado.startsWith("https://")) {
-      return certificado;
-    }
+  const certificadoPrincipal =
+    obtenerCertificadoPrincipal();
 
-    return `${API_BASE_URL}${certificado}`;
-  };
+  const archivo =
+    certificadoPrincipal?.archivo_url ||
+    certificadoPrincipal?.archivo ||
+    usuario.certificado_url;
 
-  const certificadoUrl = obtenerCertificadoUrl();
+  if (!archivo || typeof archivo !== "string") {
+    return null;
+  }
+
+  if (
+    archivo.startsWith("http://") ||
+    archivo.startsWith("https://")
+  ) {
+    return archivo;
+  }
+
+  return `${API_BASE_URL}${archivo}`;
+};
+
+  const certificadosUsuario = obtenerCertificadosUsuario();
+
+  const certificadoPrincipal =
+    obtenerCertificadoPrincipal();
+
+  const certificadoUrl =
+    obtenerCertificadoUrl();
+
+  const tieneCertificado =
+    usuario?.certificado === true ||
+    certificadosUsuario.length > 0 ||
+    Boolean(certificadoUrl);
 
   if (cargando) {
     return (
@@ -335,15 +355,17 @@ function DetalleSolicitudPage() {
             <div className="dato-item">
               <span>Tipo de servicio</span>
               <strong>
-                {usuario.tipo_servicio_intencion
-                  ? usuario.tipo_servicio_intencion
-                  : "No aplica"}
+                {certificadoPrincipal?.nombre_servicio ||
+                  usuario.tipo_servicio_intencion ||
+                  "No aplica"}
               </strong>
             </div>
 
             <div className="dato-item">
               <span>Certificado</span>
-              <strong>{certificadoUrl ? "Cargado" : "No cargado"}</strong>
+              <strong>
+                {tieneCertificado ? "Cargado" : "No cargado"}
+              </strong>
             </div>
           </div>
 
@@ -364,6 +386,11 @@ function DetalleSolicitudPage() {
                 Ver certificado en tamaño completo
               </a>
             </div>
+          ) : tieneCertificado ? (
+            <p className="certificado-vacio">
+              El certificado está registrado, pero no se pudo obtener
+              la URL del archivo.
+            </p>
           ) : (
             <p className="certificado-vacio">
               Este usuario no ha cargado ningún certificado.
