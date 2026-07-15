@@ -212,7 +212,8 @@ class NotificacionSerializer(serializers.ModelSerializer):
             'NUEVO_USUARIO_PENDIENTE': f"{data.get('nombre_usuario')} ha solicitado acceso y espera validación.",
             'PERFIL_APROBADO': data.get('mensaje', "¡Tu perfil ha sido aprobado con éxito!"),
             'NUEVO_COBRO_COMUNAL': f"Nuevo Cobro Comunal por '{data.get('motivo')}'. Tu alícuota correspondiente es de ${data.get('monto_cuota')}.",
-            'NUEVA_RESENA': f"{data.get('nombre_usuario', 'Un usuario')} te ha dejado una reseña de {data.get('calificacion')}★: \"{data.get('comentario')}\""
+            'NUEVA_RESENA': f"{data.get('nombre_usuario', 'Un usuario')} te ha dejado una reseña de {data.get('calificacion')}★: \"{data.get('comentario')}\"",
+            'REVISION_PENDIENTE': data.get('mensaje', 'El administrador ha solicitado correcciones en tu perfil.')
         }
         
         return mensajes.get(obj.tipo, "Tienes una nueva actualización.")
