@@ -68,8 +68,9 @@ function ModalDetalleOferta({
       const servicioSolicitado = serviciosDB?.find(s => s.nombre === oferta.categoria_solicitada);
 
       if (servicioSolicitado?.necesita_certificado) {
+        console.log("ID Necesario:", servicioSolicitado.id, "Certificados que tengo:", certificadosUsuario);
         const tieneCertificado = certificadosUsuario?.some(
-          cert => cert.tipo_servicio === servicioSolicitado.id
+          cert => String(cert.tipo_servicio) === String(servicioSolicitado.id)
         );
 
         if (!tieneCertificado) {

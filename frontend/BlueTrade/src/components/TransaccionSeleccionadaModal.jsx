@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 // --- ICONOS ---
 const IconoCross = ({ className = "w-4 h-4" }) => (
@@ -39,59 +39,14 @@ const IconoConfirmacion = ({ className = "w-5 h-5" }) => (
 );
 
 function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiva, usuario, onConfirmar, onCancelar }) {
-  // 1. Estados para manejar la carga de la oferta específica
-  const [detalleOferta, setDetalleOferta] = useState(null);
-  const [cargandoOferta, setCargandoOferta] = useState(false);
-  const [errorOferta, setErrorOferta] = useState(false); // <-- Nuevo estado para errores
-
-  // 2. Efecto que se dispara al abrir el modal para buscar el ID en tu API
-  useEffect(() => {
-    const obtenerDetallesOferta = async () => {
-      if (!isOpen || !transaccion?.oferta) return;
-      
-      setCargandoOferta(true);
-      setErrorOferta(false); // Reiniciamos el error al intentar cargar
-      
-      try {
-        const token = localStorage.getItem('token');
-        const urlOferta = `http://127.0.0.1:8000/item/test/ofertas/${transaccion.oferta}/`;
-        
-        const response = await fetch(urlOferta, {
-          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setDetalleOferta(data);
-        } else {
-          console.error("Error al obtener la oferta, status:", response.status);
-          setErrorOferta(true); // Marcamos que hubo un error (como un 404)
-        }
-      } catch (error) {
-        console.error("Error de red al cargar la oferta:", error);
-        setErrorOferta(true); // Marcamos error si falla la red
-      } finally {
-        setCargandoOferta(false);
-      }
-    };
-
-    obtenerDetallesOferta();
-
-    if (!isOpen) {
-        setDetalleOferta(null);
-        setErrorOferta(false);
-    }
-  }, [isOpen, transaccion]);
-
   if (!isOpen || !transaccion) return null;
 
-  // 3. Lógica de roles
+  // 1. Lógica de roles
   const confirmoYo = vistaActiva === 'compras' ? transaccion.confirmacion_comprador : transaccion.confirmacion_vendedor;
   const confirmoContraparte = vistaActiva === 'compras' ? transaccion.confirmacion_vendedor : transaccion.confirmacion_comprador;
   const miRol = vistaActiva === 'compras' ? 'Comprador' : 'Vendedor';
-  const contraparteRol = vistaActiva === 'compras' ? 'Vendedor' : 'Comprador';
 
-  // 4. Configuración de colores e íconos
+  // 2. Configuración de colores e íconos
   const config = {
     AGUA: {
       color: '#5b8cff',
@@ -107,45 +62,41 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
     }
   };
 
-  // 5. Lógica cruzada para determinar qué recibo y qué entrego según mi rol
-  let miReceptor = null;
-  let miEntrega = null;
-  
-  if (detalleOferta) {
-    if (miRol === 'Comprador') {
-      miReceptor = { 
-        tipo: detalleOferta.tipo_ofrecido, 
-        cantidad: detalleOferta.cantidad_ofrecida, 
-        servicio: detalleOferta.categoria_ofrecida,
-        desc: detalleOferta.descripcion             
-      };
-      miEntrega = { 
-        tipo: detalleOferta.tipo_solicitado, 
-        cantidad: detalleOferta.cantidad_solicitada, 
-        servicio: detalleOferta.categoria_solicitada, 
-        desc: detalleOferta.descripcion 
-      };
-    } else {
-      miReceptor = { 
-        tipo: detalleOferta.tipo_solicitado, 
-        cantidad: detalleOferta.cantidad_solicitada, 
-        servicio: detalleOferta.categoria_solicitada, 
-        desc: detalleOferta.descripcion 
-      };
-      miEntrega = { 
-        tipo: detalleOferta.tipo_ofrecido, 
-        cantidad: detalleOferta.cantidad_ofrecida, 
-        servicio: detalleOferta.categoria_ofrecida, 
-        desc: detalleOferta.descripcion 
-      };
+  // 3. Extracción de datos directos desde la vista sin Request a la API
+  const resumen = transaccion.oferta_resumen || '';
+  const partes = resumen.split(' ⇄ ');
+  const detalleOfrecido = partes[0] || `Detalles de oferta #${transaccion.oferta}`;
+  const detalleSolicitado = partes[1] || 'Detalles no disponibles';
+
+  let textoReceptor = '';
+  let textoEntrega = '';
+
+  // El comprador recibe lo ofrecido y entrega lo solicitado. El vendedor al revés.
+  if (miRol === 'Comprador') {
+    textoReceptor = detalleOfrecido;
+    textoEntrega = detalleSolicitado;
+  } else {
+    textoReceptor = detalleSolicitado;
+    textoEntrega = detalleOfrecido;
+  }
+
+  // 4. Determinar los estilos basados en el texto (Agua vs Servicio)
+  const esAguaReceptor = textoReceptor.toLowerCase().includes('agua');
+  const esAguaEntrega = textoEntrega.toLowerCase().includes('agua');
+
+  const estiloReceptor = esAguaReceptor ? config.AGUA : config.SERVICIO;
+  const estiloEntrega = esAguaEntrega ? config.AGUA : config.SERVICIO;
+  const estiloConfirmacion = { color: '#ffb443', bg: 'bg-[#fffaf5]', border: 'border-[#ffb443]/20' };
+
+  // 5. Validación de litros extrayendo el número del texto si se entrega agua
+  let cantidadAguaEntregar = 0;
+  if (esAguaEntrega) {
+    const match = textoEntrega.match(/([\d.]+)/); // Busca el número en "40.0L de Agua"
+    if (match) {
+      cantidadAguaEntregar = parseFloat(match[1]);
     }
   }
-  
-  const estiloReceptor = miReceptor ? config[miReceptor.tipo?.toUpperCase() || 'AGUA'] : config.AGUA;
-  const estiloEntrega = miEntrega ? config[miEntrega.tipo?.toUpperCase() || 'SERVICIO'] : config.SERVICIO;
-  const estiloConfirmacion = { color: '#ffb443', bg: 'bg-[#fffaf5]', border: 'border-[#ffb443]/20' };
-  const entregoAgua = miEntrega && (miEntrega.tipo?.toUpperCase() === 'AGUA');
-  const litrosInsuficientes = entregoAgua && (miEntrega.cantidad > (usuario?.litros_disponibles || 0));
+  const litrosInsuficientes = esAguaEntrega && (cantidadAguaEntregar > (usuario?.litros_disponibles || 0));
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -165,7 +116,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
         <div className="p-8 sm:p-10">
           
-          {/* Cabecera del Modal */}
           <div className="flex items-center gap-4 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0066ff] to-[#00b8ff] text-white flex items-center justify-center text-xl font-black shadow-lg shadow-blue-500/20">
               Tx
@@ -182,72 +132,48 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
           </div>
 
           <div className="space-y-6">
-            
-            {/* Manejo de estados de carga, error y visualización */}
-            {cargandoOferta ? (
-              <div className="p-10 text-center bg-gray-50 rounded-[24px] border border-gray-100 animate-pulse">
-                <p className="text-gray-500 font-semibold m-0">Obteniendo detalles del intercambio...</p>
+            {/* Tarjeta: Lo que Recibes */}
+            <div className={`p-6 rounded-[24px] ${estiloReceptor.bg} border ${estiloReceptor.border}`}>
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloReceptor.color }}>
+                Recibirás
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center">
+                  {estiloReceptor.icono}
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-[#102033] m-0">
+                    {textoReceptor}
+                  </h3>
+                </div>
               </div>
-            ) : errorOferta || !detalleOferta ? (
-              <div className="p-10 text-center bg-rose-50 rounded-[24px] border border-rose-100">
-                <p className="text-rose-500 font-semibold m-0">No se pudo cargar la información de la oferta. Verifica si aún existe o intenta de nuevo más tarde.</p>
+            </div>
+
+            {/* Divisor con Flecha */}
+            <div className="flex justify-center -my-3 relative z-10">
+              <div className="w-12 h-12 rounded-full bg-white border-4 border-[#f7fbff] shadow-sm flex items-center justify-center text-blue-500 font-bold">
+                <IconoFlechaAbajo className="w-5 h-5" />
               </div>
-            ) : (
-              <>
-                {/* Tarjeta: Lo que Recibes */}
-                <div className={`p-6 rounded-[24px] ${estiloReceptor.bg} border ${estiloReceptor.border}`}>
-                  <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloReceptor.color }}>
-                    Recibirás
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center">
-                      {estiloReceptor.icono}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miReceptor.tipo?.toUpperCase() === 'AGUA' 
-                          ? `${(miReceptor.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miReceptor.cantidad || 0}h de ${miReceptor.servicio || 'Servicio'}`}
-                      </h3>
-                      <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-                        {miReceptor.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miReceptor.desc}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            </div>
 
-                {/* Divisor con Flecha */}
-                <div className="flex justify-center -my-3 relative z-10">
-                  <div className="w-12 h-12 rounded-full bg-white border-4 border-[#f7fbff] shadow-sm flex items-center justify-center text-blue-500 font-bold">
-                    <IconoFlechaAbajo className="w-5 h-5" />
-                  </div>
+            {/* Tarjeta: Lo que Entregas */}
+            <div className={`p-6 rounded-[24px] ${estiloEntrega.bg} border ${estiloEntrega.border}`}>
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloEntrega.color }}>
+                Entregarás
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center">
+                  {estiloEntrega.icono}
                 </div>
-
-                {/* Tarjeta: Lo que Entregas */}
-                <div className={`p-6 rounded-[24px] ${estiloEntrega.bg} border ${estiloEntrega.border}`}>
-                  <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloEntrega.color }}>
-                    Entregarás
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center">
-                      {estiloEntrega.icono}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-extrabold text-[#102033] m-0">
-                        {miEntrega.tipo?.toUpperCase() === 'AGUA' 
-                          ? `${(miEntrega.cantidad || 0).toLocaleString()} Litros de Agua` 
-                          : `${miEntrega.cantidad || 0}h de ${miEntrega.servicio || 'Servicio'}`}
-                      </h3>
-                      <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-                        {miEntrega.tipo?.toUpperCase() === 'AGUA' ? 'Agua' : miEntrega.desc}
-                      </p>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-[#102033] m-0">
+                    {textoEntrega}
+                  </h3>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
 
-            {/* Bloque Inferior: Confirmaciones (Roles Resaltados) */}
+            {/* Bloque Inferior: Confirmaciones */}
             <div className={`p-6 rounded-[24px] ${estiloConfirmacion.bg} border ${estiloConfirmacion.border}`}>
               <span className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 block" style={{ color: estiloConfirmacion.color }}>
                 Estado de Confirmaciones
@@ -257,14 +183,11 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                   <IconoConfirmacion className="w-8 h-8 text-[#ffb443]" />
                 </div>
                 <div className="flex-1">
-                  
                   <div className="flex justify-between items-center w-full max-w-sm mt-1">
                     
                     {/* Sección: Tú */}
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
-                        Tú
-                      </span>
+                      <span className="text-sm font-bold text-[#102033] flex items-center gap-2">Tú</span>
                       {confirmoYo ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
                           <IconoCheck className="w-3.5 h-3.5"/> Confirmado
@@ -280,9 +203,7 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     
                     {/* Sección: Contraparte */}
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-sm font-bold text-[#102033] flex items-center gap-2">
-                        Contraparte
-                      </span>
+                      <span className="text-sm font-bold text-[#102033] flex items-center gap-2">Contraparte</span>
                       {confirmoContraparte ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1.5 text-sm bg-emerald-50 px-2.5 py-1 rounded-lg">
                           <IconoCheck className="w-3.5 h-3.5"/> Confirmado
@@ -295,7 +216,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                     </div>
 
                   </div>
-
                 </div>
               </div>
             </div>
@@ -311,8 +231,7 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
 
                 return (
                   <>
-                    {/* Solo puedes cancelar si eres quien entrega agua Y si aún NO has confirmado */}
-                    {entregoAgua && !yaConfirmeYo && (
+                    {esAguaEntrega && !yaConfirmeYo && (
                       <button 
                         onClick={() => onCancelar(transaccion.id)}
                         className="flex-1 px-6 py-4 border border-rose-200 text-rose-600 bg-rose-50 font-bold rounded-2xl hover:bg-rose-100 transition-all cursor-pointer"
@@ -321,14 +240,13 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
                       </button>
                     )}
 
-                    {/* El botón de confirmar cambia de estado si ya confirmaste o si hubo error al cargar la oferta */}
                     <button 
                       onClick={() => onConfirmar(transaccion.id)}
-                      disabled={litrosInsuficientes || yaConfirmeYo || errorOferta}
+                      disabled={litrosInsuficientes || yaConfirmeYo}
                       className={`flex-[2] px-6 py-4 font-bold rounded-2xl transition-all ${
                         yaConfirmeYo
                           ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-not-allowed'
-                          : litrosInsuficientes || errorOferta
+                          : litrosInsuficientes
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                             : 'bg-gradient-to-r from-[#0066ff] to-[#00b8ff] text-white shadow-[0_12px_28px_rgba(0,102,255,0.25)] hover:shadow-[0_12px_35px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 cursor-pointer'
                       }`}
@@ -340,7 +258,6 @@ function TransaccionSeleccionadaModal({ transaccion, isOpen, onClose, vistaActiv
               })()}
             </div>
           ) : (
-            /* Mensaje o espacio alternativo cuando la transacción ya finalizó */
             <div className="mt-10 text-center py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-medium text-sm">
               Esta transacción ha finalizado y se encuentra en modo de solo lectura.
             </div>

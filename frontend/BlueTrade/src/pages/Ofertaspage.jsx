@@ -5,7 +5,8 @@ import {
   getServicios, 
   iniciarTransaccion, 
   actualizarOferta,
-  getOfertasCompletadas
+  getOfertasCompletadas,
+  obtenerCertificadosUsuario
 } from '../api/item.api';
 
 import NavbarDashboard from '../components/NavbarDashboard';
@@ -57,9 +58,11 @@ function OfertasPage() {
       try {
         setCargandoOfertas(true);
 
-        const [resOfertas, resServicios] = await Promise.all([
+        // MODIFICACIÓN 1: Agrega resCertificados y la llamada a la API
+        const [resOfertas, resServicios, resCertificados] = await Promise.all([
           getOfertas(usuarioId),
-          getServicios()
+          getServicios(),
+          obtenerCertificadosUsuario(usuarioId) // <--- NUEVA LLAMADA
         ]);
 
         if (!componenteActivo) return;
@@ -67,6 +70,10 @@ function OfertasPage() {
         setOfertas(resOfertas.data);
         setServiciosDB(resServicios.data);
         setServiciosInternos(resServicios.data.filter(s => !s.es_externo));
+        
+        // MODIFICACIÓN 2: Guarda los certificados en el estado
+        setCertificadosUsuario(resCertificados.data); // <--- GUARDAR DATOS AQUÍ
+
       } catch (error) {
         console.error("Error al cargar datos:", error);
 
