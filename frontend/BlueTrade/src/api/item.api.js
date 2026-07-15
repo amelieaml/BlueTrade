@@ -71,17 +71,34 @@ export const guardarCertificado = async (
     tipoServicio,
     archivoCertificado
 ) => {
+    if (!idUsuario || idUsuario === 'undefined') {
+        throw new Error(
+            'No se recibió un ID de usuario válido para guardar el certificado.'
+        );
+    }
+
+    if (!tipoServicio) {
+        throw new Error(
+            'No se recibió un tipo de servicio válido.'
+        );
+    }
+
+    if (!archivoCertificado) {
+        throw new Error(
+            'No se seleccionó ningún certificado.'
+        );
+    }
+
     const formData = new FormData();
 
-    formData.append('usuario', idUsuario);
-    formData.append('tipo_servicio', tipoServicio);
+    formData.append('usuario', String(idUsuario));
+    formData.append('tipo_servicio', String(tipoServicio));
     formData.append('archivo', archivoCertificado);
 
-    const urlCertificados =
-        'http://127.0.0.1:8000/item/test/certificados/';
-
-    return axios.post(urlCertificados, formData, {
-    });
+    return axios.post(
+        'http://127.0.0.1:8000/item/test/certificados/',
+        formData
+    );
 };
 
 export const loginUsuario = async (credenciales) => {

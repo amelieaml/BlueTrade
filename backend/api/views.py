@@ -75,7 +75,23 @@ class UsuarioView(viewsets.ModelViewSet):
                 ci=usuario_serializer.validated_data['ci'],
                 email=usuario_serializer.validated_data['email'],
                 telefono=usuario_serializer.validated_data['telefono'],
-                codigo_casa=usuario_serializer.validated_data['codigo_casa']
+                codigo_casa=usuario_serializer.validated_data['codigo_casa'],
+
+                intencion_agua=usuario_serializer.validated_data.get(
+                    'intencion_agua',
+                    False
+                ),
+
+                intencion_servicio=usuario_serializer.validated_data.get(
+                    'intencion_servicio',
+                    False
+                ),
+
+                tipo_servicio_intencion=usuario_serializer.validated_data.get(
+                    'tipo_servicio_intencion'
+                ),
+
+                certificado=False
             )
             
             nuevo_usuario.set_password(request.data.get('password'))
@@ -86,7 +102,13 @@ class UsuarioView(viewsets.ModelViewSet):
             residencia.ocupada = True
             residencia.save()
 
-            return Response({"message": "Usuario registrado exitosamente"}, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "message": "Usuario registrado exitosamente",
+                    "id": nuevo_usuario.id
+                },
+                status=status.HTTP_201_CREATED
+            )
         
         return Response(usuario_serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
     
@@ -114,6 +136,11 @@ class UsuarioView(viewsets.ModelViewSet):
                 archivo=archivo_fisico
             )
             nuevo_certificado.save() 
+
+            usuario_instancia.certificado = True
+            usuario_instancia.save(
+                update_fields=['certificado']
+            )
 
             return Response({"message": "Certificado guardado con éxito", "id": nuevo_certificado.id}, status=status.HTTP_201_CREATED)
 
@@ -292,8 +319,41 @@ class DirectorioServicioViewSet(viewsets.ModelViewSet):
 
 class CertificadoView(viewsets.ModelViewSet):
     serializer_class = CertificadoSerializer
-    queryset = Certificado.objects.all()
-    parser_classes = (MultiPartParser, FormParser)
+    queryset = Certificado.objects.select_related(
+        'usuario',
+        'tipo_servicio'
+    ).all()
+
+    parser_classes = (
+        MultiPartParser,
+        FormParser
+    )
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        certificado = serializer.save()
+
+        Usuario.objects.filter(
+            pk=certificado.usuario_id
+        ).update(
+            certificado=True
+        )
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        usuario_id = instance.usuario_id
+
+        instance.delete()
+
+        usuario_tiene_certificados = Certificado.objects.filter(
+            usuario_id=usuario_id
+        ).exists()
+
+        Usuario.objects.filter(
+            pk=usuario_id
+        ).update(
+            certificado=usuario_tiene_certificados
+        )
 
 
 class OfertaView(viewsets.ModelViewSet):
